@@ -1,0 +1,162 @@
+﻿@page "/dashboard"
+@attribute [Authorize]
+@using HelpDeskSystem.Web.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization  @* <--- AGREGA ESTA LÍNEA *@
+@inject DashboardService ServicioDashboard
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    @* TÍTULO INTELIGENTE: Cambia según quién lo mira *@
+    <h1 class="h2">
+        @if (rolActual == "Administrador")
+        {
+            <span>Vista Global del Sistema</span>
+        }
+        else if (rolActual == "Asesor")
+        {
+
+            <span>Mi Rendimiento (Asesor)</span>
+        }
+        else
+        {
+
+            <span>Resumen de Mis Tickets</span>
+        }
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary">Compartir</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary">Exportar</button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+            <span data-feather="calendar"></span>
+            Esta semana
+        </button>
+    </div>
+</div>
+
+@if (metricas == null)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+    </div>
+}
+else
+{
+    <div class="row">
+        @* Tarjeta 1: Total *@
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3 shadow-sm">
+                <div class="card-header">
+                    @(rolActual == "Administrador" ? "Total Tickets Global" : "Total Mis Tickets")
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="bi bi-ticket-perforated fs-1"></i>
+                        <span class="display-4 fw-bold">@metricas.TotalTickets</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Tarjeta 2: Resueltos *@
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3 shadow-sm">
+                <div class="card-header">Resueltos</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="bi bi-check-square fs-1"></i>
+                        <span class="display-4 fw-bold">@metricas.Resueltos</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Tarjeta 3: Pendientes *@
+        <div class="col-md-3">
+            <div class="card text-dark bg-warning mb-3 shadow-sm">
+                <div class="card-header">Pendientes</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="bi bi-hourglass-split fs-1"></i>
+                        <span class="display-4 fw-bold">@metricas.Pendientes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Tarjeta 4: Satisfacción *@
+        <div class="col-md-3">
+            <div class="card text-white bg-info mb-3 shadow-sm">
+                <div class="card-header">
+                    @(rolActual == "Usuario" ? "Mi Satisfacción" : "Calificación Promedio")
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="bi bi-star-half fs-1"></i>
+                        <span class="display-4 fw-bold">@metricas.PromedioSatisfaccion.ToString("0.0")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* MENSAJE DE BIENVENIDA PERSONALIZADO *@
+    <div class="alert alert-light mt-4 border-start border-5 border-primary">
+        <h4 class="alert-heading">¡Bienvenido/a, @nombreUsuario!</h4>
+        <p>
+            @if (rolActual == "Administrador")
+            {
+                <span>Tienes el control total del sistema.</span>
+            }
+            else if (rolActual == "Asesor")
+            {
+
+                <span>Recuerda revisar tus tickets pendientes prioritarios.</span>
+            }
+            else
+            {
+
+                <span>Aquí puedes ver el estado de tus solicitudes de soporte y crear nuevas si lo necesitas.</span>
+            }
+        </p>
+    </div>
+}
+
+@code {
+    private DashboardDto? metricas;
+    private string rolActual = "";
+    private string nombreUsuario = "";
+    private Guid usuarioId = Guid.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Obtener quién está conectado
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            nombreUsuario = user.Identity.Name ?? "";
+
+            // Obtener Rol
+            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Usuario";
+
+            // Obtener ID
+            var idClaim = user.FindFirst(ClaimTypes.Sid)
+                          ?? user.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId))
+            {
+                usuarioId = parsedId;
+            }
+
+            // 2. Llamar al servicio CON los datos del usuario para que filtre
+            // IMPORTANTE: Asegúrate que tu DashboardService.cs ya tenga el cambio que hicimos antes
+            metricas = await ServicioDashboard.ObtenerMetricasAsync(usuarioId, rolActual);
+        }
+    }
+}

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="HelpDeskSystem.ConsoleTest/HelpDeskSystem.ConsoleTest.csproj" Id="be1fc81d-3ec0-4c7e-92ec-3c0d25bd2649" />
+  <Project Path="HelpDeskSystem.Data/HelpDeskSystem.Data.csproj" Id="90148840-2703-4e6e-b5f0-155bc0f6300d" />
+  <Project Path="HelpDeskSystem.Domain/HelpDeskSystem.Domain.csproj" Id="4ab36643-36fc-4190-9c5c-010582fa8a6f" />
+  <Project Path="HelpDeskSystem.Web/HelpDeskSystem.Web.csproj" Id="7d6e9214-a92d-4f78-bdc4-44cfa821ff0f" />
+</Solution>

@@ -1,0 +1,80 @@
+﻿@page "/login"
+@attribute [AllowAnonymous]
+@using HelpDeskSystem.Data
+@using HelpDeskSystem.Web.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Context
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navegacion
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3><i class="bi bi-shield-lock"></i> Iniciar Sesión</h3>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(mensajeError))
+                    {
+                        <div class="alert alert-danger text-center">
+                            <i class="bi bi-exclamation-circle-fill"></i> @mensajeError
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input class="form-control" @bind="email" placeholder="ejemplo@helpdesk.com" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" @bind="password" placeholder="****" />
+                    </div>
+
+                    <button class="btn btn-primary w-100 py-2" @onclick="IniciarSesion">
+                        Ingresar al Sistema
+                    </button>
+                </div>
+                <div class="card-footer text-muted small bg-light">
+                    <p class="mb-1 fw-bold">Credenciales de prueba:</p>
+                    <ul class="mb-0">
+                        <li>admin@helpdesk.com (Pass: admin)</li>
+                        <li>juan@helpdesk.com (Pass: 1234)</li>
+                        <li>carla@cliente.com (Pass: 1234)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string mensajeError = string.Empty;
+    [Parameter] public string? returnUrl { get; set; }
+
+    private async Task IniciarSesion()
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            mensajeError = "Ingresa correo y contraseña.";
+            return;
+        }
+
+        var usuario = await Context.Usuarios
+            .FirstOrDefaultAsync(u => u.Email == email && u.Password == password && u.IsActive);
+
+        if (usuario == null)
+        {
+            mensajeError = "Usuario o contraseña incorrectos.";
+            return;
+        }
+
+        var authPersonalizada = (CustomAuthenticationStateProvider)AuthStateProvider;
+        await authPersonalizada.MarcarUsuarioComoAutenticado(usuario);
+        var destino = string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl}";
+        Navegacion.NavigateTo(destino);
+    }
+}

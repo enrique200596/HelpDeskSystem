@@ -1,0 +1,106 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using HelpDeskSystem.Web.Auth
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<div class="top-row ps-3 navbar navbar-dark bg-dark border-bottom border-secondary">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="">
+            <i class="bi bi-life-preserver fs-4 text-warning"></i>
+            <span class="fw-bold tracking-tight">Helpdesk UTEPSA</span>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column pt-2">
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="" Match="NavLinkMatch.All">
+                        <i class="bi bi-kanban-fill fs-5"></i>
+                        <span>Tablero de Tickets</span>
+                    </NavLink>
+                </div>
+
+                @if (context.User.IsInRole("Usuario"))
+                {
+                    <div class="nav-item px-3 mb-1">
+                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="nuevo-ticket">
+                            <i class="bi bi-plus-circle-fill fs-5 text-success"></i>
+                            <span>Nuevo Ticket</span>
+                        </NavLink>
+                    </div>
+                }
+
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="dashboard">
+                        <i class="bi bi-bar-chart-line-fill fs-5 text-info"></i>
+                        <span>Estadísticas</span>
+                    </NavLink>
+                </div>
+
+                @if (context.User.IsInRole("Administrador"))
+                {
+                    <div class="nav-item px-3 mb-1">
+                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="reportes">
+                            <i class="bi bi-pie-chart-fill fs-5 text-danger"></i>
+                            <span>Reportes Gerenciales</span>
+                        </NavLink>
+                    </div>
+                }
+
+                <div class="nav-item px-3 my-3">
+                    <hr class="text-secondary opacity-50" />
+                </div>
+
+                <div class="nav-item px-3">
+                    <button class="nav-link btn btn-link w-100 text-start d-flex align-items-center gap-3 rounded-2 text-danger-hover" @onclick="CerrarSesion">
+                        <i class="bi bi-box-arrow-left fs-5"></i>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="login">
+                        <i class="bi bi-box-arrow-in-right fs-5"></i>
+                        <span>Iniciar Sesión</span>
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </nav>
+</div>
+
+<style>
+    .nav-item .nav-link {
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+    }
+
+        .nav-item .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+    .text-danger-hover:hover {
+        color: #ff6b6b !important;
+    }
+
+    .navbar-brand {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+</style>
+
+@code {
+    private async Task CerrarSesion()
+    {
+        var auth = (CustomAuthenticationStateProvider)AuthStateProvider;
+        await auth.MarcarUsuarioComoDesconectado();
+        Navigation.NavigateTo("login", true);
+    }
+}

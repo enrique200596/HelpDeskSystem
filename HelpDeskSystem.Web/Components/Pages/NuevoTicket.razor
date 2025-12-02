@@ -1,0 +1,125 @@
+﻿@page "/nuevo-ticket"
+@attribute [Authorize(Roles = "Usuario")]
+@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using System.ComponentModel.DataAnnotations
+@inject TicketService ServicioTickets
+@inject NavigationManager Navegacion
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Crear Nuevo Ticket</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-plus-circle-fill me-2"></i>Crear Nuevo Ticket de Soporte</h4>
+                    <p class="mb-0 text-muted small">Completa el formulario para reportar un incidente.</p>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="nuevoTicketModel" OnValidSubmit="Guardar" FormName="nuevoTicketForm">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label fw-bold">Título del Problema</label>
+                            <InputText id="titulo" @bind-Value="nuevoTicketModel.Titulo" class="form-control" placeholder="Ej: Error al generar factura" />
+                            <ValidationMessage For="@(() => nuevoTicketModel.Titulo)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="categoria" class="form-label fw-bold">Categoría / Sistema Afectado</label>
+                            <InputSelect id="categoria" @bind-Value="nuevoTicketModel.CategoriaId" class="form-select">
+                                <option value="0">-- Seleccione una opción --</option>
+                                @foreach (var cat in listaCategorias)
+                                {
+                                    <option value="@cat.Id">@cat.Nombre</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => nuevoTicketModel.CategoriaId)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label fw-bold">Descripción Detallada</label>
+                            <InputTextArea id="descripcion" @bind-Value="nuevoTicketModel.Descripcion" class="form-control" rows="5" placeholder="Describe paso a paso lo que sucedió, adjunta códigos de error si los tienes..." />
+                            <ValidationMessage For="@(() => nuevoTicketModel.Descripcion)" />
+                        </div>
+
+                        <div class="mb-4 form-check bg-light p-3 rounded border">
+                            <InputCheckbox @bind-Value="nuevoTicketModel.EsUrgente" class="form-check-input" id="checkUrgente" />
+                            <label class="form-check-label fw-bold text-danger" for="checkUrgente">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Marcar como URGENTE
+                            </label>
+                            <div class="form-text mt-1">Solo marca esto si el problema detiene completamente tu trabajo y requiere atención inmediata.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="/" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-send-fill me-1"></i> Enviar Solicitud
+                            </button>
+                        </div>
+
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private NuevoTicketModel nuevoTicketModel = new();
+    private Guid usuarioActualId = Guid.Empty;
+    private List<Categoria> listaCategorias = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null) usuarioActualId = Guid.Parse(idClaim.Value);
+        }
+
+        listaCategorias = await ServicioTickets.ObtenerCategoriasAsync();
+    }
+
+    private async Task Guardar()
+    {
+        if (usuarioActualId == Guid.Empty) return;
+
+        var nuevoTicket = new Ticket
+        {
+            Titulo = nuevoTicketModel.Titulo,
+            Descripcion = nuevoTicketModel.Descripcion,
+            CategoriaId = nuevoTicketModel.CategoriaId,
+            EsUrgente = nuevoTicketModel.EsUrgente,
+            UsuarioId = usuarioActualId,
+            FechaCreacion = DateTime.Now,
+            Estado = HelpDeskSystem.Domain.Enums.EstadoTicket.Abierto
+        };
+
+        await ServicioTickets.GuardarTicketAsync(nuevoTicket);
+        Navegacion.NavigateTo("/");
+    }
+
+    public class NuevoTicketModel
+    {
+        [Required(ErrorMessage = "El título es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El título no puede exceder los 100 caracteres.")]
+        public string Titulo { get; set; } = "";
+
+        [Required(ErrorMessage = "La descripción es obligatoria.")]
+        [MinLength(10, ErrorMessage = "La descripción debe tener al menos 10 caracteres.")]
+        public string Descripcion { get; set; } = "";
+
+        [Range(1, int.MaxValue, ErrorMessage = "Debes seleccionar una categoría.")]
+        public int CategoriaId { get; set; }
+
+        public bool EsUrgente { get; set; }
+    }
+}

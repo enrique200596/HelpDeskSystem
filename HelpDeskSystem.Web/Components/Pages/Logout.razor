@@ -1,0 +1,24 @@
+@page "/logout"
+@attribute [Authorize]
+@using HelpDeskSystem.Web.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Cerrar Sesión</PageTitle>
+
+<div class="container mt-5 text-center">
+    <div class="alert alert-info shadow-sm">
+        <h5>Cerrando sesión...</h5>
+        <p>Gracias por usar el sistema.</p>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync() // <--- ASYNC TASK
+    {
+        var auth = (CustomAuthenticationStateProvider)AuthStateProvider;
+        await auth.MarcarUsuarioComoDesconectado(); // <--- AWAIT
+        Navigation.NavigateTo("login", true);
+    }
+}

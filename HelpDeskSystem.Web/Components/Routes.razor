@@ -1,0 +1,42 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using HelpDeskSystem.Web.Components
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated == true)
+                    {
+                        @* CASO A: ESTÁS LOGUEADO PERO NO TIENES EL ROL NECESARIO *@
+                        <div class="alert alert-danger m-4 shadow text-center">
+                            <h3><i class="bi bi-shield-lock-fill"></i> Acceso Denegado</h3>
+                            <p>Lo sentimos, <strong>@context.User.Identity.Name</strong>.</p>
+                            <p>No tienes permisos suficientes para ver esta página (Se requiere rol de Administrador).</p>
+                            <br />
+                            <p class="small text-muted">
+                                Tu rol actual es:
+                                <strong>@(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Ninguno")</strong>
+                            </p>
+                            <a href="/" class="btn btn-outline-danger mt-3">Volver al Inicio</a>
+                        </div>
+                    }
+                    else
+                    {
+                        @* CASO B: NO ESTÁS LOGUEADO -> AL LOGIN *@
+                        <RedirectToLogin />
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <PageTitle>No encontrado</PageTitle>
+            <LayoutView Layout="typeof(Layout.MainLayout)">
+                <div class="text-center mt-5">
+                    <h1>404</h1>
+                    <p>Lo sentimos, no hay nada en esta dirección.</p>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

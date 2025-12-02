@@ -1,0 +1,209 @@
+﻿@page "/reportes"
+@attribute [Authorize(Roles = "Administrador")]
+@using HelpDeskSystem.Web.Services
+@using HelpDeskSystem.Domain.Entities
+@using System.Text
+@inject ReportService ServicioReportes
+@inject UsuarioService ServicioUsuarios
+@inject IJSRuntime JS
+
+<PageTitle>Reportes de Gestión</PageTitle>
+
+<style>
+    @@media print {
+        .no-print, .sidebar, .navbar {
+            display: none !important;
+        }
+
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+        }
+
+        body {
+            background-color: white !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+
+    @* --- FILTROS --- *@
+    <div class="card mb-4 no-print border-0 shadow-sm bg-light">
+        <div class="card-body py-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Asesor</label>
+                    <select class="form-select form-select-sm" @bind="filtroAsesorId">
+                        <option value="">Todos los Asesores</option>
+                        @foreach (var asesor in listaAsesores)
+                        {
+                            <option value="@asesor.Id">@asesor.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Desde</label>
+                    <input type="date" class="form-control form-control-sm" @bind="fechaDesde" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Hasta</label>
+                    <input type="date" class="form-control form-control-sm" @bind="fechaHasta" />
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button class="btn btn-primary btn-sm w-100" @onclick="CargarDatos">
+                        <i class="bi bi-funnel-fill"></i> Filtrar
+                    </button>
+                    <button class="btn btn-success btn-sm w-50" @onclick="ExportarExcel" title="Exportar CSV">
+                        <i class="bi bi-file-earmark-excel-fill"></i>
+                    </button>
+                    <button class="btn btn-secondary btn-sm w-50" @onclick="ImprimirPDF" title="Imprimir">
+                        <i class="bi bi-printer-fill"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        @* TÍTULO DINÁMICO *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-dark mb-0">Resultados del Reporte</h4>
+            <span class="badge bg-light text-dark border">
+                Periodo: @(fechaDesde?.ToShortDateString() ?? "Inicio") - @(fechaHasta?.ToShortDateString() ?? "Hoy")
+            </span>
+        </div>
+
+        <div class="row g-4">
+            @* KPI PRINCIPAL *@
+            <div class="col-md-12">
+                <div class="card shadow-sm border-start border-5 border-primary">
+                    <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-muted fw-bold ls-1 mb-1">Tiempo Promedio de Resolución</h6>
+                            <h1 class="display-4 fw-bold text-dark mb-0">@tiempoPromedio</h1>
+                            <small class="text-muted">En el periodo seleccionado</small>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-4 rounded-circle text-primary">
+                            <i class="bi bi-stopwatch-fill display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* TABLA DE DATOS *@
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold">Tickets Resueltos por Categoría</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end pe-4">Porcentaje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in datosCategoria)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@item.Etiqueta</td>
+                                        <td class="text-center">@item.Valor</td>
+                                        <td class="text-end pe-4">
+                                            <div class="d-flex align-items-center justify-content-end">
+                                                <span class="me-2">@item.Porcentaje%</span>
+                                                <div class="progress" style="width: 50px; height: 5px;">
+                                                    <div class="progress-bar" style="width: @item.Porcentaje%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (datosCategoria.Count == 0)
+                                {
+                                    <tr><td colspan="3" class="text-center py-3">No se encontraron datos en este rango.</td></tr>
+                                }
+                                <tr class="table-secondary fw-bold">
+                                    <td>TOTAL</td>
+                                    <td class="text-center">@datosCategoria.Sum(x => x.Valor)</td>
+                                    <td class="text-end pe-4">100%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool cargando = true;
+    private string tiempoPromedio = "0.0 h";
+
+    // Filtros
+    private Guid? filtroAsesorId = null;
+    private DateTime? fechaDesde = DateTime.Today.AddDays(-30); // Por defecto últimos 30 días
+    private DateTime? fechaHasta = DateTime.Today;
+
+    private List<ReporteDato> datosCategoria = new();
+    private List<Usuario> listaAsesores = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaAsesores = await ServicioUsuarios.ObtenerAsesoresAsync();
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        // Ahora pasamos las fechas al servicio
+        datosCategoria = await ServicioReportes.ObtenerTicketsPorCategoria(filtroAsesorId, fechaDesde, fechaHasta);
+        tiempoPromedio = await ServicioReportes.ObtenerTiempoPromedio(filtroAsesorId, fechaDesde, fechaHasta);
+        cargando = false;
+    }
+
+    private async Task ExportarExcel()
+    {
+        var csv = new StringBuilder();
+        csv.AppendLine("Reporte de Gestion HelpDesk");
+        csv.AppendLine($"Periodo;{fechaDesde:d} al {fechaHasta:d}");
+        csv.AppendLine($"Generado;{DateTime.Now}");
+        csv.AppendLine("");
+
+        csv.AppendLine("Categoria;Tickets Resueltos;Porcentaje");
+        foreach (var item in datosCategoria)
+        {
+            csv.AppendLine($"{item.Etiqueta};{item.Valor};{item.Porcentaje}%");
+        }
+        csv.AppendLine($"TOTAL;{datosCategoria.Sum(x => x.Valor)};100%");
+        csv.AppendLine($"Tiempo Promedio;{tiempoPromedio}");
+
+        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("descargarArchivo", "Reporte_Filtrado.csv", base64);
+    }
+
+    private async Task ImprimirPDF()
+    {
+        await JS.InvokeVoidAsync("print");
+    }
+}
