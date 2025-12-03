@@ -10,9 +10,27 @@ namespace HelpDeskSystem.Web.Services
     {
         private readonly AppDbContext _context;
 
+        // --- 1. EVENTO ESTÁTICO (Global para la app) ---
+        // Al ser estático, permite comunicación entre diferentes sesiones de usuario
+        public static event Action? OnChange;
+
         public TicketService(AppDbContext context)
         {
             _context = context;
+        }
+
+        // --- 2. MÉTODO PARA DISPARAR EL EVENTO ---
+        public void NotificarCambio()
+        {
+            try
+            {
+                OnChange?.Invoke();
+            }
+            catch
+            {
+                // Ignorar errores en notificaciones
+            }
+
         }
 
         // --- LECTURA ---
@@ -24,49 +42,22 @@ namespace HelpDeskSystem.Web.Services
 
         public async Task<List<Ticket>> ObtenerTicketsFiltradosAsync(Guid userId, string rol)
         {
-            var query = _context.Tickets
-                .Include(t => t.Usuario)
-                .Include(t => t.Asesor)
-                .Include(t => t.Categoria)
-                .AsQueryable();
-
-            if (rol == "Administrador")
-            {
-                // Admin ve todo
-            }
+            var query = _context.Tickets.Include(t => t.Usuario).Include(t => t.Asesor).Include(t => t.Categoria).AsQueryable();
+            if (rol == "Administrador") { }
             else if (rol == "Asesor")
             {
-                var idsCategoriasDelAsesor = await _context.Usuarios
-                    .Where(u => u.Id == userId)
-                    .SelectMany(u => u.Categorias.Select(c => c.Id))
-                    .ToListAsync();
-
-                query = query.Where(t =>
-                    t.AsesorId == userId ||
-                    (t.AsesorId == null && idsCategoriasDelAsesor.Contains(t.CategoriaId))
-                );
+                var idsCategoriasDelAsesor = await _context.Usuarios.Where(u => u.Id == userId).SelectMany(u => u.Categorias.Select(c => c.Id)).ToListAsync();
+                query = query.Where(t => t.AsesorId == userId || (t.AsesorId == null && idsCategoriasDelAsesor.Contains(t.CategoriaId)));
             }
-            else if (rol == "Usuario")
-            {
-                query = query.Where(t => t.UsuarioId == userId);
-            }
-            else
-            {
-                return new List<Ticket>();
-            }
-
-            return await query
-                .OrderByDescending(t => t.EsUrgente)
-                .ThenByDescending(t => t.FechaCreacion)
-                .ToListAsync();
+            else if (rol == "Usuario") { query = query.Where(t => t.UsuarioId == userId); }
+            else { return new List<Ticket>(); }
+            return await query.OrderByDescending(t => t.EsUrgente).ThenByDescending(t => t.FechaCreacion).ToListAsync();
         }
 
         public async Task<Ticket?> ObtenerPorIdAsync(int id)
         {
             return await _context.Tickets
-                .Include(t => t.Usuario)
-                .Include(t => t.Asesor)
-                .Include(t => t.Categoria)
+                .Include(t => t.Usuario).Include(t => t.Asesor).Include(t => t.Categoria)
                 .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
         }
 
@@ -76,6 +67,7 @@ namespace HelpDeskSystem.Web.Services
         {
             _context.Tickets.Add(ticket);
             await _context.SaveChangesAsync();
+            NotificarCambio(); // <--- AVISA A TODOS
         }
 
         public async Task ActualizarDescripcionUsuarioAsync(Ticket ticketModificado)
@@ -83,13 +75,12 @@ namespace HelpDeskSystem.Web.Services
             var ticketDb = await _context.Tickets.FindAsync(ticketModificado.Id);
             if (ticketDb != null)
             {
-                if (ticketDb.FueEditado)
-                    throw new InvalidOperationException("Este ticket ya fue editado una vez.");
-
+                if (ticketDb.FueEditado) throw new InvalidOperationException("Este ticket ya fue editado una vez.");
                 ticketDb.Titulo = ticketModificado.Titulo;
                 ticketDb.Descripcion = ticketModificado.Descripcion;
                 ticketDb.FueEditado = true;
                 await _context.SaveChangesAsync();
+                NotificarCambio(); // <--- AVISA A TODOS
             }
         }
 
@@ -101,6 +92,7 @@ namespace HelpDeskSystem.Web.Services
                 ticket.AsesorId = asesorId;
                 ticket.Estado = EstadoTicket.Asignado;
                 await _context.SaveChangesAsync();
+                NotificarCambio(); // <--- AVISA A TODOS
             }
         }
 
@@ -108,29 +100,24 @@ namespace HelpDeskSystem.Web.Services
         {
             var ticket = await _context.Tickets.FindAsync(id);
             if (ticket == null || ticket.IsDeleted) return;
-
-            if (ticket.AsesorId != usuarioEjecutorId)
-            {
-                throw new UnauthorizedAccessException("Solo el asesor asignado puede resolver.");
-            }
-
+            if (ticket.AsesorId != usuarioEjecutorId) throw new UnauthorizedAccessException("Solo el asesor asignado puede resolver.");
             if (ticket.Estado != EstadoTicket.Resuelto)
             {
                 ticket.Estado = EstadoTicket.Resuelto;
-                ticket.FechaCierre = DateTime.Now; // Importante para reportes
+                ticket.FechaCierre = DateTime.Now;
                 await _context.SaveChangesAsync();
+                NotificarCambio(); // <--- AVISA A TODOS
             }
         }
-
         public async Task CalificarTicketAsync(int ticketId, int estrellas, Guid usuarioCalificadorId)
         {
             if (estrellas < 1 || estrellas > 5) throw new ArgumentOutOfRangeException("1-5");
-
             var ticket = await _context.Tickets.FindAsync(ticketId);
             if (ticket != null && ticket.UsuarioId == usuarioCalificadorId && ticket.Estado == EstadoTicket.Resuelto)
             {
                 ticket.SatisfaccionUsuario = estrellas;
                 await _context.SaveChangesAsync();
+                NotificarCambio(); // <--- AVISA A TODOS
             }
         }
     }

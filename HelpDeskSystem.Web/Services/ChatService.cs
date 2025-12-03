@@ -11,38 +11,57 @@ namespace HelpDeskSystem.Web.Services
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private static readonly HashSet<string> ExtensionesPermitidas = new(StringComparer.OrdinalIgnoreCase)
-        { ".jpg", ".jpeg", ".png", ".pdf", ".xlsx" };
+        private readonly ITicketService _ticketService; // Inyección para el evento del chat
 
-        public ChatService(AppDbContext context, IWebHostEnvironment env)
+        // Lista blanca de tipos MIME permitidos (Magic Numbers simplificados)
+        private static readonly Dictionary<string, string> TiposPermitidos = new()
+        {
+            { ".jpg", "image/jpeg" },
+            { ".jpeg", "image/jpeg" },
+            { ".png", "image/png" },
+            { ".pdf", "application/pdf" },
+            { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+        };
+
+        public ChatService(AppDbContext context, IWebHostEnvironment env, ITicketService ticketService)
         {
             _context = context;
             _env = env;
+            _ticketService = ticketService;
         }
 
         public async Task<string> SubirArchivoAsync(IBrowserFile archivo)
         {
-            var extension = Path.GetExtension(archivo.Name);
-            if (string.IsNullOrWhiteSpace(extension) || !ExtensionesPermitidas.Contains(extension))
+            // 1. Validar Extensión
+            var extension = Path.GetExtension(archivo.Name).ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(extension) || !TiposPermitidos.ContainsKey(extension))
             {
-                throw new InvalidOperationException("Tipo de archivo no permitido.");
+                throw new InvalidOperationException("Tipo de archivo no permitido por extensión.");
             }
 
+            // 2. NUEVA SEGURIDAD: Validar Content-Type (MIME)
+            // Esto verifica que el navegador haya detectado que el contenido coincide con la extensión.
+            // Ejemplo: Si renombras virus.exe a foto.jpg, el navegador suele enviar "application/x-msdownload", no "image/jpeg".
+            if (archivo.ContentType != TiposPermitidos[extension])
+            {
+                throw new InvalidOperationException("El archivo parece corrupto o manipulado (MIME type no coincide).");
+            }
+
+            // 3. Validar Tamaño (Máx 5MB)
             if (archivo.Size > 5 * 1024 * 1024)
             {
                 throw new InvalidOperationException("El archivo excede el límite de 5MB.");
             }
 
+            // 4. Guardar archivo
             var carpetaDestino = Path.Combine(_env.WebRootPath, "uploads");
             if (!Directory.Exists(carpetaDestino))
             {
                 Directory.CreateDirectory(carpetaDestino);
             }
 
-            var nombreOriginalSeguro = Path.GetFileName(archivo.Name);
-            // Eliminar caracteres problemáticos
-            nombreOriginalSeguro = Regex.Replace(nombreOriginalSeguro, "[^a-zA-Z0-9._-]", "_");
-
+            // Limpieza de nombre para evitar caracteres raros
+            var nombreOriginalSeguro = Regex.Replace(Path.GetFileName(archivo.Name), "[^a-zA-Z0-9._-]", "_");
             var nombreArchivo = $"{Guid.NewGuid()}_{nombreOriginalSeguro}";
             var rutaCompleta = Path.Combine(carpetaDestino, nombreArchivo);
 
@@ -52,7 +71,6 @@ namespace HelpDeskSystem.Web.Services
 
             return $"/uploads/{nombreArchivo}";
         }
-
         // ESTE ES EL NOMBRE CORRECTO QUE USAREMOS:
         public async Task<List<Mensaje>> ObtenerMensajesPorTicketId(int ticketId)
         {
@@ -62,11 +80,13 @@ namespace HelpDeskSystem.Web.Services
                 .OrderBy(m => m.FechaHora)
                 .ToListAsync();
         }
-
         public async Task EnviarMensaje(Mensaje mensaje)
         {
             _context.Mensajes.Add(mensaje);
             await _context.SaveChangesAsync();
+
+            // Notificamos para que se actualice la pantalla sin recargar
+            _ticketService.NotificarCambio();
         }
     }
 }

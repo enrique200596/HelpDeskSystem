@@ -2,9 +2,12 @@
 @attribute [AllowAnonymous]
 @using HelpDeskSystem.Data
 @using HelpDeskSystem.Web.Auth
+@using HelpDeskSystem.Web.Services
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore
-@inject AppDbContext Context
+@* ELIMINAMOS: @using Microsoft.EntityFrameworkCore *@ 
+
+@* CAMBIO 1: Inyectamos el Servicio de Autenticación en lugar del DbContext *@
+@inject IAuthService ServicioAuth
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navegacion
 
@@ -63,8 +66,8 @@
             return;
         }
 
-        var usuario = await Context.Usuarios
-            .FirstOrDefaultAsync(u => u.Email == email && u.Password == password && u.IsActive);
+        // CAMBIO 2: Usamos el servicio para validar, en lugar de consultar la BD directamente
+        var usuario = await ServicioAuth.LoginAsync(email, password);
 
         if (usuario == null)
         {
@@ -74,6 +77,7 @@
 
         var authPersonalizada = (CustomAuthenticationStateProvider)AuthStateProvider;
         await authPersonalizada.MarcarUsuarioComoAutenticado(usuario);
+
         var destino = string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl}";
         Navegacion.NavigateTo(destino);
     }

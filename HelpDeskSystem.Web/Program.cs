@@ -30,6 +30,10 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 
+// --- AGREGAR ESTA LÍNEA ---
+builder.Services.AddScoped<IAuthService, AuthService>();
+// --------------------------
+
 // 4. Configuración de Sesión
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 

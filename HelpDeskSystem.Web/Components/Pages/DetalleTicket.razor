@@ -335,10 +335,15 @@
     private Guid usuarioActualId = Guid.Empty;
     private string rolUsuarioActual = "";
     private string? imagenModalUrl = null;
-    private System.Threading.Timer? timer;
+
+    // YA NO NECESITAMOS EL TIMER
+    // private System.Threading.Timer? timer;
 
     protected override async Task OnInitializedAsync()
     {
+        // 1. Suscribirse al evento global
+        TicketService.OnChange += ActualizarChatEnVivo;
+
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user?.Identity?.IsAuthenticated == true)
@@ -354,29 +359,34 @@
 
         await CargarChat();
         await ScrollAlFondo();
-
-        // Timer de Polling (Método separado para evitar error lambda)
-        timer = new System.Threading.Timer(PollingTimer, null, 0, 3000);
     }
 
-    private async void PollingTimer(object? state)
+    // 2. Método que se ejecuta cuando ALGUIEN (tú u otro) hace un cambio
+    private async void ActualizarChatEnVivo()
     {
-        try
+        // InvokeAsync asegura que corra en el hilo de la UI
+        await InvokeAsync(async () =>
         {
-            await InvokeAsync(async () =>
-            {
-                await CargarChat();
-                var t = await ServicioTickets.ObtenerPorIdAsync(Id);
-                if (t != null && miTicket != null && t.Estado != miTicket.Estado) miTicket = t;
-                StateHasChanged();
-            });
-        }
-        catch { }
+            // Recargamos datos
+            await CargarChat();
+            var t = await ServicioTickets.ObtenerPorIdAsync(Id);
+            if (t != null && miTicket != null) miTicket = t; // Actualizamos estado del ticket
+
+            // Avisamos a Blazor que repinte la pantalla
+            StateHasChanged();
+
+            // Opcional: Si es un mensaje nuevo, bajar scroll
+            // await ScrollAlFondo();
+        });
     }
 
-    public void Dispose() => timer?.Dispose();
+    // 3. Importante: Desuscribirse al salir para evitar fugas de memoria
+    public void Dispose()
+    {
+        TicketService.OnChange -= ActualizarChatEnVivo;
+    }
 
-    // Métodos Auxiliares (estos son los que faltaban)
+    // --- MÉTODOS AUXILIARES (Igual que antes) ---
     private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
     private void ManejarSeleccionArchivo(InputFileChangeEventArgs e) => archivoSeleccionado = e.File;
@@ -387,20 +397,25 @@
         if (!string.IsNullOrWhiteSpace(nuevoMensaje.Contenido) || archivoSeleccionado != null)
         {
             if (archivoSeleccionado != null) { try { nuevoMensaje.AdjuntoUrl = await ServicioChat.SubirArchivoAsync(archivoSeleccionado); } catch { return; } }
-            nuevoMensaje.TicketId = Id; nuevoMensaje.FechaHora = DateTime.Now; nuevoMensaje.UsuarioId = usuarioActualId;
+            nuevoMensaje.TicketId = Id;
+            nuevoMensaje.FechaHora = DateTime.Now; nuevoMensaje.UsuarioId = usuarioActualId;
+
+            // Al enviar, el ChatService llamará a NotificarCambio(), lo que disparará ActualizarChatEnVivo aquí y en la pantalla del otro usuario.
             await ServicioChat.EnviarMensaje(nuevoMensaje);
+
             nuevoMensaje = new Mensaje(); archivoSeleccionado = null;
-            await CargarChat(); StateHasChanged();
-            await ScrollAlFondo(); await PonerFoco();
+            // No hace falta llamar CargarChat() aquí manual, el evento lo hará, pero para feedback instantáneo local está bien dejarlo o confiar en el evento.
+            await ScrollAlFondo();
+            await PonerFoco();
         }
     }
 
     private async Task ScrollAlFondo() { await Task.Delay(50); await JS.InvokeVoidAsync("utilidadesChat.bajarScroll", "chatBox"); }
     private async Task PonerFoco() { await Task.Delay(50); await JS.InvokeVoidAsync("utilidadesChat.ponerFoco", "txtMensaje"); }
 
-    private async Task AsignarAsesor() { if (idAsesorSeleccionado != Guid.Empty && miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, idAsesorSeleccionado); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
-    private async Task AutoAsignar() { if (miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
-    private async Task MarcarComoResuelto() { if (miTicket != null) { await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
+    private async Task AsignarAsesor() { if (idAsesorSeleccionado != Guid.Empty && miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, idAsesorSeleccionado); } }
+    private async Task AutoAsignar() { if (miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, usuarioActualId); } }
+    private async Task MarcarComoResuelto() { if (miTicket != null) { await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId); } }
     private async Task GuardarCambios() { if (miTicket != null) { try { await ServicioTickets.ActualizarDescripcionUsuarioAsync(miTicket); modoEdicion = false; } catch { } } }
-    private async Task Calificar(int estrellas) { if (miTicket != null) { await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
+    private async Task Calificar(int estrellas) { if (miTicket != null) { await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId); } }
 }
