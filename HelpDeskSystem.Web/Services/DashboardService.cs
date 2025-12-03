@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HelpDeskSystem.Web.Services
 {
-    public class DashboardService
+    public class DashboardService : IDashboardService
     {
         private readonly AppDbContext _context;
 

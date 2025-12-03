@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HelpDeskSystem.Web.Services
 {
-    public class UsuarioService
+    public class UsuarioService : IUsuarioService
     {
         private readonly AppDbContext _context;
 

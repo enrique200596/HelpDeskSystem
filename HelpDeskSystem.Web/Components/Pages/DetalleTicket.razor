@@ -5,166 +5,308 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject TicketService ServicioTickets
-@inject UsuarioService ServicioUsuarios
-@inject ChatService ServicioChat
+@using System.Threading
+@inject ITicketService ServicioTickets
+@inject IUsuarioService ServicioUsuarios
+@inject IChatService ServicioChat
 @inject NavigationManager Navegacion
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@inject IServiceProvider ServiceProvider
+@implements IDisposable
 
-<div class="container py-4" style="background-color: #f8f9fa; min-height: 100vh;">
+<style>
+    /* ... (Tus estilos CSS se mantienen igual) ... */
+    :root {
+        --utepsa-red: #C8102E;
+        --utepsa-dark: #111111;
+        --chat-me-bg: #C8102E;
+        --chat-other-bg: #ffffff;
+    }
+
+    .page-container {
+        background-color: #f0f2f5;
+        min-height: 100vh;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .card-modern {
+        background: white;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+
+    .badge-utepsa {
+        background-color: var(--utepsa-dark);
+        color: white;
+        font-weight: 500;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+
+    .btn-utepsa {
+        background-color: var(--utepsa-red);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-weight: 600;
+    }
+
+        .btn-utepsa:hover {
+            background-color: #a30d25;
+            color: white;
+        }
+
+    .chat-container {
+        background-color: #e5e5e5;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        scroll-behavior: smooth;
+    }
+
+    .bubble {
+        padding: 12px 16px;
+        border-radius: 12px;
+        position: relative;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        max-width: 85%;
+    }
+
+    .bubble-me {
+        background-color: var(--chat-me-bg);
+        color: white;
+        border-bottom-right-radius: 2px;
+    }
+
+    .bubble-other {
+        background-color: var(--chat-other-bg);
+        color: #333;
+        border-bottom-left-radius: 2px;
+    }
+
+    .input-modern-container {
+        background: white;
+        border-radius: 30px;
+        padding: 5px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+    }
+
+    .input-modern {
+        border: none;
+        background: transparent;
+    }
+
+        .input-modern:focus {
+            box-shadow: none;
+            background: transparent;
+        }
+
+    .modal-backdrop-custom {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 2000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: zoom-out;
+    }
+
+    .modal-image-content {
+        max-width: 95%;
+        max-height: 95vh;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        cursor: default;
+        object-fit: contain;
+    }
+
+    .btn-close-modal {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        color: white;
+        font-size: 2.5rem;
+        cursor: pointer;
+        background: none;
+        border: none;
+        z-index: 2001;
+        text-shadow: 0 0 10px black;
+    }
+</style>
+
+<div class="page-container py-5">
     @if (miTicket == null)
     {
-        <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
-            <div class="spinner-border text-primary" role="status"></div>
+        <div class="d-flex justify-content-center align-items-center" style="height: 60vh;">
+            <div class="spinner-border text-danger" role="status"></div>
         </div>
     }
     else
     {
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-
-                @* CABECERA *@
-                <div class="card shadow border-0 mb-4 rounded-3">
-                    <div class="card-body p-4 bg-white rounded-3">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-9">
+                    @* CABECERA *@
+                    <div class="card-modern p-4 mb-4">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="badge bg-light text-secondary border mb-2">TICKET #@miTicket.Id</div>
-                                <h3 class="fw-bold mb-1 text-dark">@miTicket.Titulo</h3>
-                                <div class="text-muted small mt-1">
-                                    <span class="badge bg-info text-dark bg-opacity-10 border border-info me-2">
-                                        <i class="bi bi-tag-fill me-1"></i> @(miTicket.Categoria?.Nombre ?? "General")
-                                    </span>
-                                    <i class="bi bi-clock-history me-1"></i> @miTicket.FechaCreacion.ToString("f")
+                                <span class="text-uppercase text-muted small fw-bold ls-1"><i class="bi bi-hash"></i> Ticket @miTicket.Id</span>
+                                <h2 class="fw-bold mt-1 mb-2 text-dark">@miTicket.Titulo</h2>
+                                <div class="d-flex align-items-center gap-3 text-secondary small">
+                                    <span><i class="bi bi-folder me-1"></i> @(miTicket.Categoria?.Nombre ?? "General")</span>
+                                    <span>|</span>
+                                    <span><i class="bi bi-clock-history me-1"></i> @miTicket.FechaCreacion.ToString("dd MMM yyyy, HH:mm")</span>
                                 </div>
                             </div>
                             <div class="text-end">
-                                <span class="badge rounded-pill @(miTicket.EsUrgente ? "bg-danger" : "bg-success") px-3 py-2 mb-2 shadow-sm">
-                                    @(miTicket.EsUrgente ? "🔥 URGENTE" : "✅ NORMAL")
-                                </span>
-                                <div class="mt-1">
-                                    <span class="badge bg-primary">@miTicket.Estado</span>
-                                </div>
+                                @if (miTicket.EsUrgente)
+                                {
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-3 py-2 rounded-pill"><i class="bi bi-fire me-1"></i> URGENTE</span>
+                                }
+                                <div class="mt-2"><span class="badge-utepsa text-uppercase" style="font-size: 0.75rem;">@miTicket.Estado</span></div>
                             </div>
                         </div>
 
                         @if (modoEdicion)
                         {
-                            <EditForm Model="miTicket" OnValidSubmit="GuardarCambios">
-                                <div class="mb-3">
-                                    <label>Título</label>
-                                    <InputText @bind-Value="miTicket.Titulo" class="form-control" />
-                                </div>
-                                <div class="mb-3">
-                                    <label>Descripción</label>
-                                    <InputTextArea @bind-Value="miTicket.Descripcion" class="form-control" rows="4" />
-                                </div>
-                                <button type="submit" class="btn btn-success btn-sm">Guardar</button>
-                                <button type="button" class="btn btn-secondary btn-sm" @onclick="() => modoEdicion = false">Cancelar</button>
+                            <EditForm Model="miTicket" OnValidSubmit="GuardarCambios" class="mt-4">
+                                <div class="mb-3"><label class="fw-bold">Título</label><InputText @bind-Value="miTicket.Titulo" class="form-control" /></div>
+                                <div class="mb-3"><label class="fw-bold">Descripción</label><InputTextArea @bind-Value="miTicket.Descripcion" class="form-control" rows="4" /></div>
+                                <div class="d-flex gap-2"><button type="submit" class="btn btn-success btn-sm">Guardar</button><button type="button" class="btn btn-secondary btn-sm" @onclick="() => modoEdicion = false">Cancelar</button></div>
                             </EditForm>
                         }
                         else
                         {
-                            <div class="p-3 rounded-3 border-start border-4 border-primary bg-light mb-3">
-                                <p class="mb-0 text-secondary fw-medium">@miTicket.Descripcion</p>
+                            <div class="mt-4 p-3 bg-light rounded border-start border-4 border-secondary">
+                                <p class="mb-0 text-dark" style="white-space: pre-wrap;">@miTicket.Descripcion</p>
                             </div>
                         }
 
-                        @* BARRA DE ACCIONES *@
-                        <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-3">
-                            <div>
-                                <small class="text-muted d-block">ATENDIDO POR</small>
-                                <span class="fw-bold text-dark small">@(miTicket.Asesor?.Nombre ?? "Sin Asignar")</span>
-                            </div>
-
-                            @if (rolUsuarioActual == "Administrador")
-                            {
-                                <div class="d-flex gap-2">
-                                    <select class="form-select form-select-sm" @bind="idAsesorSeleccionado" style="width: auto;">
-                                        <option value="">-- Seleccionar --</option>
-                                        @foreach (var asesor in listaAsesores)
-                                        {
-                                            <option value="@asesor.Id">@asesor.Nombre</option>
-                                        }
-                                    </select>
-                                    <button class="btn btn-dark btn-sm" @onclick="AsignarAsesor">Asignar</button>
+                        <div class="d-flex align-items-center justify-content-between mt-4 pt-3 border-top">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-dark text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;"><i class="bi bi-person-fill small"></i></div>
+                                <div>
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">ASESOR ASIGNADO</small>
+                                    <span class="fw-bold text-dark">@(miTicket.Asesor?.Nombre ?? "Sin Asignar")</span>
                                 </div>
-                            }
-                            else if (rolUsuarioActual == "Asesor" && miTicket.AsesorId == null && miTicket.Estado != HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
+                            </div>
+                            <div class="d-flex gap-2">
+                                @if (rolUsuarioActual == "Administrador")
+                                {
+                                    @if (miTicket.Estado != HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
+                                    {
+                                        <select class="form-select form-select-sm border-secondary" @bind="idAsesorSeleccionado" style="width: auto; border-radius: 6px;">
+                                            <option value="@Guid.Empty">-- Sin Asignar --</option>
+                                            @foreach (var asesor in listaAsesores)
+                                            {
+                                                <option value="@asesor.Id">@asesor.Nombre</option>
+                                            }
+                                        </select>
+                                        <button class="btn btn-dark btn-sm px-3" @onclick="AsignarAsesor">Guardar</button>
+                                    }
+                                    else
+                                    {
+
+                                        <div class="text-muted small d-flex align-items-center"><i class="bi bi-lock-fill me-1"></i> Cerrado</div>
+                                    }
+                                }
+                                else if (rolUsuarioActual == "Asesor" && miTicket.AsesorId == null && miTicket.Estado != HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
+                                {
+                                    <button class="btn btn-warning btn-sm fw-bold shadow-sm" @onclick="AutoAsignar"><i class="bi bi-hand-index-thumb me-1"></i> Tomar Caso</button>
+                                }
+                                else if (miTicket.AsesorId == usuarioActualId && miTicket.Estado != HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
+                                {
+                                    <button class="btn btn-success btn-sm px-3 shadow-sm" @onclick="MarcarComoResuelto"><i class="bi bi-check2-circle me-1"></i> Finalizar</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @* CHAT *@
+                    <div class="card-modern overflow-hidden">
+                        <div class="p-3 bg-dark text-white d-flex align-items-center">
+                            <i class="bi bi-chat-square-text-fill me-2 text-danger"></i><span class="fw-bold">Seguimiento en Vivo</span>
+                        </div>
+
+                        <div id="chatBox" class="chat-container p-4" style="height: 500px; overflow-y: auto;">
+                            @if (mensajes.Count == 0)
                             {
-                                <button class="btn btn-warning btn-sm fw-bold" @onclick="AutoAsignar">Tomar Caso</button>
+                                <div class="text-center text-muted mt-5 opacity-50"><i class="bi bi-chat-square-dots fs-1"></i><p class="mt-2">El espacio de comunicación está abierto.</p></div>
                             }
-                            else if (miTicket.AsesorId == usuarioActualId && miTicket.Estado != HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
+                            else
                             {
-                                <button class="btn btn-success btn-sm" @onclick="MarcarComoResuelto">Finalizar Ticket</button>
+                                @foreach (var msg in mensajes)
+                                {
+                                    bool soyYo = msg.UsuarioId == usuarioActualId;
+                                    <div class="d-flex mb-3 @(soyYo ? "justify-content-end" : "justify-content-start")">
+                                        <div class="d-flex flex-column @(soyYo ? "align-items-end" : "align-items-start")" style="max-width: 80%;">
+                                            <small class="text-muted mb-1 mx-1" style="font-size: 0.7rem;">@msg.Usuario?.Nombre</small>
+                                            <div class="bubble @(soyYo ? "bubble-me" : "bubble-other")">
+                                                @if (!string.IsNullOrEmpty(msg.AdjuntoUrl))
+                                                {
+                                                    <div class="mb-2 p-1 bg-white bg-opacity-25 rounded">
+                                                        @if (msg.AdjuntoUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || msg.AdjuntoUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+                                                        {
+                                                            @* AQUÍ ESTÁ EL CLICK PARA VER IMAGEN *@
+                                                            <img src="@msg.AdjuntoUrl" class="img-fluid rounded border border-white" style="max-height: 150px; cursor: pointer;" @onclick="() => VerImagen(msg.AdjuntoUrl)" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <a href="@msg.AdjuntoUrl" target="_blank" class="text-decoration-none @(soyYo ? "text-white" : "text-dark") d-flex align-items-center"><i class="bi bi-file-earmark-arrow-down me-2"></i> Descargar</a>
+                                                        }
+                                                    </div>
+                                                }
+                                                @msg.Contenido
+                                            </div>
+                                            <small class="text-muted mt-1 mx-1" style="font-size: 0.65rem;">@msg.FechaHora.ToString("HH:mm")</small>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        <div class="p-3 bg-white border-top">
+                            @if (miTicket.Estado != HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
+                            {
+                                <EditForm Model="nuevoMensaje" OnValidSubmit="EnviarMensaje">
+                                    <div class="input-modern-container d-flex align-items-center">
+                                        <label class="btn btn-link text-secondary rounded-circle" style="cursor: pointer;" title="Adjuntar">
+                                            <i class="bi bi-paperclip fs-5"></i><InputFile OnChange="ManejarSeleccionArchivo" style="display: none;" />
+                                        </label>
+                                        <InputText id="txtMensaje" @bind-Value="nuevoMensaje.Contenido" class="form-control input-modern shadow-none" placeholder="Escribe un mensaje..." autocomplete="off" />
+                                        <button class="btn btn-utepsa rounded-pill px-4 ms-2" type="submit"><i class="bi bi-send-fill"></i></button>
+                                    </div>
+                                    @if (archivoSeleccionado != null)
+                                    {
+                                        <div class="ms-3 mt-1 small text-primary"><i class="bi bi-check-circle me-1"></i> Archivo listo: @archivoSeleccionado.Name</div>
+                                    }
+                                </EditForm>
+                            }
+                            else
+                            {
+                                <div class="alert alert-secondary text-center mb-0 py-2 small opacity-75 rounded-pill"><i class="bi bi-lock-fill me-1"></i> Conversación cerrada.</div>
                             }
                         </div>
                     </div>
                 </div>
-
-                @* CHAT *@
-                <div class="card shadow border-0 rounded-4 overflow-hidden mb-5">
-                    <div class="card-header bg-white p-3 border-bottom-0">
-                        <h6 class="mb-0 fw-bold text-secondary">Conversación</h6>
-                    </div>
-                    <div class="card-body p-4" style="height: 500px; overflow-y: auto; background-color: #eef1f5;">
-                        @foreach (var msg in mensajes)
-                        {
-                            bool soyYo = msg.UsuarioId == usuarioActualId;
-                            <div class="d-flex mb-3 @(soyYo ? "justify-content-end" : "justify-content-start")">
-                                <div class="p-3 shadow-sm @(soyYo ? "bg-primary text-white" : "bg-white text-dark") rounded-3" style="max-width: 80%;">
-                                    <small class="d-block mb-1 fw-bold" style="font-size: 0.7rem;">@msg.Usuario?.Nombre</small>
-                                    @if (!string.IsNullOrEmpty(msg.AdjuntoUrl))
-                                    {
-                                        <div class="mb-2 p-1 bg-white bg-opacity-25 rounded">
-                                            <a href="@msg.AdjuntoUrl" target="_blank" class="text-white small">Ver Adjunto</a>
-                                        </div>
-                                    }
-                                    <p class="mb-0">@msg.Contenido</p>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                    <div class="card-footer bg-white p-3">
-                        <EditForm Model="nuevoMensaje" OnValidSubmit="EnviarMensaje">
-                            @if (archivoSeleccionado != null)
-                            {
-                                <div class="alert alert-primary p-2 mb-2 rounded shadow-sm d-flex justify-content-between">
-                                    <small>@archivoSeleccionado.Name</small>
-                                    <button type="button" class="btn-close small" @onclick="() => archivoSeleccionado = null"></button>
-                                </div>
-                            }
-                            <div class="input-group">
-                                <label class="btn btn-secondary">
-                                    <i class="bi bi-paperclip text-white"></i>
-                                    <InputFile OnChange="ManejarSeleccionArchivo" style="display: none;" />
-                                </label>
-                                <InputText @bind-Value="nuevoMensaje.Contenido" class="form-control" placeholder="Escribir..." />
-                                <button class="btn btn-primary" type="submit"><i class="bi bi-send-fill"></i></button>
-                            </div>
-                        </EditForm>
-                    </div>
-                </div>
-
-                <div class="mb-5 d-flex justify-content-between">
-                    <a href="/" class="btn btn-outline-dark">Volver</a>
-                    @if (!miTicket.FueEditado && miTicket.UsuarioId == usuarioActualId)
-                    {
-                        <button class="btn btn-warning ms-2" @onclick="() => modoEdicion = true">Editar</button>
-                    }
-                </div>
-
-                @if (miTicket.Estado == HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto && miTicket.UsuarioId == usuarioActualId && miTicket.SatisfaccionUsuario == null)
-                {
-                    <div class="alert alert-warning text-center">
-                        <h5>Califica el servicio:</h5>
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            int r = i;
-                            <button class="btn btn-outline-dark m-1" @onclick="() => Calificar(r)">@r ⭐</button>
-                        }
-                    </div>
-                }
             </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(imagenModalUrl))
+    {
+        <div class="modal-backdrop-custom" @onclick="CerrarModal">
+            <button class="btn-close-modal" @onclick="CerrarModal">&times;</button>
+            <img src="@imagenModalUrl" class="modal-image-content" @onclick:stopPropagation="true" />
         </div>
     }
 </div>
@@ -180,6 +322,8 @@
     private IBrowserFile? archivoSeleccionado;
     private Guid usuarioActualId = Guid.Empty;
     private string rolUsuarioActual = "";
+    private string? imagenModalUrl = null;
+    private System.Threading.Timer? timer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -193,56 +337,72 @@
         }
 
         miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
+        if (miTicket?.AsesorId != null) idAsesorSeleccionado = miTicket.AsesorId.Value;
         if (rolUsuarioActual == "Administrador") listaAsesores = await ServicioUsuarios.ObtenerAsesoresAsync();
-        mensajes = await ServicioChat.ObtenerMensajesPorTicketId(Id);
+
+        await CargarChat();
+        await ScrollAlFondo();
+
+        // TIMER CORREGIDO (Sin lambda compleja, usando método dedicado)
+        timer = new System.Threading.Timer(PollingTimer, null, 0, 3000);
     }
 
+    // Método del Timer separado para evitar errores CS1662
+    private async void PollingTimer(object? state)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                // 1. Recargar mensajes usando el nombre de método correcto
+                using var scope = ServiceProvider.CreateScope();
+                var chatService = scope.ServiceProvider.GetRequiredService<IChatService>();
+                var nuevosMensajes = await chatService.ObtenerMensajesPorTicketId(Id);
+
+                if (nuevosMensajes.Count != mensajes.Count)
+                {
+                    mensajes = nuevosMensajes;
+                    await ScrollAlFondo();
+                }
+
+                // 2. Verificar estado del ticket
+                var ticketService = scope.ServiceProvider.GetRequiredService<ITicketService>();
+                var t = await ticketService.ObtenerPorIdAsync(Id);
+                if (t != null && miTicket != null && t.Estado != miTicket.Estado) miTicket = t;
+
+                StateHasChanged();
+            });
+        }
+        catch { /* Evitar crashes si el componente ya no existe */ }
+    }
+
+    public void Dispose() => timer?.Dispose();
+
+    // --- MÉTODOS DE UI QUE FALTABAN ---
+    private void VerImagen(string url) => imagenModalUrl = url;
+    private void CerrarModal() => imagenModalUrl = null;
     private void ManejarSeleccionArchivo(InputFileChangeEventArgs e) => archivoSeleccionado = e.File;
+    private async Task CargarChat() => mensajes = await ServicioChat.ObtenerMensajesPorTicketId(Id);
 
     private async Task EnviarMensaje()
     {
         if (!string.IsNullOrWhiteSpace(nuevoMensaje.Contenido) || archivoSeleccionado != null)
         {
-            if (archivoSeleccionado != null) nuevoMensaje.AdjuntoUrl = await ServicioChat.SubirArchivoAsync(archivoSeleccionado);
-            nuevoMensaje.TicketId = Id;
-            nuevoMensaje.FechaHora = DateTime.Now;
-            nuevoMensaje.UsuarioId = usuarioActualId;
+            if (archivoSeleccionado != null) { try { nuevoMensaje.AdjuntoUrl = await ServicioChat.SubirArchivoAsync(archivoSeleccionado); } catch { return; } }
+            nuevoMensaje.TicketId = Id; nuevoMensaje.FechaHora = DateTime.Now; nuevoMensaje.UsuarioId = usuarioActualId;
             await ServicioChat.EnviarMensaje(nuevoMensaje);
-            nuevoMensaje = new Mensaje();
-            archivoSeleccionado = null;
-            mensajes = await ServicioChat.ObtenerMensajesPorTicketId(Id);
+            nuevoMensaje = new Mensaje(); archivoSeleccionado = null;
+            await CargarChat(); StateHasChanged();
+            await ScrollAlFondo(); await PonerFoco();
         }
     }
 
-    private async Task AsignarAsesor()
-    {
-        if (idAsesorSeleccionado != Guid.Empty)
-        {
-            await ServicioTickets.AsignarTicketAsync(miTicket.Id, idAsesorSeleccionado);
-            miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
-        }
-    }
+    private async Task ScrollAlFondo() { await Task.Delay(50); await JS.InvokeVoidAsync("utilidadesChat.bajarScroll", "chatBox"); }
+    private async Task PonerFoco() { await Task.Delay(50); await JS.InvokeVoidAsync("utilidadesChat.ponerFoco", "txtMensaje"); }
 
-    private async Task AutoAsignar()
-    {
-        await ServicioTickets.AsignarTicketAsync(miTicket.Id, usuarioActualId);
-        miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
-    }
-
-    private async Task MarcarComoResuelto()
-    {
-        await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId);
-        miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
-    }
-
-    private async Task GuardarCambios()
-    {
-        try { await ServicioTickets.ActualizarDescripcionUsuarioAsync(miTicket); modoEdicion = false; } catch { }
-    }
-
-    private async Task Calificar(int estrellas)
-    {
-        await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId);
-        miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
-    }
+    private async Task AsignarAsesor() { if (idAsesorSeleccionado != Guid.Empty && miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, idAsesorSeleccionado); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
+    private async Task AutoAsignar() { if (miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
+    private async Task MarcarComoResuelto() { if (miTicket != null) { await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
+    private async Task GuardarCambios() { if (miTicket != null) { try { await ServicioTickets.ActualizarDescripcionUsuarioAsync(miTicket); modoEdicion = false; } catch { } } }
+    private async Task Calificar(int estrellas) { if (miTicket != null) { await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
 }

@@ -7,28 +7,26 @@ namespace HelpDeskSystem.Web.Auth
 {
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
-        private readonly ProtectedSessionStorage _sessionStorage;
+        // USAMOS LOCAL STORAGE (Sobrevive a F5 y reinicios)
+        private readonly ProtectedLocalStorage _localStorage;
         private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
 
-        public CustomAuthenticationStateProvider(ProtectedSessionStorage sessionStorage)
+        public CustomAuthenticationStateProvider(ProtectedLocalStorage localStorage)
         {
-            _sessionStorage = sessionStorage;
+            _localStorage = localStorage;
         }
 
-        // ESTE MÉTODO SE EJECUTA CADA VEZ QUE APRETAS F5 O CAMBIAS DE PÁGINA
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                // 1. Buscamos si hay datos guardados en el navegador
-                var userSessionStorageResult = await _sessionStorage.GetAsync<UserSession>("UserSession");
+                // Leemos "UserSession" del disco local del navegador
+                var userSessionStorageResult = await _localStorage.GetAsync<UserSession>("UserSession");
                 var userSession = userSessionStorageResult.Success ? userSessionStorageResult.Value : null;
 
-                // 2. Si no hay datos, retornamos "Anónimo"
                 if (userSession == null)
                     return await Task.FromResult(new AuthenticationState(_anonymous));
 
-                // 3. Si hay datos, reconstruimos el usuario (Claims)
                 var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, userSession.Nombre),
@@ -41,15 +39,12 @@ namespace HelpDeskSystem.Web.Auth
             }
             catch
             {
-                // Si ocurre un error leyendo el navegador, retornamos anónimo por seguridad
                 return await Task.FromResult(new AuthenticationState(_anonymous));
             }
         }
 
-        // --- LOGIN ---
         public async Task MarcarUsuarioComoAutenticado(Usuario usuario)
         {
-            // 1. Guardamos los datos en el navegador (Persistencia)
             var userSession = new UserSession
             {
                 Id = usuario.Id.ToString(),
@@ -58,9 +53,8 @@ namespace HelpDeskSystem.Web.Auth
                 Rol = usuario.Rol.ToString()
             };
 
-            await _sessionStorage.SetAsync("UserSession", userSession);
+            await _localStorage.SetAsync("UserSession", userSession);
 
-            // 2. Avisamos a Blazor que se actualice ya mismo
             var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.Nombre),
@@ -72,12 +66,9 @@ namespace HelpDeskSystem.Web.Auth
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
         }
 
-        // --- LOGOUT ---
         public async Task MarcarUsuarioComoDesconectado()
         {
-            // Borramos los datos del navegador
-            await _sessionStorage.DeleteAsync("UserSession");
-
+            await _localStorage.DeleteAsync("UserSession");
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
         }
     }

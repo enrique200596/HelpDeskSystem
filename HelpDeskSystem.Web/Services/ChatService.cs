@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace HelpDeskSystem.Web.Services
 {
-    public class ChatService
+    public class ChatService : IChatService
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
@@ -53,6 +53,7 @@ namespace HelpDeskSystem.Web.Services
             return $"/uploads/{nombreArchivo}";
         }
 
+        // ESTE ES EL NOMBRE CORRECTO QUE USAREMOS:
         public async Task<List<Mensaje>> ObtenerMensajesPorTicketId(int ticketId)
         {
             return await _context.Mensajes

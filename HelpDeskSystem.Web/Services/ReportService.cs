@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HelpDeskSystem.Web.Services
 {
-    public class ReportService
+    public class ReportService : IReportService
     {
         private readonly AppDbContext _context;
 
@@ -81,6 +81,26 @@ namespace HelpDeskSystem.Web.Services
             foreach (var d in datos) d.Porcentaje = total > 0 ? (d.Valor * 100) / total : 0;
 
             return datos;
+        }
+
+        // 4. NUEVO: Obtener el listado detallado de tickets para la tabla/excel
+        public async Task<List<Ticket>> ObtenerDetalleTickets(Guid? asesorId = null, DateTime? desde = null, DateTime? hasta = null)
+        {
+            var query = _context.Tickets
+                .Include(t => t.Usuario) // Cliente
+                .Include(t => t.Asesor)  // Asesor
+                .Include(t => t.Categoria) // Categoría
+                .AsQueryable();
+
+            // Reutilizamos tu lógica de filtros
+            query = AplicarFiltro(query, asesorId, desde, hasta);
+
+            // Solo nos interesan los resueltos para el reporte de gestión
+            query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
+
+            return await query
+                .OrderByDescending(t => t.FechaCierre)
+                .ToListAsync();
         }
     }
 

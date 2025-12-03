@@ -24,11 +24,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 // 3. Servicios de la App
-builder.Services.AddScoped<TicketService>();
-builder.Services.AddScoped<UsuarioService>();
-builder.Services.AddScoped<ChatService>();
-builder.Services.AddScoped<DashboardService>();
-builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // 4. Configuración de Sesión
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();

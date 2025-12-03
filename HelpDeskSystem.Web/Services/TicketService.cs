@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HelpDeskSystem.Web.Services
 {
-    public class TicketService
+    // IMPORTANTE: Aquí agregamos ": ITicketService" para cumplir el contrato
+    public class TicketService : ITicketService
     {
         private readonly AppDbContext _context;
 
@@ -16,34 +17,30 @@ namespace HelpDeskSystem.Web.Services
 
         // --- LECTURA ---
 
-        // 1. Método para obtener las categorías (para el dropdown de Nuevo Ticket)
         public async Task<List<Categoria>> ObtenerCategoriasAsync()
         {
             return await _context.Categorias.ToListAsync();
         }
 
-        // 2. Método de Bandeja Inteligente (Tu lógica estaba bien aquí)
         public async Task<List<Ticket>> ObtenerTicketsFiltradosAsync(Guid userId, string rol)
         {
             var query = _context.Tickets
                 .Include(t => t.Usuario)
                 .Include(t => t.Asesor)
-                .Include(t => t.Categoria) // Importante para ver la categoría en la lista
+                .Include(t => t.Categoria)
                 .AsQueryable();
 
             if (rol == "Administrador")
             {
-                // Ve todo
+                // Admin ve todo
             }
             else if (rol == "Asesor")
             {
-                // LÓGICA DE FILTRADO POR CATEGORÍA
                 var idsCategoriasDelAsesor = await _context.Usuarios
                     .Where(u => u.Id == userId)
                     .SelectMany(u => u.Categorias.Select(c => c.Id))
                     .ToListAsync();
 
-                // Muestra si: (Es mío) O (Está libre Y es de mi categoría)
                 query = query.Where(t =>
                     t.AsesorId == userId ||
                     (t.AsesorId == null && idsCategoriasDelAsesor.Contains(t.CategoriaId))
@@ -64,13 +61,12 @@ namespace HelpDeskSystem.Web.Services
                 .ToListAsync();
         }
 
-        // 3. Método para ver un solo ticket (AQUÍ FALTABA EL INCLUDE)
         public async Task<Ticket?> ObtenerPorIdAsync(int id)
         {
             return await _context.Tickets
                 .Include(t => t.Usuario)
                 .Include(t => t.Asesor)
-                .Include(t => t.Categoria) // <--- ESTO FALTABA EN TU CÓDIGO
+                .Include(t => t.Categoria)
                 .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
         }
 
@@ -113,7 +109,6 @@ namespace HelpDeskSystem.Web.Services
             var ticket = await _context.Tickets.FindAsync(id);
             if (ticket == null || ticket.IsDeleted) return;
 
-            // Validación de asesor (ya la tenías)
             if (ticket.AsesorId != usuarioEjecutorId)
             {
                 throw new UnauthorizedAccessException("Solo el asesor asignado puede resolver.");
@@ -122,10 +117,7 @@ namespace HelpDeskSystem.Web.Services
             if (ticket.Estado != EstadoTicket.Resuelto)
             {
                 ticket.Estado = EstadoTicket.Resuelto;
-
-                // NUEVA LÍNEA: Guardamos la estampa de tiempo final
-                ticket.FechaCierre = DateTime.Now;
-
+                ticket.FechaCierre = DateTime.Now; // Importante para reportes
                 await _context.SaveChangesAsync();
             }
         }
