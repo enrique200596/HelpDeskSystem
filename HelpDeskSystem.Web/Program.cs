@@ -4,24 +4,17 @@ using HelpDeskSystem.Web.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Components.Authorization;
 using HelpDeskSystem.Web.Auth;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Base de Datos
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 
-// 2. Seguridad
+// 2. Seguridad (SOLO Authorization, sin Authentication de Cookies)
 builder.Services.AddAuthorization();
-
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/login";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
-    });
+// ¡OJO! Aquí eliminamos AddAuthentication(...).AddCookie(...)
 
 // 3. Servicios de la App
 builder.Services.AddScoped<ITicketService, TicketService>();
@@ -29,18 +22,21 @@ builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
-
-// --- AGREGAR ESTA LÍNEA ---
 builder.Services.AddScoped<IAuthService, AuthService>();
-// --------------------------
 
-// 4. Configuración de Sesión
+// 4. Proveedor de Autenticación Personalizado
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 
-// (AQUÍ BORRAMOS LA LÍNEA AddProtectedBrowserStorage QUE DABA ERROR)
-// El servicio ProtectedSessionStorage ya se inyecta automáticamente gracias a la línea de abajo 👇
+// 5. Persistencia de Sesión (Para F5)
+var pathKeys = Path.Combine(builder.Environment.ContentRootPath, "Keys");
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(pathKeys))
+    .SetApplicationName("HelpDeskSystem");
 
-// 5. Componentes Blazor
+// Servicio necesario para leer el navegador
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedSessionStorage>();
+
+// 6. Blazor
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -56,7 +52,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.UseAuthentication();
+// 7. Middleware
+// ¡OJO! Eliminamos app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();

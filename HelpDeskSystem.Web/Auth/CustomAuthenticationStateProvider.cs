@@ -1,75 +1,94 @@
-﻿using System.Security.Claims;
-using HelpDeskSystem.Domain.Entities;
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using System.Security.Claims;
+using HelpDeskSystem.Domain.Entities;
+using HelpDeskSystem.Web.Auth; // Asegúrate de que el namespace de UserSession sea correcto
 
 namespace HelpDeskSystem.Web.Auth
 {
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
-        // CORRECCIÓN: Usamos LocalStorage (Disco) en vez de Session (Memoria Volátil)
+        // Usamos ProtectedSessionStorage para que la sesión persista en el navegador (y sobreviva al F5)
         private readonly ProtectedLocalStorage _localStorage;
         private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
 
-        public CustomAuthenticationStateProvider(ProtectedLocalStorage localStorage)
+        public CustomAuthenticationStateProvider(ProtectedSessionStorage sessionStorage)
         {
-            _localStorage = localStorage;
+            _sessionStorage = sessionStorage;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                // Leemos del disco local
-                var userSessionResult = await _localStorage.GetAsync<UserSession>("UserSession");
-                var userSession = userSessionResult.Success ? userSessionResult.Value : null;
+                // Intentamos leer la sesión
+                var result = await _sessionStorage.GetAsync<UserSession>("UserSession");
 
-                if (userSession == null)
-                    return await Task.FromResult(new AuthenticationState(_anonymous));
-
-                var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
+                if (result.Success && result.Value != null)
                 {
-                    new Claim(ClaimTypes.Name, userSession.Nombre),
-                    new Claim(ClaimTypes.Email, userSession.Email),
-                    new Claim(ClaimTypes.Role, userSession.Rol),
-                    new Claim(ClaimTypes.Sid, userSession.Id)
-                }, "CustomAuth"));
+                    var userSession = result.Value;
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, userSession.Nombre),
+                        new Claim(ClaimTypes.Email, userSession.Email),
+                        new Claim(ClaimTypes.Role, userSession.Rol),
+                        new Claim(ClaimTypes.Sid, userSession.Id.ToString())
+                    };
 
-                return await Task.FromResult(new AuthenticationState(claimsPrincipal));
+                    var identity = new ClaimsIdentity(claims, "CustomAuth");
+                    var userPrincipal = new ClaimsPrincipal(identity);
+                    return new AuthenticationState(userPrincipal);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // ESTE ES EL TRUCO:
+                // Si falla porque JS no está listo (común al dar F5), 
+                // ignoramos el error y retornamos anónimo temporalmente.
+                // Blazor volverá a intentar renderizar cuando se conecte el circuito.
             }
             catch
             {
-                return await Task.FromResult(new AuthenticationState(_anonymous));
+                // Otros errores
             }
-        }
 
+            return new AuthenticationState(_anonymous);
+        }
         public async Task MarcarUsuarioComoAutenticado(Usuario usuario)
         {
+            // 1. Creamos un objeto de sesión simple para guardar en el navegador
             var userSession = new UserSession
             {
-                Id = usuario.Id.ToString(),
+                Id = usuario.Id,
                 Nombre = usuario.Nombre,
                 Email = usuario.Email,
-                Rol = usuario.Rol.ToString()
+                Rol = usuario.Rol.ToString() // Importante: Guardar como String
             };
 
-            // Guardamos en LocalStorage
-            await _localStorage.SetAsync("UserSession", userSession);
+            // 2. GUARDAMOS EN EL NAVEGADOR (Esto es lo que permite que la sesión sobreviva al F5)
+            await _sessionStorage.SetAsync("UserSession", userSession);
 
-            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
+            // 3. Notificamos a Blazor que el estado de autenticación ha cambiado
+            var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, usuario.Nombre),
-                new Claim(ClaimTypes.Email, usuario.Email),
-                new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
-                new Claim(ClaimTypes.Sid, usuario.Id.ToString())
-            }, "CustomAuth"));
+                new Claim(ClaimTypes.Name, userSession.Nombre),
+                new Claim(ClaimTypes.Email, userSession.Email),
+                new Claim(ClaimTypes.Role, userSession.Rol),
+                new Claim(ClaimTypes.Sid, userSession.Id.ToString())
+            };
 
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
+            var identity = new ClaimsIdentity(claims, "CustomAuth");
+            var userPrincipal = new ClaimsPrincipal(identity);
+
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(userPrincipal)));
         }
 
         public async Task MarcarUsuarioComoDesconectado()
         {
-            await _localStorage.DeleteAsync("UserSession");
+            // Borramos la sesión del navegador
+            await _sessionStorage.DeleteAsync("UserSession");
+
+            // Notificamos que ahora el usuario es anónimo
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
         }
     }

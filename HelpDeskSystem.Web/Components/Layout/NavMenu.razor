@@ -1,5 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
-@using HelpDeskSystem.Web.Auth
+@using System.Security.Claims
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
@@ -18,6 +18,11 @@
     <nav class="flex-column pt-2">
         <AuthorizeView>
             <Authorized>
+                @* LÓGICA MANUAL PARA OBTENER EL ROL *@
+                @{
+                    var rol = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                }
+
                 <div class="nav-item px-3 mb-1">
                     <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="" Match="NavLinkMatch.All">
                         <i class="bi bi-kanban-fill fs-5"></i>
@@ -25,7 +30,8 @@
                     </NavLink>
                 </div>
 
-                @if (context.User.IsInRole("Usuario"))
+                @* VERIFICACIÓN MANUAL (ESTO ARREGLA QUE CARLA NO VEA EL MENÚ) *@
+                @if (rol == "Usuario")
                 {
                     <div class="nav-item px-3 mb-1">
                         <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="nuevo-ticket">
@@ -42,7 +48,7 @@
                     </NavLink>
                 </div>
 
-                @if (context.User.IsInRole("Administrador"))
+                @if (rol == "Administrador")
                 {
                     <div class="nav-item px-3 mb-1">
                         <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="reportes">
@@ -99,8 +105,11 @@
 @code {
     private async Task CerrarSesion()
     {
-        var auth = (CustomAuthenticationStateProvider)AuthStateProvider;
-        await auth.MarcarUsuarioComoDesconectado();
-        Navigation.NavigateTo("login", true);
+        // Casteamos al tipo correcto para acceder al método personalizado
+        if (AuthStateProvider is CustomAuthenticationStateProvider auth)
+        {
+            await auth.MarcarUsuarioComoDesconectado();
+            Navigation.NavigateTo("login", true);
+        }
     }
 }

@@ -10,7 +10,17 @@
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>HelpDesk - Tablero</PageTitle>
-
+@* --- BLOQUE DE DIAGNÓSTICO (BORRAR LUEGO) --- *@
+<div class="alert alert-info">
+    <h5>Datos de Sesión Actual:</h5>
+    <ul>
+        <li><strong>Usuario:</strong> @nombreUsuario</li>
+        <li><strong>ID:</strong> @usuarioId</li>
+        <li><strong>Rol Detectado:</strong> [@rolActual]</li>
+        <li><strong>¿Es Rol 'Usuario'?:</strong> @esRolUsuario</li>
+    </ul>
+</div>
+@* -------------------------------------------- *@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3">Tablero de Tickets</h1>
@@ -119,16 +129,19 @@ else
     .ticket-card {
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     }
-    .ticket-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-    }
+
+        .ticket-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
 </style>
 
 @code {
     private List<Ticket>? tickets;
     private Guid usuarioId;
     private string rolActual = "";
+    private string nombreUsuario = ""; // Nuevo
+    private bool esRolUsuario = false; // Nuevo
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,13 +150,20 @@ else
 
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
+            nombreUsuario = user.Identity.Name ?? "Desconocido";
             var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
+
             if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId))
             {
                 usuarioId = parsedId;
             }
 
-            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            // Obtenemos el rol
+            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Sin Rol";
+
+            // Verificamos si el sistema reconoce el rol
+            esRolUsuario = user.IsInRole("Usuario");
+
             tickets = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
         }
     }
