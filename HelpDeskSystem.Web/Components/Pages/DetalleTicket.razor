@@ -5,18 +5,15 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@using System.Threading
-@inject ITicketService ServicioTickets
-@inject IUsuarioService ServicioUsuarios
-@inject IChatService ServicioChat
+@inject TicketService ServicioTickets
+@inject UsuarioService ServicioUsuarios
+@inject ChatService ServicioChat
 @inject NavigationManager Navegacion
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
-@inject IServiceProvider ServiceProvider
-@implements IDisposable
 
+@* ESTILOS UTEPSA *@
 <style>
-    /* ... (Tus estilos CSS se mantienen igual) ... */
     :root {
         --utepsa-red: #C8102E;
         --utepsa-dark: #111111;
@@ -256,12 +253,13 @@
                                                     <div class="mb-2 p-1 bg-white bg-opacity-25 rounded">
                                                         @if (msg.AdjuntoUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || msg.AdjuntoUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
                                                         {
-                                                            @* AQUÍ ESTÁ EL CLICK PARA VER IMAGEN *@
-                                                            <img src="@msg.AdjuntoUrl" class="img-fluid rounded border border-white" style="max-height: 150px; cursor: pointer;" @onclick="() => VerImagen(msg.AdjuntoUrl)" />
+                                                            <img src="@msg.AdjuntoUrl" class="img-fluid rounded border border-white" style="max-height: 150px; cursor: pointer; object-fit: cover;" @onclick="() => VerImagen(msg.AdjuntoUrl)" title="Ver imagen completa" />
                                                         }
                                                         else
                                                         {
-                                                            <a href="@msg.AdjuntoUrl" target="_blank" class="text-decoration-none @(soyYo ? "text-white" : "text-dark") d-flex align-items-center"><i class="bi bi-file-earmark-arrow-down me-2"></i> Descargar</a>
+                                                            <a href="@msg.AdjuntoUrl" target="_blank" class="text-decoration-none @(soyYo ? "text-white" : "text-dark") d-flex align-items-center">
+                                                                <i class="bi bi-file-earmark-arrow-down me-2"></i> Descargar Archivo
+                                                            </a>
                                                         }
                                                     </div>
                                                 }
@@ -297,11 +295,11 @@
                             }
                         </div>
                     </div>
+                    <div class="mt-4 mb-5"><a href="/" class="text-muted text-decoration-none small fw-bold"><i class="bi bi-arrow-left me-1"></i> VOLVER AL TABLERO</a></div>
                 </div>
             </div>
         </div>
     }
-
     @if (!string.IsNullOrEmpty(imagenModalUrl))
     {
         <div class="modal-backdrop-custom" @onclick="CerrarModal">
@@ -343,42 +341,21 @@
         await CargarChat();
         await ScrollAlFondo();
 
-        // TIMER CORREGIDO (Sin lambda compleja, usando método dedicado)
-        timer = new System.Threading.Timer(PollingTimer, null, 0, 3000);
-    }
-
-    // Método del Timer separado para evitar errores CS1662
-    private async void PollingTimer(object? state)
-    {
-        try
+        // Timer para polling (3 seg)
+        timer = new System.Threading.Timer(async _ =>
         {
             await InvokeAsync(async () =>
             {
-                // 1. Recargar mensajes usando el nombre de método correcto
-                using var scope = ServiceProvider.CreateScope();
-                var chatService = scope.ServiceProvider.GetRequiredService<IChatService>();
-                var nuevosMensajes = await chatService.ObtenerMensajesPorTicketId(Id);
-
-                if (nuevosMensajes.Count != mensajes.Count)
-                {
-                    mensajes = nuevosMensajes;
-                    await ScrollAlFondo();
-                }
-
-                // 2. Verificar estado del ticket
-                var ticketService = scope.ServiceProvider.GetRequiredService<ITicketService>();
-                var t = await ticketService.ObtenerPorIdAsync(Id);
+                await CargarChat();
+                // Refrescar estado del ticket
+                var t = await ServicioTickets.ObtenerPorIdAsync(Id);
                 if (t != null && miTicket != null && t.Estado != miTicket.Estado) miTicket = t;
-
                 StateHasChanged();
             });
-        }
-        catch { /* Evitar crashes si el componente ya no existe */ }
+        }, null, 0, 3000);
     }
 
     public void Dispose() => timer?.Dispose();
-
-    // --- MÉTODOS DE UI QUE FALTABAN ---
     private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
     private void ManejarSeleccionArchivo(InputFileChangeEventArgs e) => archivoSeleccionado = e.File;
@@ -400,6 +377,7 @@
     private async Task ScrollAlFondo() { await Task.Delay(50); await JS.InvokeVoidAsync("utilidadesChat.bajarScroll", "chatBox"); }
     private async Task PonerFoco() { await Task.Delay(50); await JS.InvokeVoidAsync("utilidadesChat.ponerFoco", "txtMensaje"); }
 
+    // Corrección de nulos: Usamos "if (miTicket != null)" antes de llamar a los métodos
     private async Task AsignarAsesor() { if (idAsesorSeleccionado != Guid.Empty && miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, idAsesorSeleccionado); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
     private async Task AutoAsignar() { if (miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }
     private async Task MarcarComoResuelto() { if (miTicket != null) { await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId); miTicket = await ServicioTickets.ObtenerPorIdAsync(Id); } }

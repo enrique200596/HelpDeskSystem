@@ -7,7 +7,7 @@ namespace HelpDeskSystem.Web.Auth
 {
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
-        // USAMOS LOCAL STORAGE (Sobrevive a F5 y reinicios)
+        // CORRECCIÓN: Usamos LocalStorage (Disco) en vez de Session (Memoria Volátil)
         private readonly ProtectedLocalStorage _localStorage;
         private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
 
@@ -20,9 +20,9 @@ namespace HelpDeskSystem.Web.Auth
         {
             try
             {
-                // Leemos "UserSession" del disco local del navegador
-                var userSessionStorageResult = await _localStorage.GetAsync<UserSession>("UserSession");
-                var userSession = userSessionStorageResult.Success ? userSessionStorageResult.Value : null;
+                // Leemos del disco local
+                var userSessionResult = await _localStorage.GetAsync<UserSession>("UserSession");
+                var userSession = userSessionResult.Success ? userSessionResult.Value : null;
 
                 if (userSession == null)
                     return await Task.FromResult(new AuthenticationState(_anonymous));
@@ -53,6 +53,7 @@ namespace HelpDeskSystem.Web.Auth
                 Rol = usuario.Rol.ToString()
             };
 
+            // Guardamos en LocalStorage
             await _localStorage.SetAsync("UserSession", userSession);
 
             var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
