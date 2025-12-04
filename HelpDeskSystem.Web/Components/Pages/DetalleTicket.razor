@@ -158,6 +158,12 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <span class="text-uppercase text-muted small fw-bold ls-1"><i class="bi bi-hash"></i> Ticket @miTicket.Id</span>
+                                @if (!modoEdicion && !miTicket.FueEditado && miTicket.UsuarioId == usuarioActualId && miTicket.Estado == HelpDeskSystem.Domain.Enums.EstadoTicket.Abierto)
+                                {
+                                    <button class="btn btn-link btn-sm p-0 ms-2 text-decoration-none" @onclick="() => modoEdicion = true" title="Editar título y descripción (Solo una vez)">
+                                        <i class="bi bi-pencil-square"></i> Editar
+                                    </button>
+                                }
                                 <h2 class="fw-bold mt-1 mb-2 text-dark">@miTicket.Titulo</h2>
                                 <div class="d-flex align-items-center gap-3 text-secondary small">
                                     <span><i class="bi bi-folder me-1"></i> @(miTicket.Categoria?.Nombre ?? "General")</span>
@@ -176,10 +182,23 @@
 
                         @if (modoEdicion)
                         {
+                            <div class="alert alert-warning py-2 small">
+                                <i class="bi bi-exclamation-triangle"></i> Atención: Solo puedes editar el detalle del ticket una única vez.
+                            </div>
                             <EditForm Model="miTicket" OnValidSubmit="GuardarCambios" class="mt-4">
-                                <div class="mb-3"><label class="fw-bold">Título</label><InputText @bind-Value="miTicket.Titulo" class="form-control" /></div>
-                                <div class="mb-3"><label class="fw-bold">Descripción</label><InputTextArea @bind-Value="miTicket.Descripcion" class="form-control" rows="4" /></div>
-                                <div class="d-flex gap-2"><button type="submit" class="btn btn-success btn-sm">Guardar</button><button type="button" class="btn btn-secondary btn-sm" @onclick="() => modoEdicion = false">Cancelar</button></div>
+                                <DataAnnotationsValidator />
+                                <div class="mb-3">
+                                    <label class="fw-bold">Título</label>
+                                    <InputText @bind-Value="miTicket.Titulo" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">Descripción</label>
+                                    <InputTextArea @bind-Value="miTicket.Descripcion" class="form-control" rows="4" />
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-success btn-sm">Guardar Cambios Permanentemente</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelarEdicion">Cancelar</button>
+                                </div>
                             </EditForm>
                         }
                         else
@@ -336,8 +355,8 @@
     private string rolUsuarioActual = "";
     private string? imagenModalUrl = null;
 
-    // YA NO NECESITAMOS EL TIMER
-    // private System.Threading.Timer? timer;
+    // Variable para controlar el conteo anterior de mensajes
+    private int conteoMensajesAnterior = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -358,25 +377,47 @@
         if (rolUsuarioActual == "Administrador") listaAsesores = await ServicioUsuarios.ObtenerAsesoresAsync();
 
         await CargarChat();
+        conteoMensajesAnterior = mensajes.Count; // Inicializamos conteo
         await ScrollAlFondo();
     }
 
     // 2. Método que se ejecuta cuando ALGUIEN (tú u otro) hace un cambio
     private async void ActualizarChatEnVivo()
     {
-        // InvokeAsync asegura que corra en el hilo de la UI
         await InvokeAsync(async () =>
         {
-            // Recargamos datos
-            await CargarChat();
-            var t = await ServicioTickets.ObtenerPorIdAsync(Id);
-            if (t != null && miTicket != null) miTicket = t; // Actualizamos estado del ticket
+            // 1. Guardar cuantos mensajes teníamos antes de recargar
+            int antes = mensajes.Count;
 
-            // Avisamos a Blazor que repinte la pantalla
+            // 2. Recargar mensajes
+            await CargarChat();
+
+            // 3. Obtener ticket actualizado
+            var t = await ServicioTickets.ObtenerPorIdAsync(Id);
+            if (t != null && miTicket != null) miTicket = t;
+
             StateHasChanged();
 
-            // Opcional: Si es un mensaje nuevo, bajar scroll
-            // await ScrollAlFondo();
+            // 4. LOGICA DE NOTIFICACIÓN Y SCROLL
+            if (mensajes.Count > antes)
+            {
+                var ultimoMensaje = mensajes.LastOrDefault();
+
+                // Si hay un mensaje nuevo y NO LO ESCRIBÍ YO
+                if (ultimoMensaje != null && ultimoMensaje.UsuarioId != usuarioActualId)
+                {
+                    // Scroll automático al recibir
+                    await ScrollAlFondo();
+
+                    // Notificación tipo Toast
+                    await JS.InvokeVoidAsync("mostrarNotificacion", $"Nuevo mensaje de {ultimoMensaje.Usuario?.Nombre}", "info");
+                }
+                else if (ultimoMensaje != null && ultimoMensaje.UsuarioId == usuarioActualId)
+                {
+                    // Si lo escribí yo, solo scroll (ya se hace en EnviarMensaje, pero esto es un respaldo)
+                    await ScrollAlFondo();
+                }
+            }
         });
     }
 
@@ -418,4 +459,12 @@
     private async Task MarcarComoResuelto() { if (miTicket != null) { await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId); } }
     private async Task GuardarCambios() { if (miTicket != null) { try { await ServicioTickets.ActualizarDescripcionUsuarioAsync(miTicket); modoEdicion = false; } catch { } } }
     private async Task Calificar(int estrellas) { if (miTicket != null) { await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId); } }
+    
+    // Agregar método para cancelar y revertir cambios locales si se arrepiente
+    private async Task CancelarEdicion()
+    {
+        modoEdicion = false;
+        // Recargamos del servidor para deshacer cambios en memoria no guardados
+        miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
+    }
 }

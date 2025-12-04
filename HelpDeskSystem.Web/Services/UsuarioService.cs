@@ -22,13 +22,54 @@ namespace HelpDeskSystem.Web.Services
                 .ToListAsync();
         }
 
-        public async Task CrearUsuario(Usuario nuevoUsuario, string passwordPlano)
+        public async Task<bool> CrearUsuarioAsync(Usuario usuario, string password)
         {
-            // ENCRIPTAR ANTES DE GUARDAR
-            nuevoUsuario.Password = BCrypt.Net.BCrypt.HashPassword(passwordPlano);
+            // Validar si el correo ya existe
+            if (await _context.Usuarios.AnyAsync(u => u.Email == usuario.Email))
+                return false;
 
-            _context.Usuarios.Add(nuevoUsuario);
+            // Encriptar contraseña
+            usuario.Password = BCrypt.Net.BCrypt.HashPassword(password);
+
+            // Asignar ID si no viene
+            if (usuario.Id == Guid.Empty) usuario.Id = Guid.NewGuid();
+
+            _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
-    }
+            return true;
+        }
+
+        public async Task<Usuario?> ObtenerUsuarioConCategoriasAsync(Guid userId)
+        {
+            return await _context.Usuarios
+                .Include(u => u.Categorias) // Importante: Cargar la relación
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task ActualizarCategoriasUsuarioAsync(Guid userId, List<int> idsCategoriasSeleccionadas)
+        {
+            var usuario = await _context.Usuarios
+                .Include(u => u.Categorias)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (usuario != null)
+            {
+                // 1. Limpiar las categorías actuales
+                usuario.Categorias.Clear();
+
+                // 2. Buscar las nuevas categorías en BD
+                var nuevasCategorias = await _context.Categorias
+                    .Where(c => idsCategoriasSeleccionadas.Contains(c.Id))
+                    .ToListAsync();
+
+                // 3. Agregarlas al usuario
+                foreach (var cat in nuevasCategorias)
+                {
+                    usuario.Categorias.Add(cat);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

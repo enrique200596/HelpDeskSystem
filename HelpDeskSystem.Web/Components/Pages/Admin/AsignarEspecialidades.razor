@@ -1,0 +1,159 @@
+﻿@page "/admin/asignar-especialidades"
+@attribute [Authorize(Roles = "Administrador")]
+@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Web.Services
+@inject IUsuarioService ServicioUsuarios
+@inject ITicketService ServicioTickets
+@inject IJSRuntime JS
+
+<PageTitle>Asignar Especialidades</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-dark text-white d-flex align-items-center">
+            <i class="bi bi-person-gear fs-4 me-2"></i>
+            <h4 class="mb-0">Asignar Categorías a Asesores</h4>
+        </div>
+        <div class="card-body">
+
+            @* 1. SELECCIONAR ASESOR *@
+            <div class="mb-4">
+                <label class="form-label fw-bold">Seleccione un Asesor:</label>
+                <select class="form-select form-select-lg" @onchange="CargarCategoriasUsuario">
+                    <option value="">-- Seleccionar --</option>
+                    @foreach (var asesor in listaAsesores)
+                    {
+                        <option value="@asesor.Id">@asesor.Nombre (@asesor.Email)</option>
+                    }
+                </select>
+            </div>
+
+            @if (usuarioSeleccionado != null)
+            {
+                <hr />
+                <h5 class="mb-3 text-primary">Categorías que puede atender <strong>@usuarioSeleccionado.Nombre</strong>:</h5>
+
+                @* 2. CHECKBOXES DE CATEGORÍAS *@
+                @if (todasLasCategorias.Count == 0)
+                {
+                    <div class="alert alert-warning">No hay categorías activas en el sistema. Vaya a "Gestión Categorías" para crearlas o activarlas.</div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var cat in todasLasCategorias)
+                        {
+                            bool estaAsignada = idsCategoriasSeleccionadas.Contains(cat.Id);
+
+                            <div class="col-md-4">
+                                <div class="form-check p-3 border rounded @(estaAsignada ? "bg-light border-primary shadow-sm" : "")"
+                                     @onclick="() => ToggleCategoria(cat.Id)"
+                                     style="cursor: pointer; transition: all 0.2s;">
+                                    <input class="form-check-input" type="checkbox" checked="@estaAsignada" style="pointer-events: none;">
+                                    <label class="form-check-label fw-bold ps-2" style="pointer-events: none;">
+                                        @cat.Nombre
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <button class="btn btn-primary px-5" @onclick="GuardarCambios" disabled="@guardando">
+                            @if (guardando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+
+                                <span>Guardando...</span>
+                            }
+                            else
+                            {
+                                <span><i class="bi bi-save me-1"></i> Guardar Asignaciones</span>
+                            }
+                        </button>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    Seleccione un usuario de la lista para ver y editar sus permisos.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Usuario> listaAsesores = new();
+    private List<Categoria> todasLasCategorias = new();
+    private Usuario? usuarioSeleccionado;
+    private List<int> idsCategoriasSeleccionadas = new();
+    private bool guardando = false; // Para evitar doble click
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaAsesores = await ServicioUsuarios.ObtenerAsesoresAsync();
+
+        // AQUÍ EL CAMBIO: No pasamos parámetros (o false explícito),
+        // así el servicio nos devuelve SOLO LAS ACTIVAS.
+        todasLasCategorias = await ServicioTickets.ObtenerCategoriasAsync(incluirInactivas: false);
+    }
+
+    private async Task CargarCategoriasUsuario(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out Guid id))
+        {
+            // Traemos al usuario CON sus categorías desde la BD
+            usuarioSeleccionado = await ServicioUsuarios.ObtenerUsuarioConCategoriasAsync(id);
+
+            // Mapeamos las categorías actuales a nuestra lista de IDs para los checkboxes
+            if (usuarioSeleccionado != null)
+            {
+                idsCategoriasSeleccionadas = usuarioSeleccionado.Categorias.Select(c => c.Id).ToList();
+            }
+        }
+        else
+        {
+            usuarioSeleccionado = null;
+            idsCategoriasSeleccionadas.Clear();
+        }
+    }
+
+    private void ToggleCategoria(int categoriaId)
+    {
+        if (idsCategoriasSeleccionadas.Contains(categoriaId))
+        {
+            idsCategoriasSeleccionadas.Remove(categoriaId);
+        }
+        else
+        {
+            idsCategoriasSeleccionadas.Add(categoriaId);
+        }
+    }
+
+    private async Task GuardarCambios()
+    {
+        if (usuarioSeleccionado == null) return;
+
+        guardando = true;
+        try
+        {
+            await ServicioUsuarios.ActualizarCategoriasUsuarioAsync(usuarioSeleccionado.Id, idsCategoriasSeleccionadas);
+
+            // ÉXITO: Notificación verde
+            await JS.InvokeVoidAsync("mostrarNotificacion", "Asignaciones guardadas correctamente.", "success");
+        }
+        catch (Exception ex)
+        {
+            // ERROR: Notificación roja
+            // En un entorno real, loguear el error ex
+            Console.WriteLine(ex.Message);
+            await JS.InvokeVoidAsync("mostrarNotificacion", "Error al guardar: " + ex.Message, "error");
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+}

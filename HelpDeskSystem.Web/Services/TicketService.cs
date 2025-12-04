@@ -19,6 +19,35 @@ namespace HelpDeskSystem.Web.Services
             _context = context;
         }
 
+        public async Task<List<Categoria>> ObtenerCategoriasAsync(bool incluirInactivas = false)
+        {
+            var query = _context.Categorias.AsQueryable();
+
+            if (!incluirInactivas)
+            {
+                // Por defecto, solo traemos las activas (para el NuevoTicket y Asignaciones)
+                query = query.Where(c => c.IsActive);
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task GuardarCategoriaAsync(Categoria categoria)
+        {
+            // Aseguramos que nazca activa
+            categoria.IsActive = true;
+            _context.Categorias.Add(categoria);
+            await _context.SaveChangesAsync();
+        }
+
+        // NUEVO MÉTODO
+        public async Task ActualizarCategoriaAsync(Categoria categoria)
+        {
+            // EF Core rastrea la entidad, así que update funciona directo si la entidad está adjunta
+            _context.Categorias.Update(categoria);
+            await _context.SaveChangesAsync();
+        }
+
         // --- 2. MÉTODO PARA DISPARAR EL EVENTO ---
         public void NotificarCambio()
         {

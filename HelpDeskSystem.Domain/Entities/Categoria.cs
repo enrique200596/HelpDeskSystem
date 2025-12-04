@@ -11,6 +11,8 @@ namespace HelpDeskSystem.Domain.Entities
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
 
+        // NUEVO: Para dar de baja sin borrar
+        public bool IsActive { get; set; } = true;
         // Relación Muchos a Muchos con Usuarios (Asesores)
         public virtual ICollection<Usuario> Asesores { get; set; } = new List<Usuario>();
     }

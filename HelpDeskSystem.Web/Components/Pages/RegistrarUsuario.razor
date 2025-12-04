@@ -1,0 +1,108 @@
+﻿@page "/registrar-usuario"
+@attribute [Authorize(Roles = "Administrador")]
+@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Domain.Enums
+@using HelpDeskSystem.Web.Services
+@using System.ComponentModel.DataAnnotations
+@inject IUsuarioService ServicioUsuarios
+@inject NavigationManager Navegacion
+@inject IJSRuntime JS
+
+<PageTitle>Registrar Nuevo Usuario</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white">
+            <h4 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Registrar Usuario</h4>
+        </div>
+        <div class="card-body p-4">
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-danger">@mensajeError</div>
+            }
+
+            <EditForm Model="modelo" OnValidSubmit="GuardarUsuario">
+                <DataAnnotationsValidator />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <InputText @bind-Value="modelo.Nombre" class="form-control" />
+                        <ValidationMessage For="@(() => modelo.Nombre)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <InputText @bind-Value="modelo.Email" class="form-control" />
+                        <ValidationMessage For="@(() => modelo.Email)" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <InputText @bind-Value="modelo.PasswordPlano" type="password" class="form-control" />
+                        <ValidationMessage For="@(() => modelo.PasswordPlano)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Rol del Usuario</label>
+                        <InputSelect @bind-Value="modelo.Rol" class="form-select">
+                            <option value="@RolUsuario.Usuario">Usuario (Cliente)</option>
+                            <option value="@RolUsuario.Asesor">Asesor</option>
+                            <option value="@RolUsuario.Administrador">Administrador</option>
+                        </InputSelect>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <a href="/" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-success">Guardar Usuario</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegistroModel modelo = new();
+    private string mensajeError = "";
+
+    private async Task GuardarUsuario()
+    {
+        var nuevoUsuario = new Usuario
+        {
+            Nombre = modelo.Nombre,
+            Email = modelo.Email,
+            Rol = modelo.Rol,
+            IsActive = true,
+            FotoPerfilUrl = "" // Opcional por ahora
+        };
+
+        var exito = await ServicioUsuarios.CrearUsuarioAsync(nuevoUsuario, modelo.PasswordPlano);
+
+        if (exito)
+        {
+            await JS.InvokeVoidAsync("mostrarNotificacion", "Usuario creado correctamente", "success");
+            Navegacion.NavigateTo("/");
+        }
+        else
+        {
+            mensajeError = "El correo electrónico ya está registrado.";
+        }
+    }
+
+    public class RegistroModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        public string Nombre { get; set; } = "";
+
+        [Required(ErrorMessage = "El email es obligatorio")]
+        [EmailAddress(ErrorMessage = "Formato de correo inválido")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "La contraseña es obligatoria")]
+        [MinLength(4, ErrorMessage = "Mínimo 4 caracteres")]
+        public string PasswordPlano { get; set; } = "";
+
+        public RolUsuario Rol { get; set; } = RolUsuario.Usuario;
+    }
+}

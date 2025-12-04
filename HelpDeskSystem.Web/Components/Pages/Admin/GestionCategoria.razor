@@ -1,0 +1,172 @@
+﻿<h3>GestionCategoria</h3>
+
+@code {
+
+}
+@page "/admin/categorias"
+@attribute [Authorize(Roles = "Administrador")]
+@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Web.Services
+@inject ITicketService ServicioTickets
+@inject IJSRuntime JS
+
+<PageTitle>Gestión de Categorías</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        @* COLUMNA IZQUIERDA: FORMULARIO (Crear o Editar) *@
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header @(modoEdicion ? "bg-warning" : "bg-primary") text-white">
+                    <h5 class="mb-0">
+                        <i class="bi @(modoEdicion ? "bi-pencil-square" : "bi-plus-circle") me-2"></i>
+                        @(modoEdicion ? "Editar Categoría" : "Nueva Categoría")
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="modeloCategoria" OnValidSubmit="Guardar">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <InputText @bind-Value="modeloCategoria.Nombre" class="form-control" placeholder="Ej: Redes..." />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn @(modoEdicion ? "btn-warning" : "btn-success")">
+                                @(modoEdicion ? "Actualizar Cambios" : "Guardar Categoría")
+                            </button>
+
+                            @if (modoEdicion)
+                            {
+                                <button type="button" class="btn btn-secondary" @onclick="CancelarEdicion">
+                                    Cancelar
+                                </button>
+                            }
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        @* COLUMNA DERECHA: LISTADO *@
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-secondary">Catálogo de Categorías</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cat in listaCategorias)
+                            {
+                                <tr class="@(cat.IsActive ? "" : "bg-light text-muted")">
+                                    <td>
+                                        <span class="fw-bold">@cat.Nombre</span>
+                                    </td>
+                                    <td>
+                                        @if (cat.IsActive)
+                                        {
+                                            <span class="badge bg-success">Activa</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactiva</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @* Botón Editar *@
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => IniciarEdicion(cat)" title="Editar nombre">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+
+                                        @* Botón Dar de Baja/Alta *@
+                                        @if (cat.IsActive)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => CambiarEstado(cat)" title="Dar de baja (Ocultar)">
+                                                <i class="bi bi-eye-slash"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-success" @onclick="() => CambiarEstado(cat)" title="Reactivar">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Categoria modeloCategoria = new();
+    private List<Categoria> listaCategorias = new();
+    private bool modoEdicion = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarCategorias();
+    }
+
+    private async Task CargarCategorias()
+    {
+        // Pasamos TRUE para ver TODAS (activas e inactivas) y poder administrarlas
+        listaCategorias = await ServicioTickets.ObtenerCategoriasAsync(incluirInactivas: true);
+    }
+
+    private void IniciarEdicion(Categoria cat)
+    {
+        modeloCategoria = cat; // Vinculamos el formulario a la categoría existente
+        modoEdicion = true;
+    }
+
+    private void CancelarEdicion()
+    {
+        modeloCategoria = new Categoria();
+        modoEdicion = false;
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(modeloCategoria.Nombre)) return;
+
+        if (modoEdicion)
+        {
+            await ServicioTickets.ActualizarCategoriaAsync(modeloCategoria);
+            await JS.InvokeVoidAsync("mostrarNotificacion", "Categoría actualizada correctamente", "success");
+            CancelarEdicion();
+        }
+        else
+        {
+            await ServicioTickets.GuardarCategoriaAsync(modeloCategoria);
+            await JS.InvokeVoidAsync("mostrarNotificacion", "Categoría creada correctamente", "success");
+            modeloCategoria = new Categoria(); // Limpiar
+        }
+
+        await CargarCategorias();
+    }
+
+    private async Task CambiarEstado(Categoria cat)
+    {
+        // Invertimos el estado
+        cat.IsActive = !cat.IsActive;
+        await ServicioTickets.ActualizarCategoriaAsync(cat);
+
+        string mensaje = cat.IsActive ? "Categoría reactivada" : "Categoría dada de baja";
+        string tipo = cat.IsActive ? "success" : "warning"; // Warning para baja
+
+        await JS.InvokeVoidAsync("mostrarNotificacion", mensaje, tipo);
+    }
+}

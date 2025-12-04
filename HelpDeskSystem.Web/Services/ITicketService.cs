@@ -7,8 +7,8 @@ namespace HelpDeskSystem.Web.Services
         // Métodos de Lectura
         Task<List<Ticket>> ObtenerTicketsFiltradosAsync(Guid userId, string rol);
         Task<Ticket?> ObtenerPorIdAsync(int id);
-        Task<List<Categoria>> ObtenerCategoriasAsync();
-
+        // Modificamos este para aceptar un filtro opcional
+        Task<List<Categoria>> ObtenerCategoriasAsync(bool incluirInactivas = false);
         // Métodos de Escritura
         Task GuardarTicketAsync(Ticket ticket);
         Task ActualizarDescripcionUsuarioAsync(Ticket ticket);
@@ -18,5 +18,11 @@ namespace HelpDeskSystem.Web.Services
 
         // --- NUEVO: Para notificar actualizaciones en tiempo real ---
         void NotificarCambio();
+
+        // NUEVO: Para crear categorías
+        Task GuardarCategoriaAsync(Categoria categoria);
+
+        // NUEVO: Para editar o dar de baja
+        Task ActualizarCategoriaAsync(Categoria categoria);
     }
 }
