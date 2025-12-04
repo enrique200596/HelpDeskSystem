@@ -1,5 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using HelpDeskSystem.Web.Auth  @* <--- AGREGA ESTO *@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
@@ -63,10 +64,11 @@
                 </div>
 
                 <div class="nav-item px-3">
-                    <button class="nav-link btn btn-link w-100 text-start d-flex align-items-center gap-3 rounded-2 text-danger-hover" @onclick="CerrarSesion">
+                    <a class="nav-link btn btn-link w-100 text-start d-flex align-items-center gap-3 rounded-2 text-danger-hover"
+                       href="/account/logout">
                         <i class="bi bi-box-arrow-left fs-5"></i>
                         <span>Cerrar Sesión</span>
-                    </button>
+                    </a>
                 </div>
             </Authorized>
             <NotAuthorized>

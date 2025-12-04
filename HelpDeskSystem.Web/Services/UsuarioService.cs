@@ -21,5 +21,14 @@ namespace HelpDeskSystem.Web.Services
                 .Where(u => u.Rol == RolUsuario.Asesor && u.IsActive)
                 .ToListAsync();
         }
+
+        public async Task CrearUsuario(Usuario nuevoUsuario, string passwordPlano)
+        {
+            // ENCRIPTAR ANTES DE GUARDAR
+            nuevoUsuario.Password = BCrypt.Net.BCrypt.HashPassword(passwordPlano);
+
+            _context.Usuarios.Add(nuevoUsuario);
+            await _context.SaveChangesAsync();
+    }
     }
 }

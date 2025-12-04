@@ -48,11 +48,11 @@ namespace HelpDeskSystem.Data
             var idPedro = Guid.Parse("55555555-5555-5555-5555-555555555555"); // Usuario
 
             modelBuilder.Entity<Usuario>().HasData(
-                new Usuario { Id = idAdmin, Nombre = "Administrador Jefe", Email = "admin@helpdesk.com", Rol = RolUsuario.Administrador, Password = "admin", IsActive = true },
-                new Usuario { Id = idJuan, Nombre = "Juan Asesor", Email = "juan@helpdesk.com", Rol = RolUsuario.Asesor, Password = "1234", IsActive = true },
-                new Usuario { Id = idCarla, Nombre = "Carla Usuario", Email = "carla@cliente.com", Rol = RolUsuario.Usuario, Password = "1234", IsActive = true },
-                new Usuario { Id = idAna, Nombre = "Ana Asesora", Email = "ana@helpdesk.com", Rol = RolUsuario.Asesor, Password = "1234", IsActive = true },
-                new Usuario { Id = idPedro, Nombre = "Pedro Cliente", Email = "pedro@cliente.com", Rol = RolUsuario.Usuario, Password = "1234", IsActive = true }
+                new Usuario { Id = idAdmin, Nombre = "Administrador Jefe", Email = "admin@helpdesk.com", Rol = RolUsuario.Administrador, Password = BCrypt.Net.BCrypt.HashPassword("admin"), IsActive = true },
+                new Usuario { Id = idJuan, Nombre = "Juan Asesor", Email = "juan@helpdesk.com", Rol = RolUsuario.Asesor, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true },
+                new Usuario { Id = idCarla, Nombre = "Carla Usuario", Email = "carla@cliente.com", Rol = RolUsuario.Usuario, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true },
+                new Usuario { Id = idAna, Nombre = "Ana Asesora", Email = "ana@helpdesk.com", Rol = RolUsuario.Asesor, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true },
+                new Usuario { Id = idPedro, Nombre = "Pedro Cliente", Email = "pedro@cliente.com", Rol = RolUsuario.Usuario, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true }
             );
 
             // 4. RELACIÓN MUCHOS A MUCHOS (ASESORES <-> CATEGORÍAS)

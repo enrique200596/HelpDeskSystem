@@ -8,8 +8,8 @@ namespace HelpDeskSystem.Web.Auth
 {
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
-        // Usamos ProtectedSessionStorage para que la sesión persista en el navegador (y sobreviva al F5)
-        private readonly ProtectedLocalStorage _localStorage;
+        // CORRECCIÓN: Usar el mismo nombre y tipo en todo lado
+        private readonly ProtectedSessionStorage _sessionStorage;
         private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
 
         public CustomAuthenticationStateProvider(ProtectedSessionStorage sessionStorage)

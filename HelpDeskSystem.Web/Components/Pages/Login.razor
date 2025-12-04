@@ -1,14 +1,6 @@
 ﻿@page "/login"
 @attribute [AllowAnonymous]
-@using HelpDeskSystem.Data
-@using HelpDeskSystem.Web.Auth
-@using HelpDeskSystem.Web.Services
-@using Microsoft.AspNetCore.Components.Authorization
-@* ELIMINAMOS: @using Microsoft.EntityFrameworkCore *@ 
-
-@* CAMBIO 1: Inyectamos el Servicio de Autenticación en lugar del DbContext *@
-@inject IAuthService ServicioAuth
-@inject AuthenticationStateProvider AuthStateProvider
+@* Ya no necesitamos inyectar servicios de lógica aquí, solo navegación si acaso *@
 @inject NavigationManager Navegacion
 
 <div class="container mt-5">
@@ -19,25 +11,33 @@
                     <h3><i class="bi bi-shield-lock"></i> Iniciar Sesión</h3>
                 </div>
                 <div class="card-body">
-                    @if (!string.IsNullOrEmpty(mensajeError))
+                    @* Mostrar errores que vienen desde el Controlador *@
+                    @if (!string.IsNullOrEmpty(MensajeError))
                     {
                         <div class="alert alert-danger text-center">
-                            <i class="bi bi-exclamation-circle-fill"></i> @mensajeError
+                            <i class="bi bi-exclamation-circle-fill"></i> @MensajeError
                         </div>
                     }
 
-                    <div class="mb-3">
-                        <label class="form-label">Correo Electrónico</label>
-                        <input class="form-control" @bind="email" placeholder="ejemplo@helpdesk.com" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Contraseña</label>
-                        <input type="password" class="form-control" @bind="password" placeholder="****" />
-                    </div>
+                    @* FORMULARIO ESTÁNDAR QUE HACE POST AL CONTROLADOR *@
+                    @* No usamos @bind, usamos 'name' para que el controlador reciba los datos *@
+                    <form action="/account/login" method="post">
+                        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
 
-                    <button class="btn btn-primary w-100 py-2" @onclick="IniciarSesion">
-                        Ingresar al Sistema
-                    </button>
+                        <div class="mb-3">
+                            <label class="form-label">Correo Electrónico</label>
+                            <input type="text" name="email" class="form-control" placeholder="ejemplo@helpdesk.com" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" name="password" class="form-control" placeholder="****" required />
+                        </div>
+
+                        @* Botón simple tipo submit, SIN @onclick *@
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            Ingresar al Sistema
+                        </button>
+                    </form>
                 </div>
                 <div class="card-footer text-muted small bg-light">
                     <p class="mb-1 fw-bold">Credenciales de prueba:</p>
@@ -53,32 +53,12 @@
 </div>
 
 @code {
-    private string email = string.Empty;
-    private string password = string.Empty;
-    private string mensajeError = string.Empty;
-    [Parameter] public string? returnUrl { get; set; }
+    // Recibimos parámetros por URL por si el controlador nos devuelve un error
+    // o para saber a dónde volver después de loguearnos.
 
-    private async Task IniciarSesion()
-    {
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        {
-            mensajeError = "Ingresa correo y contraseña.";
-            return;
-        }
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string ReturnUrl { get; set; } = "";
 
-        // CAMBIO 2: Usamos el servicio para validar, en lugar de consultar la BD directamente
-        var usuario = await ServicioAuth.LoginAsync(email, password);
-
-        if (usuario == null)
-        {
-            mensajeError = "Usuario o contraseña incorrectos.";
-            return;
-        }
-
-        var authPersonalizada = (CustomAuthenticationStateProvider)AuthStateProvider;
-        await authPersonalizada.MarcarUsuarioComoAutenticado(usuario);
-
-        var destino = string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl}";
-        Navegacion.NavigateTo(destino);
-    }
+    [SupplyParameterFromQuery(Name = "error")]
+    public string MensajeError { get; set; } = "";
 }

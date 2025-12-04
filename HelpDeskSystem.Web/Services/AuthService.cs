@@ -21,26 +21,15 @@ namespace HelpDeskSystem.Web.Services
 
             if (usuario == null) return null;
 
+            // Verificación estricta con BCrypt
             bool verificado = false;
-
-            // --- CORRECCIÓN AQUÍ ---
             try
             {
-                // Intentamos verificar como hash seguro
                 verificado = BCrypt.Net.BCrypt.Verify(password, usuario.Password);
             }
-            catch
+            catch (BCrypt.Net.SaltParseException)
             {
-                // Si BCrypt falla (porque la contraseña es "1234" y no un hash),
-                // capturamos el error y continuamos para verificarla como texto plano.
-                verificado = false;
-            }
-            // -----------------------
-
-            // Parche de compatibilidad para usuarios antiguos ("1234")
-            if (!verificado && usuario.Password == password)
-            {
-                verificado = true;
+                verificado = false; // El hash en BD no es válido
             }
 
             return verificado ? usuario : null;
