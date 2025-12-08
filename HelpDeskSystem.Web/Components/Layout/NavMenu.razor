@@ -1,14 +1,14 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@using HelpDeskSystem.Web.Auth  @* <--- AGREGA ESTO *@
+@using HelpDeskSystem.Web.Auth
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
-<div class="top-row ps-3 navbar navbar-dark bg-dark border-bottom border-secondary">
+<div class="top-row ps-3 navbar navbar-dark border-bottom border-secondary bg-utepsa-dark">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center gap-2" href="">
-            <i class="bi bi-life-preserver fs-4 text-warning"></i>
-            <span class="fw-bold tracking-tight">Helpdesk UTEPSA</span>
+            <i class="bi bi-shield-check fs-4 text-utepsa-red"></i>
+            <span class="fw-bold tracking-tight">HelpDesk UTEPSA</span>
         </a>
     </div>
 </div>
@@ -16,96 +16,73 @@
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column pt-2">
+    <nav class="flex-column pt-3">
         <AuthorizeView>
             <Authorized>
-                @* LÓGICA MANUAL PARA OBTENER EL ROL *@
-                @{
-                    var rol = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-                }
+                @* --- SECCIÓN GENERAL --- *@
+                <div class="nav-header px-3 mb-2 text-uppercase small text-muted fw-bold">Principal</div>
 
-                <div class="nav-item px-3 mb-1">
-                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="" Match="NavLinkMatch.All">
-                        <i class="bi bi-kanban-fill fs-5"></i>
-                        <span>Tablero de Tickets</span>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <i class="bi bi-kanban-fill me-3"></i> Tablero
                     </NavLink>
                 </div>
 
-                @* VERIFICACIÓN MANUAL (ESTO ARREGLA QUE CARLA NO VEA EL MENÚ) *@
-                @if (rol == "Usuario")
-                {
-                    <div class="nav-item px-3 mb-1">
-                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="nuevo-ticket">
-                            <i class="bi bi-plus-circle-fill fs-5 text-success"></i>
-                            <span>Nuevo Ticket</span>
-                        </NavLink>
-                    </div>
-                }
-
-                <div class="nav-item px-3 mb-1">
-                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="dashboard">
-                        <i class="bi bi-bar-chart-line-fill fs-5 text-info"></i>
-                        <span>Estadísticas</span>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="dashboard">
+                        <i class="bi bi-bar-chart-line-fill me-3"></i> Estadísticas
                     </NavLink>
                 </div>
 
-                @if (rol == "Administrador")
+                @* --- SECCIÓN USUARIO --- *@
+                @if (EsRol("Usuario"))
                 {
-                    <div class="nav-item px-3 mb-1">
-                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="reportes">
-                            <i class="bi bi-pie-chart-fill fs-5 text-danger"></i>
-                            <span>Reportes Gerenciales</span>
-                        </NavLink>
-                    </div>
-
-                    @* ENLACE ACTUALIZADO: Gestión de Usuarios *@
-                    <div class="nav-item px-3 mb-1">
-                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="admin/usuarios">
-                            <i class="bi bi-people-fill fs-5 text-warning"></i>
-                            <span>Gestión Usuarios</span>
-                        </NavLink>
-                    </div>
-
-                    <div class="nav-item px-3 mb-1">
-                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="admin/categorias">
-                            <i class="bi bi-tags-fill fs-5 text-warning"></i>
-                            <span>Gestión Categorías</span>
-                        </NavLink>
-                    </div>
-
-                    <div class="nav-item px-3 mb-1">
-                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="admin/asignar-especialidades">
-                            <i class="bi bi-person-gear fs-5 text-warning"></i>
-                            <span>Asignar Especialidades</span>
+                    <div class="nav-item px-3 mt-2">
+                        <NavLink class="nav-link btn-crear-ticket" href="nuevo-ticket">
+                            <i class="bi bi-plus-circle-fill me-3"></i> Nuevo Ticket
                         </NavLink>
                     </div>
                 }
 
-                <div class="nav-item px-3 my-3">
+                @* --- SECCIÓN ADMINISTRADOR --- *@
+                @if (EsRol("Administrador"))
+                {
+                    <div class="nav-header px-3 mt-3 mb-2 text-uppercase small text-muted fw-bold">Administración</div>
+
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="reportes">
+                            <i class="bi bi-file-earmark-bar-graph-fill me-3"></i> Reportes
+                        </NavLink>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin/usuarios">
+                            <i class="bi bi-people-fill me-3"></i> Usuarios
+                        </NavLink>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin/categorias">
+                            <i class="bi bi-tags-fill me-3"></i> Categorías
+                        </NavLink>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin/asignar-especialidades">
+                            <i class="bi bi-person-gear me-3"></i> Especialidades
+                        </NavLink>
+                    </div>
+                }
+
+                <div class="nav-item px-3 mt-auto mb-3">
                     <hr class="text-secondary opacity-50" />
-                </div>
-
-                @* --- SECCIÓN COMÚN PARA TODOS (AYUDA) --- *@
-                <div class="nav-item px-3 mb-1 mt-3">
-                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="ayuda">
-                        <i class="bi bi-question-circle-fill fs-5 text-secondary"></i>
-                        <span>Ayuda / Soporte</span>
-                    </NavLink>
-                </div>
-
-                @* --- SECCIÓN DE LOGOUT (Ya existente) --- *@
-                <div class="nav-item px-3 mb-1">
-                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2 text-danger" href="account/logout">
-                        <i class="bi bi-box-arrow-right fs-5"></i>
-                        <span>Cerrar Sesión</span>
-                    </NavLink>
+                    <button class="nav-link w-100 text-start text-danger" @onclick="CerrarSesion">
+                        <i class="bi bi-box-arrow-right me-3"></i> Cerrar Sesión
+                    </button>
                 </div>
             </Authorized>
+
             <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="login">
-                        <i class="bi bi-box-arrow-in-right fs-5"></i>
-                        <span>Iniciar Sesión</span>
+                <div class="nav-item px-3 mt-3">
+                    <NavLink class="nav-link active-login" href="login">
+                        <i class="bi bi-box-arrow-in-right me-3"></i> Iniciar Sesión
                     </NavLink>
                 </div>
             </NotAuthorized>
@@ -113,31 +90,27 @@
     </nav>
 </div>
 
-<style>
-    .nav-item .nav-link {
-        transition: all 0.2s ease-in-out;
-        display: flex;
-        align-items: center;
-    }
-
-        .nav-item .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-
-    .text-danger-hover:hover {
-        color: #ff6b6b !important;
-    }
-
-    .navbar-brand {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-</style>
-
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+    private ClaimsPrincipal? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState != null)
+        {
+            var state = await AuthState;
+            user = state.User;
+        }
+    }
+
+    // Método auxiliar para limpiar la vista de lógica compleja
+    private bool EsRol(string rolRequerido)
+    {
+        return user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
+    }
+
     private async Task CerrarSesion()
     {
-        // Casteamos al tipo correcto para acceder al método personalizado
         if (AuthStateProvider is CustomAuthenticationStateProvider auth)
         {
             await auth.MarcarUsuarioComoDesconectado();

@@ -281,21 +281,15 @@
                                     <div class="d-flex mb-3 @(soyYo ? "justify-content-end" : "justify-content-start")">
                                         <div class="d-flex flex-column @(soyYo ? "align-items-end" : "align-items-start")" style="max-width: 80%;">
                                             <small class="text-muted mb-1 mx-1" style="font-size: 0.7rem;">@msg.Usuario?.Nombre</small>
-                                            <div class="bubble @(soyYo ? "bubble-me" : "bubble-other")">
-                                                @if (!string.IsNullOrEmpty(msg.AdjuntoUrl))
+                                            <div class="bubble @(soyYo ? "bubble-me" : "bubble-other") shadow-sm">
+                                                @if (!soyYo)
                                                 {
-                                                    <div class="mb-2 p-1 bg-white bg-opacity-25 rounded">
-                                                        @if (msg.AdjuntoUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || msg.AdjuntoUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
-                                                        {
-                                                            <img src="@msg.AdjuntoUrl" class="img-fluid rounded border border-white" style="max-height: 150px; cursor: pointer; object-fit: cover;" @onclick="() => VerImagen(msg.AdjuntoUrl)" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <a href="@msg.AdjuntoUrl" target="_blank" class="text-decoration-none @(soyYo ? "text-white" : "text-dark") d-flex align-items-center"><i class="bi bi-file-earmark-arrow-down me-2"></i> Descargar</a>
-                                                        }
-                                                    </div>
+                                                    <div class="fw-bold small mb-1 text-primary">@msg.Usuario?.Nombre</div>
                                                 }
-                                                @msg.Contenido
+                                                <div>@msg.Contenido</div>
+                                                <div class="text-end mt-1 opacity-50" style="font-size: 0.6rem;">
+                                                    @msg.FechaHora.ToString("HH:mm") <i class="bi bi-check-all"></i>
+                                                </div>
                                             </div>
                                             <small class="text-muted mt-1 mx-1" style="font-size: 0.65rem;">@msg.FechaHora.ToString("HH:mm")</small>
                                         </div>
@@ -459,7 +453,7 @@
     private async Task MarcarComoResuelto() { if (miTicket != null) { await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId); } }
     private async Task GuardarCambios() { if (miTicket != null) { try { await ServicioTickets.ActualizarDescripcionUsuarioAsync(miTicket); modoEdicion = false; } catch { } } }
     private async Task Calificar(int estrellas) { if (miTicket != null) { await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId); } }
-    
+
     // Agregar método para cancelar y revertir cambios locales si se arrepiente
     private async Task CancelarEdicion()
     {
