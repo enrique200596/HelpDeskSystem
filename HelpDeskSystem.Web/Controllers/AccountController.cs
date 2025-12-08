@@ -17,14 +17,17 @@ namespace HelpDeskSystem.Web.Controllers
         [HttpPost("/account/login")]
         public async Task<IActionResult> Login([FromForm] string email, [FromForm] string password, [FromForm] string returnUrl)
         {
-            var usuario = await _authService.LoginAsync(email, password);
+            // Desestructuramos la respuesta del servicio
+            var (usuario, mensajeError) = await _authService.LoginAsync(email, password);
 
+            // Si el usuario es nulo, redirigimos con el mensaje específico
             if (usuario == null)
             {
-                return Redirect($"/login?error=Credenciales incorrectas&returnUrl={returnUrl}");
+                // Usamos Uri.EscapeDataString para asegurar que el mensaje viaje bien por la URL
+                return Redirect($"/login?error={Uri.EscapeDataString(mensajeError)}&returnUrl={returnUrl}");
             }
 
-            // Crear la identidad del usuario (La Cookie)
+            // --- Lógica de éxito (Crear Cookie) ---
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.Nombre),
@@ -36,7 +39,6 @@ namespace HelpDeskSystem.Web.Controllers
             var identity = new ClaimsIdentity(claims, "Cookies");
             var principal = new ClaimsPrincipal(identity);
 
-            // ¡ESTO CREA LA COOKIE ENCRIPTADA!
             await HttpContext.SignInAsync("Cookies", principal);
 
             return Redirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);

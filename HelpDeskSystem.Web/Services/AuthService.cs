@@ -1,7 +1,6 @@
 ﻿using HelpDeskSystem.Data;
 using HelpDeskSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-// Asegúrate de haber instalado: BCrypt.Net-Next
 
 namespace HelpDeskSystem.Web.Services
 {
@@ -14,25 +13,42 @@ namespace HelpDeskSystem.Web.Services
             _context = context;
         }
 
-        public async Task<Usuario?> LoginAsync(string email, string password)
+        public async Task<(Usuario? Usuario, string MensajeError)> LoginAsync(string email, string password)
         {
+            // 1. Buscamos al usuario SOLO por correo (sin filtrar IsActive aún)
             var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+                .FirstOrDefaultAsync(u => u.Email == email);
 
-            if (usuario == null) return null;
+            // CASO A: Usuario no existe en la BD
+            if (usuario == null)
+            {
+                return (null, "Usuario no existente.");
+            }
 
-            // Verificación estricta con BCrypt
-            bool verificado = false;
+            // CASO B: Usuario existe, pero está deshabilitado
+            if (!usuario.IsActive)
+            {
+                return (null, "Su usuario está deshabilitado. Contacte al administrador.");
+            }
+
+            // CASO C: Verificar contraseña
+            bool passwordValida = false;
             try
             {
-                verificado = BCrypt.Net.BCrypt.Verify(password, usuario.Password);
+                passwordValida = BCrypt.Net.BCrypt.Verify(password, usuario.Password);
             }
-            catch (BCrypt.Net.SaltParseException)
+            catch
             {
-                verificado = false; // El hash en BD no es válido
+                passwordValida = false;
             }
 
-            return verificado ? usuario : null;
+            if (!passwordValida)
+            {
+                return (null, "Contraseña errónea.");
+            }
+
+            // ÉXITO: Retornamos el usuario y mensaje vacío
+            return (usuario, "");
         }
     }
 }

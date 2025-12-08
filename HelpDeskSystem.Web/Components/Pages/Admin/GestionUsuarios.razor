@@ -1,0 +1,242 @@
+﻿@page "/admin/usuarios"
+@attribute [Authorize(Roles = "Administrador")]
+@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Domain.Enums
+@using HelpDeskSystem.Web.Services
+@using System.ComponentModel.DataAnnotations
+@inject IUsuarioService ServicioUsuarios
+@inject IJSRuntime JS
+
+<PageTitle>Gestión de Usuarios</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        @* COLUMNA IZQUIERDA: FORMULARIO *@
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header @(modoEdicion ? "bg-warning" : "bg-dark") text-white">
+                    <h5 class="mb-0">
+                        <i class="bi @(modoEdicion ? "bi-pencil-square" : "bi-person-plus") me-2"></i>
+                        @(modoEdicion ? "Editar Usuario" : "Nuevo Usuario")
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="modelo" OnValidSubmit="Guardar">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Completo</label>
+                            <InputText @bind-Value="modelo.Nombre" class="form-control" placeholder="Nombre y Apellido" />
+                            <ValidationMessage For="@(() => modelo.Nombre)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Correo Electrónico</label>
+                            <InputText @bind-Value="modelo.Email" class="form-control" placeholder="correo@ejemplo.com" />
+                            <ValidationMessage For="@(() => modelo.Email)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Rol</label>
+                            <InputSelect @bind-Value="modelo.Rol" class="form-select">
+                                <option value="@RolUsuario.Usuario">Usuario (Cliente)</option>
+                                <option value="@RolUsuario.Asesor">Asesor (Soporte)</option>
+                                <option value="@RolUsuario.Administrador">Administrador</option>
+                            </InputSelect>
+                        </div>
+
+                        @* Campo de contraseña condicional *@
+                        <div class="mb-3 bg-light p-2 rounded border">
+                            <label class="form-label fw-bold small text-muted">
+                                @(modoEdicion ? "Restablecer Contraseña (Opcional)" : "Contraseña")
+                            </label>
+                            <InputText @bind-Value="modelo.Password" type="password" class="form-control form-control-sm" 
+                                       placeholder="@(modoEdicion ? "Dejar vacío para mantener actual" : "Requerida")" />
+                            <ValidationMessage For="@(() => modelo.Password)" />
+                        </div>
+
+                        @if (modoEdicion)
+                        {
+                            <div class="mb-3 form-check">
+                                <InputCheckbox @bind-Value="modelo.IsActive" class="form-check-input" id="checkActivo" />
+                                <label class="form-check-label" for="checkActivo">Usuario Activo (Puede acceder)</label>
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn @(modoEdicion ? "btn-warning" : "btn-success")">
+                                <i class="bi bi-save me-2"></i> @(modoEdicion ? "Actualizar Datos" : "Registrar Usuario")
+                            </button>
+                            
+                            @if (modoEdicion)
+                            {
+                                <button type="button" class="btn btn-secondary" @onclick="CancelarEdicion">
+                                    Cancelar Edición
+                                </button>
+                            }
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        @* COLUMNA DERECHA: LISTA *@
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-secondary">Directorio de Usuarios</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in listaUsuarios)
+                            {
+                                <tr class="@(!u.IsActive ? "bg-light text-muted" : "")">
+                                    <td>
+                                        <div class="fw-bold">@u.Nombre</div>
+                                        <div class="small @(!u.IsActive ? "text-muted" : "text-secondary")">@u.Email</div>
+                                    </td>
+                                    <td>
+                                        @switch (u.Rol)
+                                        {
+                                            case RolUsuario.Administrador: <span class="badge bg-danger">Admin</span> break;
+                                            case RolUsuario.Asesor: <span class="badge bg-warning text-dark">Asesor</span> break;
+                                            default: <span class="badge bg-info text-dark">Usuario</span> break;
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (u.IsActive)
+                                        {
+                                            <span class="badge bg-success rounded-pill"><i class="bi bi-check-lg"></i> Activo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary rounded-pill"><i class="bi bi-x-lg"></i> Inactivo</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Editar(u)" title="Editar datos y contraseña">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Modelo local para el formulario (DTO simple)
+    private class UsuarioModel
+    {
+        public Guid Id { get; set; } = Guid.Empty;
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        public string Nombre { get; set; } = "";
+        [Required(ErrorMessage = "El correo es obligatorio")]
+        public string Email { get; set; } = "";
+        public RolUsuario Rol { get; set; } = RolUsuario.Usuario;
+        public string Password { get; set; } = ""; // Plano para el input
+        public bool IsActive { get; set; } = true;
+    }
+
+    private List<Usuario> listaUsuarios = new();
+    private UsuarioModel modelo = new();
+    private bool modoEdicion = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUsuarios();
+    }
+
+    private async Task CargarUsuarios()
+    {
+        listaUsuarios = await ServicioUsuarios.ObtenerTodosLosUsuariosAsync();
+    }
+
+    private void Editar(Usuario u)
+    {
+        modelo = new UsuarioModel
+        {
+            Id = u.Id,
+            Nombre = u.Nombre,
+            Email = u.Email,
+            Rol = u.Rol,
+            IsActive = u.IsActive,
+            Password = "" // Limpiamos password al editar
+        };
+        modoEdicion = true;
+    }
+
+    private void CancelarEdicion()
+    {
+        modelo = new UsuarioModel();
+        modoEdicion = false;
+    }
+
+    private async Task Guardar()
+    {
+        if (modoEdicion)
+        {
+            // 1. Actualizar Datos Generales
+            var usuarioEntidad = new Usuario
+            {
+                Id = modelo.Id,
+                Nombre = modelo.Nombre,
+                Email = modelo.Email,
+                Rol = modelo.Rol,
+                IsActive = modelo.IsActive
+            };
+
+            await ServicioUsuarios.ActualizarUsuarioAsync(usuarioEntidad);
+
+            // 2. Si escribió password, actualizarlo (Resetear)
+            if (!string.IsNullOrWhiteSpace(modelo.Password))
+            {
+                await ServicioUsuarios.CambiarPasswordAsync(modelo.Id, modelo.Password);
+            }
+
+            await JS.InvokeVoidAsync("mostrarNotificacion", "Usuario actualizado correctamente", "success");
+        }
+        else
+        {
+            // CREAR NUEVO
+            if (string.IsNullOrWhiteSpace(modelo.Password))
+            {
+                await JS.InvokeVoidAsync("mostrarNotificacion", "La contraseña es obligatoria para nuevos usuarios", "error");
+                return;
+            }
+
+            var nuevo = new Usuario
+            {
+                Nombre = modelo.Nombre,
+                Email = modelo.Email,
+                Rol = modelo.Rol,
+                IsActive = true
+            };
+
+            var resultado = await ServicioUsuarios.CrearUsuarioAsync(nuevo, modelo.Password);
+            if (!resultado)
+            {
+                await JS.InvokeVoidAsync("mostrarNotificacion", "El correo ya existe en el sistema.", "error");
+                return;
+            }
+            await JS.InvokeVoidAsync("mostrarNotificacion", "Usuario registrado con éxito", "success");
+        }
+
+        // Resetear y recargar
+        CancelarEdicion();
+        await CargarUsuarios();
+    }
+}

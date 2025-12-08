@@ -1,0 +1,290 @@
+﻿@page "/ayuda"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Centro de Documentación</PageTitle>
+
+<div class="container py-5">
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8 text-center">
+            <h1 class="display-6 fw-bold text-primary mb-3">
+                <i class="bi bi-book-half me-2"></i> Centro de Ayuda & Documentación
+            </h1>
+            <p class="lead text-muted">
+                Bienvenido al manual interactivo de <strong>HelpDesk System</strong>.
+                A continuación encontrará guías paso a paso adaptadas a su rol.
+            </p>
+        </div>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            @if (context.User.IsInRole("Administrador"))
+            {
+                @RenderAdminHelp()
+            }
+            else if (context.User.IsInRole("Asesor"))
+            {
+                @RenderAsesorHelp()
+            }
+            else
+            {
+                @RenderUsuarioHelp()
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="alert alert-warning text-center shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Debe iniciar sesión para visualizar la ayuda personalizada.
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+
+    <div class="row mt-5 pt-4 border-top">
+        <div class="col-12 text-center text-muted small">
+            <p>¿Aún tiene dudas? Contacte al departamento de TI al anexo <strong>#101</strong> o envíe un correo a <strong>soporte@utepsa.edu</strong></p>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Variable para controlar la pestaña activa del Admin
+    private string tabActiva = "usuarios";
+
+    // Método auxiliar para asignar la clase "active" dinámicamente
+    private string GetActive(string tabName) => tabActiva == tabName ? "active" : "";
+    private string GetShow(string tabName) => tabActiva == tabName ? "show active" : "";
+
+    // ==========================================
+    // SECCIÓN ADMINISTRADOR (CORREGIDA CON C#)
+    // ==========================================
+    private RenderFragment RenderAdminHelp() => __builder =>
+    {
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-white p-3">
+                <h5 class="mb-0"><i class="bi bi-shield-lock-fill me-2"></i> Manual de Administrador</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="row g-0">
+                    <div class="col-md-3 bg-light border-end">
+                        <div class="nav flex-column nav-pills p-3">
+
+                            @* Botón Usuarios *@
+                            <button class="nav-link text-start mb-2 @GetActive("usuarios")"
+                                    @onclick='() => tabActiva = "usuarios"'>
+                                <i class="bi bi-people-fill me-2"></i> Usuarios
+                            </button>
+
+                            @* Botón Categorías *@
+                            <button class="nav-link text-start mb-2 @GetActive("categorias")"
+                                    @onclick='() => tabActiva = "categorias"'>
+                                <i class="bi bi-tags-fill me-2"></i> Categorías
+                            </button>
+
+                            @* Botón Reportes *@
+                            <button class="nav-link text-start @GetActive("reportes")"
+                                    @onclick='() => tabActiva = "reportes"'>
+                                <i class="bi bi-bar-chart-fill me-2"></i> Reportes
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-9">
+                        <div class="tab-content p-4">
+
+                            <div class="tab-pane fade @GetShow("usuarios")">
+                                <h4 class="text-primary border-bottom pb-2 mb-3">Gestión de Usuarios</h4>
+                                <p>Administre el acceso al sistema. Puede crear, editar o bloquear cuentas.</p>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card h-100 bg-light border-0">
+                                            <div class="card-body">
+                                                <h6><i class="bi bi-person-plus-fill text-success"></i> Crear Nuevo Usuario</h6>
+                                                <ol class="small ps-3 mb-0">
+                                                    <li>Vaya al menú <strong>Gestión Usuarios</strong>.</li>
+                                                    <li>En el panel izquierdo, llene los datos.</li>
+                                                    <li>Haga clic en <strong>Registrar Usuario</strong>.</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card h-100 bg-light border-0">
+                                            <div class="card-body">
+                                                <h6><i class="bi bi-pencil-square text-warning"></i> Editar / Dar de Baja</h6>
+                                                <ol class="small ps-3 mb-0">
+                                                    <li>Busque al usuario en la tabla derecha.</li>
+                                                    <li>Haga clic en el botón <i class="bi bi-pencil-fill text-primary"></i>.</li>
+                                                    <li>Desmarque <strong>Usuario Activo</strong> para bloquear.</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane fade @GetShow("categorias")">
+                                <h4 class="text-primary border-bottom pb-2 mb-3">Catálogo de Soporte</h4>
+                                <p>Defina los tipos de problemas (ej. Hardware, Redes).</p>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex align-items-start">
+                                        <span class="badge bg-primary rounded-pill me-3">1</span>
+                                        <div><strong>Agregar:</strong> Ingrese el nombre y guarde.</div>
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-start">
+                                        <span class="badge bg-secondary rounded-pill me-3">2</span>
+                                        <div><strong>Estado:</strong> Inactive categorías antiguas sin borrar el historial.</div>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="tab-pane fade @GetShow("reportes")">
+                                <h4 class="text-primary border-bottom pb-2 mb-3">Métricas Gerenciales</h4>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    Los reportes se generan en tiempo real.
+                                </div>
+                                <p>Visualice:</p>
+                                <ul>
+                                    <li>Total de tickets atendidos vs. pendientes.</li>
+                                    <li>Categorías con mayor incidencia.</li>
+                                    <li>Rendimiento del equipo.</li>
+                                </ul>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    };
+    // ==========================================
+    // SECCIÓN ASESOR (Diseño de Flujo de Trabajo)
+    // ==========================================
+    private RenderFragment RenderAsesorHelp() => __builder =>
+    {
+        <div class="card shadow-sm border-warning border-top border-4">
+            <div class="card-body p-4">
+                <h3 class="card-title text-warning text-dark mb-4">Flujo de Atención de Tickets</h3>
+
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded bg-light h-100 position-relative">
+                            <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-dark">1</span>
+                            <h5 class="mt-2 text-primary">Revisión</h5>
+                            <hr />
+                            <p class="small text-muted text-start">
+                                Ingrese al <strong>Dashboard</strong>. Identifique los tickets con estado <span class="badge bg-danger">Pendiente</span>. Haga clic en "Ver Detalle" para analizar el problema.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded bg-light h-100 position-relative">
+                            <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-dark">2</span>
+                            <h5 class="mt-2 text-primary">Gestión & Chat</h5>
+                            <hr />
+                            <p class="small text-muted text-start">
+                                Si necesita más datos, use el <strong>Chat Integrado</strong> en el detalle del ticket para escribirle al usuario. El ticket pasará a estado <span class="badge bg-warning text-dark">En Proceso</span> automáticamente al interactuar.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded bg-light h-100 position-relative">
+                            <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-dark">3</span>
+                            <h5 class="mt-2 text-primary">Resolución</h5>
+                            <hr />
+                            <p class="small text-muted text-start">
+                                Una vez solucionado el incidente, presione el botón <strong>Finalizar Ticket</strong>. Esto registrará la fecha de cierre y notificará al usuario.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning mt-3 mb-0 d-flex align-items-center">
+                    <i class="bi bi-lightbulb-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Tip Pro:</strong> Mantenga siempre un lenguaje cordial y técnico en el chat. Todo queda registrado para auditoría.
+                    </div>
+                </div>
+            </div>
+        </div>
+    };
+
+    // ==========================================
+    // SECCIÓN USUARIO (Diseño de Acordeón Simple)
+    // ==========================================
+    private RenderFragment RenderUsuarioHelp() => __builder =>
+    {
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white pb-0 border-0">
+                        <h4 class="text-primary">¿Cómo podemos ayudarle hoy?</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion accordion-flush" id="accordionUser">
+
+                            <div class="accordion-item border rounded mb-2">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#user1">
+                                        <span class="badge bg-primary me-3">1</span> Crear una Solicitud de Ayuda
+                                    </button>
+                                </h2>
+                                <div id="user1" class="accordion-collapse collapse" data-bs-parent="#accordionUser">
+                                    <div class="accordion-body bg-light">
+                                        <ul class="list-unstyled mb-0">
+                                            <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i> Haga clic en <strong>Nuevo Ticket</strong> en el menú superior.</li>
+                                            <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i> Seleccione la <strong>Categoría</strong> (ej. Internet, Computadora).</li>
+                                            <li class="mb-2"><i class="bi bi-check-lg text-success me-2"></i> Describa su problema detalladamente.</li>
+                                            <li><i class="bi bi-check-lg text-success me-2"></i> Presione <strong>Guardar Ticket</strong>. Un asesor será notificado.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item border rounded mb-2">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#user2">
+                                        <span class="badge bg-info text-dark me-3">2</span> Ver el estado de mi solicitud
+                                    </button>
+                                </h2>
+                                <div id="user2" class="accordion-collapse collapse" data-bs-parent="#accordionUser">
+                                    <div class="accordion-body bg-light">
+                                        En la página principal (Inicio), verá una lista de sus tickets recientes.
+                                        <br><br>
+                                        <span class="badge bg-danger">Pendiente</span>: Aún no ha sido revisado.<br>
+                                        <span class="badge bg-warning text-dark">En Proceso</span>: Un asesor está trabajando en ello.<br>
+                                        <span class="badge bg-success">Resuelto</span>: El problema ha sido solucionado.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item border rounded">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#user3">
+                                        <span class="badge bg-success me-3">3</span> Hablar con el Asesor
+                                    </button>
+                                </h2>
+                                <div id="user3" class="accordion-collapse collapse" data-bs-parent="#accordionUser">
+                                    <div class="accordion-body bg-light">
+                                        Si necesita agregar más información o responder una pregunta del técnico:
+                                        <ol class="mt-2">
+                                            <li>Haga clic en <strong>Ver Detalle</strong> sobre su ticket.</li>
+                                            <li>En la sección inferior encontrará el <strong>Chat</strong>.</li>
+                                            <li>Escriba su mensaje y envíelo.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    };
+}

@@ -20,7 +20,7 @@ namespace HelpDeskSystem.Data
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=HelpDeskDB;Trusted_Connection=True;TrustServerCertificate=True;");
+                optionsBuilder.UseSqlServer("Server=srv-sistem-saf;Database=HelpDeskDB;User Id=sa;Password=$Sin123$5;TrustServerCertificate=True;");
             }
         }
 

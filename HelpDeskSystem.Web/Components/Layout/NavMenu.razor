@@ -58,10 +58,11 @@
                         </NavLink>
                     </div>
 
+                    @* ENLACE ACTUALIZADO: Gestión de Usuarios *@
                     <div class="nav-item px-3 mb-1">
-                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="registrar-usuario">
-                            <i class="bi bi-person-plus-fill fs-5 text-warning"></i>
-                            <span>Registrar Usuarios</span>
+                        <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="admin/usuarios">
+                            <i class="bi bi-people-fill fs-5 text-warning"></i>
+                            <span>Gestión Usuarios</span>
                         </NavLink>
                     </div>
 
@@ -84,12 +85,20 @@
                     <hr class="text-secondary opacity-50" />
                 </div>
 
-                <div class="nav-item px-3">
-                    <a class="nav-link btn btn-link w-100 text-start d-flex align-items-center gap-3 rounded-2 text-danger-hover"
-                       href="/account/logout">
-                        <i class="bi bi-box-arrow-left fs-5"></i>
+                @* --- SECCIÓN COMÚN PARA TODOS (AYUDA) --- *@
+                <div class="nav-item px-3 mb-1 mt-3">
+                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2" href="ayuda">
+                        <i class="bi bi-question-circle-fill fs-5 text-secondary"></i>
+                        <span>Ayuda / Soporte</span>
+                    </NavLink>
+                </div>
+
+                @* --- SECCIÓN DE LOGOUT (Ya existente) --- *@
+                <div class="nav-item px-3 mb-1">
+                    <NavLink class="nav-link d-flex align-items-center gap-3 rounded-2 text-danger" href="account/logout">
+                        <i class="bi bi-box-arrow-right fs-5"></i>
                         <span>Cerrar Sesión</span>
-                    </a>
+                    </NavLink>
                 </div>
             </Authorized>
             <NotAuthorized>

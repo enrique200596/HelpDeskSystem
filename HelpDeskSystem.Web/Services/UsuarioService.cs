@@ -71,5 +71,37 @@ namespace HelpDeskSystem.Web.Services
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task<List<Usuario>> ObtenerTodosLosUsuariosAsync()
+        {
+            // Retornamos todos ordenados por nombre
+            return await _context.Usuarios.OrderBy(u => u.Nombre).ToListAsync();
+        }
+
+        public async Task<bool> ActualizarUsuarioAsync(Usuario usuarioModificado)
+        {
+            var usuarioDb = await _context.Usuarios.FindAsync(usuarioModificado.Id);
+            if (usuarioDb == null) return false;
+
+            // Actualizamos solo los campos permitidos (NO la contraseña aquí)
+            usuarioDb.Nombre = usuarioModificado.Nombre;
+            usuarioDb.Email = usuarioModificado.Email;
+            usuarioDb.Rol = usuarioModificado.Rol;
+            usuarioDb.IsActive = usuarioModificado.IsActive; // Para dar de baja/alta
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> CambiarPasswordAsync(Guid userId, string nuevaPasswordPlana)
+        {
+            var usuarioDb = await _context.Usuarios.FindAsync(userId);
+            if (usuarioDb == null) return false;
+
+            // Encriptamos y guardamos
+            usuarioDb.Password = BCrypt.Net.BCrypt.HashPassword(nuevaPasswordPlana);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
