@@ -10,7 +10,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. Base de Datos
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+
+// ❌ BORRA o COMENTA la línea antigua:
+//builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+
+// ✅ AGREGA ESTO:
+builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseSqlServer(connectionString)); // O la base de datos que uses
 
 // 2. Seguridad: Agregar soporte para Cookies (Correcto)
 builder.Services.AddAuthentication("Cookies").AddCookie("Cookies", options => { options.LoginPath = "/login"; options.ExpireTimeSpan = TimeSpan.FromDays(1); });
@@ -32,9 +37,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 // 5. Persistencia de Sesión (Para F5)
 var pathKeys = Path.Combine(builder.Environment.ContentRootPath, "Keys");
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(pathKeys))
-    .SetApplicationName("HelpDeskSystem");
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(pathKeys)).SetApplicationName("HelpDeskSystem");
 
 // Servicio necesario para leer el navegador (Opcional si ya no lo usas, pero no estorba)
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedSessionStorage>();

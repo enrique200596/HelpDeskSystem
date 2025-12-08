@@ -6,45 +6,51 @@ namespace HelpDeskSystem.Web.Services
 {
     public class DashboardService : IDashboardService
     {
-        private readonly AppDbContext _context;
+        // Usamos la fábrica en lugar del contexto directo para evitar conflictos de hilos
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-        public DashboardService(AppDbContext context)
+        public DashboardService(IDbContextFactory<AppDbContext> dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
-        // --- ESTE ES EL CAMBIO IMPORTANTE: ACEPTAR ID Y ROL ---
         public async Task<DashboardDto> ObtenerMetricasAsync(Guid usuarioId, string rol)
         {
-            var query = _context.Tickets.AsQueryable();
+            // 1. Crear un contexto nuevo y ligero SOLO para esta operación
+            using var context = await _dbFactory.CreateDbContextAsync();
 
-            // 1. FILTROS DE SEGURIDAD
+            // 2. Definir la consulta base (IMPORTANTE: Esto faltaba en tu código anterior)
+            var query = context.Tickets.AsQueryable();
+
+            // 3. FILTROS DE SEGURIDAD
             if (rol == "Asesor")
             {
-                // El asesor SOLO ve sus tickets
+                // El asesor SOLO ve sus tickets asignados
                 query = query.Where(t => t.AsesorId == usuarioId);
             }
             else if (rol == "Usuario")
             {
-                // El usuario SOLO ve sus tickets
+                // El usuario SOLO ve los tickets que él creó
                 query = query.Where(t => t.UsuarioId == usuarioId);
             }
-            // Si es Admin, no entra en los if y ve TODO.
+            // Si es Admin, no entra en los if y la 'query' se queda trayendo TODO.
 
-            // 2. CÁLCULOS
+            // 4. CÁLCULOS (Ejecutamos la query filtrada)
             var total = await query.CountAsync();
             var resueltos = await query.CountAsync(t => t.Estado == EstadoTicket.Resuelto);
             var pendientes = total - resueltos;
 
-            // Promedio de satisfacción
-            var ticketsCalificados = await query
+            // 5. Promedio de satisfacción
+            // Nota: Hacemos la proyección Select para traer solo el dato necesario y optimizar
+            var calificaciones = await query
                 .Where(t => t.SatisfaccionUsuario != null)
+                .Select(t => t.SatisfaccionUsuario!.Value)
                 .ToListAsync();
 
             double promedioSatisfaccion = 0;
-            if (ticketsCalificados.Any())
+            if (calificaciones.Any())
             {
-                promedioSatisfaccion = ticketsCalificados.Average(t => t.SatisfaccionUsuario!.Value);
+                promedioSatisfaccion = calificaciones.Average();
             }
 
             return new DashboardDto
