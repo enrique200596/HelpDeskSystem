@@ -44,10 +44,14 @@ namespace HelpDeskSystem.Web.Controllers
             return Redirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
         }
 
-        [HttpGet("/account/logout")]
+        //[HttpGet("/account/logout")]
+        // Cambia [HttpGet] por [HttpPost] para evitar cierres de sesión accidentales por enlaces
+        [HttpPost("/account/logout")]
         public async Task<IActionResult> Logout()
         {
+            // Esto borra la cookie del navegador
             await HttpContext.SignOutAsync("Cookies");
+            // Redirige al login
             return Redirect("/login");
         }
     }

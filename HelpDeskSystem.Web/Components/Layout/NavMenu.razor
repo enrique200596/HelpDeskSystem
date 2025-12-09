@@ -73,9 +73,16 @@
 
                 <div class="nav-item px-3 mt-auto mb-3">
                     <hr class="text-secondary opacity-50" />
-                    <button class="nav-link w-100 text-start text-danger" @onclick="CerrarSesion">
-                        <i class="bi bi-box-arrow-right me-3"></i> Cerrar Sesión
-                    </button>
+
+                    @* USAMOS UN FORMULARIO PARA EL LOGOUT SEGURO *@
+                    <form action="/account/logout" method="post">
+                        @* Este token es obligatorio en .NET 8 para evitar ataques CSRF *@
+                        <AntiforgeryToken />
+
+                        <button type="submit" class="nav-link w-100 text-start text-danger bg-transparent border-0">
+                            <i class="bi bi-box-arrow-right me-3"></i> Cerrar Sesión
+                        </button>
+                    </form>
                 </div>
             </Authorized>
 
@@ -107,14 +114,5 @@
     private bool EsRol(string rolRequerido)
     {
         return user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
-    }
-
-    private async Task CerrarSesion()
-    {
-        if (AuthStateProvider is CustomAuthenticationStateProvider auth)
-        {
-            await auth.MarcarUsuarioComoDesconectado();
-            Navigation.NavigateTo("login", true);
-        }
     }
 }

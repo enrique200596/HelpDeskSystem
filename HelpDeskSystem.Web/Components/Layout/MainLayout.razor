@@ -1,4 +1,9 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
 
 <div class="page">
     <div class="sidebar">
@@ -6,18 +11,113 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        @* BARRA SUPERIOR (TOP ROW) *@
+        <div class="top-row px-4 d-flex justify-content-between align-items-center bg-white shadow-sm" style="z-index: 10;">
+
+            @* 1. IZQUIERDA: Ruta de Acceso (Breadcrumbs) - AHORA EN ROJO *@
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 bg-transparent p-0">
+                    <li class="breadcrumb-item">
+                        <a href="/" class="text-decoration-none text-muted small hover-red">
+                            <i class="bi bi-house-door-fill"></i> Inicio
+                        </a>
+                    </li>
+                    @if (!string.IsNullOrEmpty(nombrePagina) && nombrePagina != "Tablero Principal")
+                    {
+                        @* CAMBIO: Usamos text-danger (Rojo) en lugar de text-primary (Azul) *@
+                        <li class="breadcrumb-item active text-danger fw-bold small" aria-current="page">
+                            @nombrePagina
+                        </li>
+                    }
+                </ol>
+            </nav>
+
+            @* 2. DERECHA: Perfil de Usuario *@
+            <AuthorizeView>
+                <Authorized>
+                    <div class="d-flex align-items-center gap-3 border-start ps-3 my-1">
+
+                        @* Texto: Nombre y Rol *@
+                        <div class="text-end lh-1 d-none d-md-block">
+                            <div class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                @context.User.Identity?.Name
+                            </div>
+                            @* Badge: Mantenemos el estilo rojizo *@
+                            <span class="badge bg-danger bg-opacity-10 text-danger mt-1"
+                                  style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                                @(context.User.FindFirst(ClaimTypes.Role)?.Value?.ToUpper() ?? "USUARIO")
+                            </span>
+                        </div>
+
+                        @* Avatar *@
+                        <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center shadow-sm"
+                             style="width: 38px; height: 38px; font-weight: 600; font-size: 1.1rem; cursor: default;"
+                             title="@context.User.Identity?.Name">
+                            @ObtenerIniciales(context.User.Identity?.Name)
+                        </div>
+
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="login" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">
+                        <i class="bi bi-person-circle me-1"></i> Iniciar Sesión
+                    </a>
+                </NotAuthorized>
+            </AuthorizeView>
+
         </div>
 
-        <article class="content px-4">
+        <article class="content px-4 py-4">
             @Body
         </article>
     </main>
 </div>
 
 <div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
+    Ha ocurrido un error inesperado.
+    <a href="" class="reload">Recargar</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private string nombrePagina = "";
+
+    protected override void OnInitialized()
+    {
+        NavManager.LocationChanged += AlCambiarUrl;
+        ActualizarNombrePagina();
+    }
+
+    private void AlCambiarUrl(object? sender, LocationChangedEventArgs e)
+    {
+        ActualizarNombrePagina();
+        StateHasChanged();
+    }
+
+    private void ActualizarNombrePagina()
+    {
+        var ruta = NavManager.ToBaseRelativePath(NavManager.Uri).ToLower();
+
+        if (string.IsNullOrWhiteSpace(ruta)) nombrePagina = "Tablero Principal";
+        else if (ruta.Contains("dashboard")) nombrePagina = "Estadísticas y Métricas";
+        else if (ruta.Contains("nuevo-ticket")) nombrePagina = "Crear Solicitud";
+        else if (ruta.Contains("ticket/")) nombrePagina = "Detalle del Ticket";
+        else if (ruta.Contains("reportes")) nombrePagina = "Reportes Gerenciales";
+        else if (ruta.Contains("admin/usuarios")) nombrePagina = "Gestión de Usuarios";
+        else if (ruta.Contains("admin/categorias")) nombrePagina = "Gestión de Categorías";
+        else if (ruta.Contains("admin/asignar-especialidades")) nombrePagina = "Asignar Especialidades";
+        else if (ruta.Contains("ayuda")) nombrePagina = "Centro de Ayuda";
+        else nombrePagina = ruta;
+    }
+
+    private string ObtenerIniciales(string? nombre)
+    {
+        if (string.IsNullOrEmpty(nombre)) return "U";
+        return nombre.Substring(0, 1).ToUpper();
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= AlCambiarUrl;
+    }
+}

@@ -8,95 +8,155 @@
 
 <PageTitle>Asignar Especialidades</PageTitle>
 
-<div class="container mt-4">
-    <div class="card shadow border-0">
-        <div class="card-header bg-dark text-white d-flex align-items-center">
-            <i class="bi bi-person-gear fs-4 me-2"></i>
-            <h4 class="mb-0">Asignar Categorías a Asesores</h4>
+<div class="container py-5">
+    @* CABECERA MODERNA *@
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-0">Especialidades</h2>
+            <p class="text-muted mb-0">Gestiona qué categorías puede atender cada asesor.</p>
         </div>
-        <div class="card-body">
+        <div class="bg-light rounded-pill px-3 py-2 d-flex align-items-center text-muted small">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <span>Los cambios se aplican inmediatamente al guardar.</span>
+        </div>
+    </div>
 
-            @* 1. SELECCIONAR ASESOR *@
-            <div class="mb-4">
-                <label class="form-label fw-bold">Seleccione un Asesor:</label>
-                <select class="form-select form-select-lg" @onchange="CargarCategoriasUsuario">
-                    <option value="">-- Seleccionar --</option>
-                    @foreach (var asesor in listaAsesores)
+    <div class="row g-4">
+        @* 1. PANEL IZQUIERDO: SELECCIÓN DE ASESOR *@
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4">
+                    <label class="form-label fw-bold text-uppercase small text-muted ls-1">1. Seleccionar Asesor</label>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <select class="form-select border-start-0 py-3 ps-0 shadow-none" @onchange="CargarCategoriasUsuario" style="cursor: pointer;">
+                            <option value="">-- Buscar en la lista --</option>
+                            @foreach (var asesor in listaAsesores)
+                            {
+                                <option value="@asesor.Id">@asesor.Nombre</option>
+                            }
+                        </select>
+                    </div>
+
+                    @if (usuarioSeleccionado != null)
                     {
-                        <option value="@asesor.Id">@asesor.Nombre (@asesor.Email)</option>
-                    }
-                </select>
-            </div>
-
-            @if (usuarioSeleccionado != null)
-            {
-                <hr />
-                <h5 class="mb-3 text-primary">Categorías que puede atender <strong>@usuarioSeleccionado.Nombre</strong>:</h5>
-
-                @* 2. CHECKBOXES DE CATEGORÍAS *@
-                @if (todasLasCategorias.Count == 0)
-                {
-                    <div class="alert alert-warning">No hay categorías activas en el sistema. Vaya a "Gestión Categorías" para crearlas o activarlas.</div>
-                }
-                else
-                {
-                    <div class="row g-3">
-                        @foreach (var cat in todasLasCategorias)
-                        {
-                            bool estaAsignada = idsCategoriasSeleccionadas.Contains(cat.Id);
-
-                            <div class="col-md-4">
-                                <div class="form-check p-3 border rounded @(estaAsignada ? "bg-light border-primary shadow-sm" : "")"
-                                     @onclick="() => ToggleCategoria(cat.Id)"
-                                     style="cursor: pointer; transition: all 0.2s;">
-                                    <input class="form-check-input" type="checkbox" checked="@estaAsignada" style="pointer-events: none;">
-                                    <label class="form-check-label fw-bold ps-2" style="pointer-events: none;">
-                                        @cat.Nombre
-                                    </label>
-                                </div>
+                        <div class="text-center mt-4 animate-fade-in">
+                            <div class="avatar-circle mb-3 mx-auto bg-primary bg-opacity-10 text-primary fw-bold fs-3 d-flex align-items-center justify-content-center">
+                                @usuarioSeleccionado.Nombre.Substring(0, 1).ToUpper()
                             </div>
+                            <h5 class="fw-bold">@usuarioSeleccionado.Nombre</h5>
+                            <span class="badge bg-secondary bg-opacity-10 text-dark rounded-pill px-3">@usuarioSeleccionado.Email</span>
+
+                            <hr class="my-4 opacity-10" />
+
+                            <div class="d-flex justify-content-between text-start small">
+                                <span class="text-muted">Asignadas:</span>
+                                <span class="fw-bold text-primary">@idsCategoriasSeleccionadas.Count categorías</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5 opacity-50">
+                            <i class="bi bi-person-badge fs-1"></i>
+                            <p class="mt-2 small">Selecciona un asesor para comenzar</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* 2. PANEL DERECHO: GRID DE CATEGORÍAS *@
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <label class="form-label fw-bold text-uppercase small text-muted ls-1 mb-0">2. Asignar Competencias</label>
+                        @if (usuarioSeleccionado != null)
+                        {
+                            <button class="btn btn-primary btn-sm px-4 rounded-pill shadow-sm transition-btn" @onclick="GuardarCambios" disabled="@guardando">
+                                @if (guardando)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>Guardando...</span>
+                                }
+                                else
+                                {
+                                    <span><i class="bi bi-check-lg me-1"></i> Guardar Cambios</span>
+                                }
+                            </button>
                         }
                     </div>
 
-                    <div class="mt-4 text-end">
-                        <button class="btn btn-primary px-5" @onclick="GuardarCambios" disabled="@guardando">
-                            @if (guardando)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"></span>
+                    @if (usuarioSeleccionado != null)
+                    {
+                        @if (todasLasCategorias.Count == 0)
+                        {
+                            <div class="alert alert-warning border-0 d-flex align-items-center">
+                                <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                                <div>No hay categorías activas. Ve a Gestión de Categorías para crear nuevas.</div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row g-3">
+                                @foreach (var cat in todasLasCategorias)
+                                {
+                                    bool estaAsignada = idsCategoriasSeleccionadas.Contains(cat.Id);
+                                    <div class="col-sm-6 col-lg-4">
+                                        @* Quitamos lógica de clases aquí, dejamos solo 'active' si corresponde *@
+                                        <div class="specialty-card h-100 p-3 rounded-3 d-flex align-items-center justify-content-between @(estaAsignada ? "active" : "")"
+                                             @onclick="() => ToggleCategoria(cat.Id)">
 
-                                <span>Guardando...</span>
-                            }
-                            else
-                            {
-                                <span><i class="bi bi-save me-1"></i> Guardar Asignaciones</span>
-                            }
-                        </button>
-                    </div>
-                }
-            }
-            else
-            {
-                <div class="alert alert-info text-center">
-                    Seleccione un usuario de la lista para ver y editar sus permisos.
+                                            <div class="d-flex align-items-center gap-3">
+                                                @* Quitamos bg-light/bg-primary, el CSS lo maneja *@
+                                                <div class="icon-box">
+                                                    <i class="bi bi-tag-fill"></i>
+                                                </div>
+                                                @* Quitamos text-dark *@
+                                                <span class="fw-bold user-select-none">@cat.Nombre</span>
+                                            </div>
+
+                                            @if (estaAsignada)
+                                            {
+                                                @* Quitamos text-primary, ahora será blanco por CSS *@
+                                                <i class="bi bi-check-circle-fill fs-5 animate-pop"></i>
+                                            }
+                                            else
+                                            {
+                                                <div class="circle-placeholder"></div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted opacity-25">
+                            <i class="bi bi-grid-3x3-gap-fill" style="font-size: 4rem;"></i>
+                            <p class="mt-3 fw-bold">Esperando selección...</p>
+                        </div>
+                    }
                 </div>
-            }
+            </div>
         </div>
     </div>
 </div>
 
+@* MANTENEMOS TU LÓGICA C# ORIGINAL (SOLO COPIA EL BLOQUE @CODE DE TU ARCHIVO ORIGINAL O DE ABAJO) *@
 @code {
     private List<Usuario> listaAsesores = new();
     private List<Categoria> todasLasCategorias = new();
     private Usuario? usuarioSeleccionado;
     private List<int> idsCategoriasSeleccionadas = new();
-    private bool guardando = false; // Para evitar doble click
+    private bool guardando = false;
 
     protected override async Task OnInitializedAsync()
     {
         listaAsesores = await ServicioUsuarios.ObtenerAsesoresAsync();
-
-        // AQUÍ EL CAMBIO: No pasamos parámetros (o false explícito),
-        // así el servicio nos devuelve SOLO LAS ACTIVAS.
         todasLasCategorias = await ServicioTickets.ObtenerCategoriasAsync(incluirInactivas: false);
     }
 
@@ -104,10 +164,7 @@
     {
         if (Guid.TryParse(e.Value?.ToString(), out Guid id))
         {
-            // Traemos al usuario CON sus categorías desde la BD
             usuarioSeleccionado = await ServicioUsuarios.ObtenerUsuarioConCategoriasAsync(id);
-
-            // Mapeamos las categorías actuales a nuestra lista de IDs para los checkboxes
             if (usuarioSeleccionado != null)
             {
                 idsCategoriasSeleccionadas = usuarioSeleccionado.Categorias.Select(c => c.Id).ToList();
@@ -135,20 +192,14 @@
     private async Task GuardarCambios()
     {
         if (usuarioSeleccionado == null) return;
-
         guardando = true;
         try
         {
             await ServicioUsuarios.ActualizarCategoriasUsuarioAsync(usuarioSeleccionado.Id, idsCategoriasSeleccionadas);
-
-            // ÉXITO: Notificación verde
             await JS.InvokeVoidAsync("mostrarNotificacion", "Asignaciones guardadas correctamente.", "success");
         }
         catch (Exception ex)
         {
-            // ERROR: Notificación roja
-            // En un entorno real, loguear el error ex
-            Console.WriteLine(ex.Message);
             await JS.InvokeVoidAsync("mostrarNotificacion", "Error al guardar: " + ex.Message, "error");
         }
         finally

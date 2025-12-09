@@ -151,4 +151,113 @@ html, body {
     background-color: #e8f5e9;
     color: #1b5e20;
 }
-/* Verde éxito */
+
+/* =========================================
+   6. COMPONENTE ESPECIALIDADES (Asignar) - Estilo Rojo/Blanco
+   ========================================= */
+
+/* Avatar del Asesor (Sin cambios) */
+.avatar-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+}
+
+/* --- TARJETA BASE (Estado NO Seleccionado) --- */
+.specialty-card {
+    /* Fondo blanco, todo lo demás ROJO */
+    background-color: #ffffff;
+    border: 2px solid var(--utepsa-red); /* Borde rojo siempre */
+    color: var(--utepsa-red); /* Texto rojo */
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+    position: relative;
+    overflow: hidden;
+}
+
+    /* Hover suave */
+    .specialty-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(200, 16, 46, 0.2); /* Sombra rojiza */
+    }
+
+    /* Icono (Cajita) en estado normal */
+    .specialty-card .icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s ease-in-out;
+        /* Estado Normal: Fondo rojo muy suave, Icono Rojo */
+        background-color: rgba(200, 16, 46, 0.1);
+        color: var(--utepsa-red);
+    }
+
+/* Círculo de selección vacío */
+.circle-placeholder {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--utepsa-red); /* Borde rojo */
+    border-radius: 50%;
+    opacity: 0.5;
+}
+
+/* --- ESTADO ACTIVO (SELECCIONADO) --- */
+.specialty-card.active {
+    /* Inversión total: Fondo Rojo, lo demás Blanco */
+    background-color: var(--utepsa-red) !important;
+    color: white !important;
+    border-color: var(--utepsa-red);
+}
+
+    /* Icono en estado activo */
+    .specialty-card.active .icon-box {
+        background-color: white; /* Cajita blanca para contraste */
+        color: var(--utepsa-red); /* Icono rojo dentro de la cajita */
+    }
+
+    /* Check de selección */
+    .specialty-card.active .bi-check-circle-fill {
+        color: white !important; /* Check blanco */
+    }
+
+/* --- Animaciones (Igual que antes) --- */
+.ls-1 {
+    letter-spacing: 1px;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+}
+
+.animate-pop {
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0);
+    }
+
+    80% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
