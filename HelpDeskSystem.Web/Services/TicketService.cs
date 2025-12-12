@@ -9,14 +9,21 @@ namespace HelpDeskSystem.Web.Services
     public class TicketService : ITicketService
     {
         private readonly AppDbContext _context;
+        private readonly TicketStateContainer _stateContainer; // <--- Inyectar
 
-        // --- 1. EVENTO ESTÁTICO (Global para la app) ---
-        // Al ser estático, permite comunicación entre diferentes sesiones de usuario
-        public static event Action? OnChange;
-
-        public TicketService(AppDbContext context)
+        // Inyectamos el contenedor
+        public TicketService(AppDbContext context, TicketStateContainer stateContainer)
         {
             _context = context;
+            _stateContainer = stateContainer;
+        }
+
+        // --- ELIMINA EL EVENTO STATIC ANTIGUO (public static event Action? OnChange;) ---
+
+        public void NotificarCambio()
+        {
+            // Avisamos al contenedor global
+            _stateContainer.NotifyStateChanged();
         }
 
         public async Task<List<Categoria>> ObtenerCategoriasAsync(bool incluirInactivas = false)

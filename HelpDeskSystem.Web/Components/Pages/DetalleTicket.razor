@@ -12,6 +12,7 @@
 @inject NavigationManager Navegacion
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
+@inject TicketStateContainer StateContainer
 @implements IDisposable
 
 <style>
@@ -354,8 +355,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Suscribirse al evento global
-        TicketService.OnChange += ActualizarChatEnVivo;
+        // CAMBIO: Usar StateContainer en vez de TicketService.OnChange
+        StateContainer.OnChange += ActualizarChatEnVivo;
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
@@ -375,20 +376,22 @@
         await ScrollAlFondo();
     }
 
-    // 2. Método que se ejecuta cuando ALGUIEN (tú u otro) hace un cambio
+    public void Dispose()
+    {
+        // CAMBIO: Desuscribirse del container
+        StateContainer.OnChange -= ActualizarChatEnVivo;
+    }
+
+    // Asegúrate de que tu método ActualizarChatEnVivo recargue el ticket completo
     private async void ActualizarChatEnVivo()
     {
         await InvokeAsync(async () =>
         {
-            // 1. Guardar cuantos mensajes teníamos antes de recargar
-            int antes = mensajes.Count;
-
-            // 2. Recargar mensajes
+            // Recargar Mensajes
             await CargarChat();
 
-            // 3. Obtener ticket actualizado
-            var t = await ServicioTickets.ObtenerPorIdAsync(Id);
-            if (t != null && miTicket != null) miTicket = t;
+            // CRÍTICO: Recargar el estado del Ticket para saber si se cerró
+            miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
 
             StateHasChanged();
 

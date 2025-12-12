@@ -25,6 +25,7 @@ builder.Services.AddControllers();
 // ---------------------------------------------------------------------------------------
 
 // 3. Servicios de la App
+builder.Services.AddSingleton<TicketStateContainer>(); // <--- AGREGA ESTO (El puente global)
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IChatService, ChatService>();

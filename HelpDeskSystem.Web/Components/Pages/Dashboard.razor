@@ -3,8 +3,10 @@
 @using HelpDeskSystem.Web.Services
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization  @* <--- AGREGA ESTA LÍNEA *@
+@inject TicketStateContainer StateContainer
 @inject IDashboardService ServicioDashboard
 @inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -134,29 +136,32 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Obtener quién está conectado
+        // 1. Suscribirse al evento global
+        StateContainer.OnChange += ActualizarTablero;
+
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        // ... (Tu lógica existente para obtener ID y Rol) ...
 
-        if (user.Identity != null && user.Identity.IsAuthenticated)
-        {
-            nombreUsuario = user.Identity.Name ?? "";
+        // Llamada al servicio
+        metricas = await ServicioDashboard.ObtenerMetricasAsync(usuarioId, rolActual);
+    }
 
-            // Obtener Rol
-            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Usuario";
+    private async void ActualizarTablero()
+    {
+        // Esta función se ejecuta cuando CUALQUIER usuario modifica un ticket
+        await CargarDatos();
+        await InvokeAsync(StateHasChanged);
+    }
 
-            // Obtener ID
-            var idClaim = user.FindFirst(ClaimTypes.Sid)
-                          ?? user.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId))
-            {
-                usuarioId = parsedId;
-            }
-
-            // 2. Llamar al servicio CON los datos del usuario para que filtre
-            // IMPORTANTE: Asegúrate que tu DashboardService.cs ya tenga el cambio que hicimos antes
-            metricas = await ServicioDashboard.ObtenerMetricasAsync(usuarioId, rolActual);
-        }
+    public void Dispose()
+    {
+        // IMPORTANTE: Desuscribirse para evitar fugas de memoria
+        StateContainer.OnChange -= ActualizarTablero;
     }
 }
