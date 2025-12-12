@@ -17,8 +17,7 @@ namespace HelpDeskSystem.Web.Services
         Task CalificarTicketAsync(int ticketId, int estrellas, Guid usuarioId);
 
         // --- NUEVO: Para notificar actualizaciones en tiempo real ---
-        void NotificarCambio(int? ticketId = null, string? titulo = null, string? remitente = null);
-
+        void NotificarCambio(int? ticketId = null, string? titulo = null, string? remitente = null, Guid? ownerId = null, Guid? asesorId = null);
         // NUEVO: Para crear categorías
         Task GuardarCategoriaAsync(Categoria categoria);
 

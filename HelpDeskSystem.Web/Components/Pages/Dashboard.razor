@@ -163,7 +163,8 @@ else
     }
 
     // ✅ CORRECCIÓN AQUÍ: Agregamos el parámetro (int? id) aunque no lo usemos
-    private async void ActualizarTablero(int? id, string? t, string? r)
+    // Solo cambia esta línea en el @code
+    private async void ActualizarTablero(int? id, string? t, string? r, Guid? o, Guid? a)
     {
         await CargarDatos();
         await InvokeAsync(StateHasChanged);

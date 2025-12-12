@@ -1,6 +1,6 @@
 ﻿using HelpDeskSystem.Data;
 using HelpDeskSystem.Domain.Entities;
-using HelpDeskSystem.Domain.Enums; // Asegúrate de tener este using
+using HelpDeskSystem.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Hosting;
@@ -10,7 +10,6 @@ namespace HelpDeskSystem.Web.Services
 {
     public class ChatService : IChatService
     {
-        // Usamos Factory aquí también
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly IWebHostEnvironment _env;
         private readonly ITicketService _ticketService;
@@ -26,11 +25,8 @@ namespace HelpDeskSystem.Web.Services
 
         public ChatService(IDbContextFactory<AppDbContext> dbFactory, IWebHostEnvironment env, ITicketService ticketService)
         {
-            _dbFactory = dbFactory; // Inyección de fábrica
-            _env = env;
-            _ticketService = ticketService;
+            _dbFactory = dbFactory; _env = env; _ticketService = ticketService;
         }
-
         public async Task<string> SubirArchivoAsync(IBrowserFile archivo)
         {
             // ... (Tu lógica de validación de archivos queda IDÉNTICA) ...
@@ -62,43 +58,42 @@ namespace HelpDeskSystem.Web.Services
 
         public async Task<List<Mensaje>> ObtenerMensajesPorTicketId(int ticketId)
         {
-            using var context = _dbFactory.CreateDbContext(); // Contexto limpio
-            return await context.Mensajes
-                .Where(m => m.TicketId == ticketId)
-                .Include(m => m.Usuario)
-                .OrderBy(m => m.FechaHora)
-                .AsNoTracking()
-                .ToListAsync();
+            using var context = _dbFactory.CreateDbContext();
+            return await context.Mensajes.Where(m => m.TicketId == ticketId).Include(m => m.Usuario).OrderBy(m => m.FechaHora).AsNoTracking().ToListAsync();
         }
-
         public async Task EnviarMensaje(Mensaje mensaje)
         {
-            using var context = _dbFactory.CreateDbContext(); // Contexto limpio
+            using var context = _dbFactory.CreateDbContext();
 
-            // 1. BLINDAJE: Verificar si el ticket está cerrado
             var ticket = await context.Tickets.FindAsync(mensaje.TicketId);
             if (ticket == null) throw new Exception("Ticket no encontrado");
 
+            // 1. REGLA: Bloquear si está cerrado
             if (ticket.Estado == EstadoTicket.Resuelto)
+                throw new InvalidOperationException("Ticket cerrado.");
+
+            // 2. REGLA: Bloquear chat si no hay asesor asignado (Solo si quien escribe es el usuario)
+            // (Asumimos que si hay asesorId es null, nadie puede escribir salvo quizas admin, pero simplificamos)
+            if (ticket.AsesorId == null)
             {
-                throw new InvalidOperationException("El ticket está cerrado. No se pueden enviar mensajes.");
+                // Si quieres ser estricto:
+                throw new InvalidOperationException("Esperando asignación de asesor.");
             }
 
-            // 2. Guardar Mensaje
             context.Mensajes.Add(mensaje);
             await context.SaveChangesAsync();
 
-            // 3. Preparar Notificación
+            // Nombre Remitente
             string nombreRemitente = "Usuario";
             if (mensaje.Usuario != null) nombreRemitente = mensaje.Usuario.Nombre;
             else
             {
-                var usuario = await context.Usuarios.FindAsync(mensaje.UsuarioId);
-                if (usuario != null) nombreRemitente = usuario.Nombre;
+                var u = await context.Usuarios.FindAsync(mensaje.UsuarioId);
+                if (u != null) nombreRemitente = u.Nombre;
             }
 
-            // Notificar a todos (Dashboard, Detalle, etc.)
-            _ticketService.NotificarCambio(mensaje.TicketId, ticket.Titulo, nombreRemitente);
+            // 3. Notificar con DESTINATARIOS ESPECÍFICOS (UsuarioId y AsesorId)
+            _ticketService.NotificarCambio(mensaje.TicketId, ticket.Titulo, nombreRemitente, ticket.UsuarioId, ticket.AsesorId);
         }
     }
 }

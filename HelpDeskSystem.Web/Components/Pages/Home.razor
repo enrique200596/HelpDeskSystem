@@ -8,6 +8,8 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject ITicketService ServicioTickets
 @inject AuthenticationStateProvider AuthStateProvider
+@inject TicketStateContainer StateContainer
+@implements IDisposable
 
 <PageTitle>Tablero | HelpDesk</PageTitle>
 
@@ -27,14 +29,12 @@
 
     @if (tickets == null)
     {
-        /* Spinner centrado */
         <div class="d-flex justify-content-center mt-5">
             <div class="spinner-border text-utepsa-red" role="status"></div>
         </div>
     }
     else if (tickets.Count == 0)
     {
-        /* Estado vacío mejorado */
         <div class="text-center py-5">
             <div class="mb-3 text-muted opacity-25">
                 <i class="bi bi-clipboard-check" style="font-size: 5rem;"></i>
@@ -50,7 +50,6 @@
             {
                 <div class="col-12 col-md-6 col-lg-4 col-xl-3">
                     <div class="card h-100 card-hover position-relative overflow-hidden">
-
                         <div class="position-absolute top-0 start-0 bottom-0"
                              style="width: 5px; background-color: @(ticket.EsUrgente ? "#dc3545" : "#28a745");"></div>
 
@@ -118,11 +117,14 @@
     private List<Ticket>? tickets;
     private Guid usuarioId;
     private string rolActual = "";
-    private string nombreUsuario = ""; // Nuevo
-    private bool esRolUsuario = false; // Nuevo
+    private string nombreUsuario = "";
+    private bool esRolUsuario = false;
 
     protected override async Task OnInitializedAsync()
     {
+        // 3. SUSCRIBIRSE AL EVENTO GLOBAL
+        StateContainer.OnChange += RecargarTicketsEnVivo; // <--- NUEVO
+
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
@@ -136,13 +138,34 @@
                 usuarioId = parsedId;
             }
 
-            // Obtenemos el rol
             rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Sin Rol";
-
-            // Verificamos si el sistema reconoce el rol
             esRolUsuario = user.IsInRole("Usuario");
 
-            tickets = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
+            // Carga inicial
+            await CargarLista();
         }
+    }
+
+    // 4. MÉTODO PARA RECARGAR LA LISTA
+    private async Task CargarLista()
+    {
+        // Gracias a tu DbFactory en el servicio, esto traerá datos frescos siempre
+        tickets = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
+    }
+
+    // 5. EVENT HANDLER (El que reacciona a las notificaciones)
+    private async void RecargarTicketsEnVivo(int? id, string? t, string? r, Guid? o, Guid? a)
+    {
+        await InvokeAsync(async () =>
+        {
+            await CargarLista();
+            StateHasChanged();
+        });
+    }
+
+    // 6. LIMPIEZA
+    public void Dispose()
+    {
+        StateContainer.OnChange -= RecargarTicketsEnVivo;
     }
 }

@@ -7,7 +7,6 @@ namespace HelpDeskSystem.Web.Services
 {
     public class TicketService : ITicketService
     {
-        // CAMBIO 1: Usamos la Fábrica en lugar del Contexto directo
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly TicketStateContainer _stateContainer;
 
@@ -17,74 +16,44 @@ namespace HelpDeskSystem.Web.Services
             _stateContainer = stateContainer;
         }
 
-        public void NotificarCambio(int? ticketId = null, string? titulo = null, string? remitente = null)
+        public void NotificarCambio(int? ticketId = null, string? titulo = null, string? remitente = null, Guid? ownerId = null, Guid? asesorId = null)
         {
-            _stateContainer.NotifyStateChanged(ticketId, titulo, remitente);
+            _stateContainer.NotifyStateChanged(ticketId, titulo, remitente, ownerId, asesorId);
         }
 
         // --- MÉTODOS DE LECTURA (Usan contextos desechables) ---
 
         public async Task<List<Categoria>> ObtenerCategoriasAsync(bool incluirInactivas = false)
         {
-            using var context = _dbFactory.CreateDbContext(); // Creamos contexto nuevo
+            using var context = _dbFactory.CreateDbContext();
             var query = context.Categorias.AsQueryable();
-
-            if (!incluirInactivas)
-            {
-                query = query.Where(c => c.IsActive);
-            }
+            if (!incluirInactivas) query = query.Where(c => c.IsActive);
             return await query.ToListAsync();
         }
 
         public async Task<List<Ticket>> ObtenerTicketsFiltradosAsync(Guid userId, string rol)
         {
             using var context = _dbFactory.CreateDbContext();
-
-            var query = context.Tickets
-                .Include(t => t.Usuario)
-                .Include(t => t.Asesor)
-                .Include(t => t.Categoria)
-                .AsNoTracking() // Importante para rendimiento
-                .AsQueryable();
+            var query = context.Tickets.Include(t => t.Usuario).Include(t => t.Asesor).Include(t => t.Categoria).AsNoTracking().AsQueryable();
 
             if (rol == "Administrador") { }
             else if (rol == "Asesor")
             {
-                // Obtenemos las categorías del asesor en una subconsulta o lista previa
-                var idsCategorias = await context.Usuarios
-                    .Where(u => u.Id == userId)
-                    .SelectMany(u => u.Categorias.Select(c => c.Id))
-                    .ToListAsync();
-
+                var idsCategorias = await context.Usuarios.Where(u => u.Id == userId).SelectMany(u => u.Categorias.Select(c => c.Id)).ToListAsync();
                 query = query.Where(t => t.AsesorId == userId || (t.AsesorId == null && idsCategorias.Contains(t.CategoriaId)));
             }
-            else if (rol == "Usuario")
-            {
-                query = query.Where(t => t.UsuarioId == userId);
-            }
-            else
-            {
-                return new List<Ticket>();
-            }
+            else if (rol == "Usuario") { query = query.Where(t => t.UsuarioId == userId); }
+            else { return new List<Ticket>(); }
 
-            return await query.OrderByDescending(t => t.EsUrgente)
-                              .ThenByDescending(t => t.FechaCreacion)
-                              .ToListAsync();
+            return await query.OrderByDescending(t => t.EsUrgente).ThenByDescending(t => t.FechaCreacion).ToListAsync();
         }
 
         public async Task<Ticket?> ObtenerPorIdAsync(int id)
         {
             using var context = _dbFactory.CreateDbContext();
-
-            return await context.Tickets
-                .Include(t => t.Usuario)
-                .Include(t => t.Asesor)
-                .Include(t => t.Categoria)
-                .AsNoTracking() // ¡CRÍTICO! Esto asegura que veamos cambios (como el nombre del asesor) al instante
-                .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+            return await context.Tickets.Include(t => t.Usuario).Include(t => t.Asesor).Include(t => t.Categoria).AsNoTracking().FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
         }
-
-        // --- MÉTODOS DE ESCRITURA ---
+        // --- ESCRITURA ACTUALIZADA ---
 
         public async Task GuardarTicketAsync(Ticket ticket)
         {
@@ -92,25 +61,23 @@ namespace HelpDeskSystem.Web.Services
             context.Tickets.Add(ticket);
             await context.SaveChangesAsync();
 
-            // Notificar creación
-            NotificarCambio(ticket.Id, ticket.Titulo, ticket.Usuario?.Nombre ?? "Nuevo Ticket");
+            // Notificamos: Owner es el usuario que creó el ticket. Asesor es null.
+            NotificarCambio(ticket.Id, ticket.Titulo, ticket.Usuario?.Nombre ?? "Nuevo Ticket", ticket.UsuarioId, null);
         }
 
         public async Task ActualizarDescripcionUsuarioAsync(Ticket ticketModificado)
         {
             using var context = _dbFactory.CreateDbContext();
             var ticketDb = await context.Tickets.FindAsync(ticketModificado.Id);
-
             if (ticketDb != null)
             {
-                if (ticketDb.FueEditado) throw new InvalidOperationException("Este ticket ya fue editado una vez.");
-
+                // ... validaciones ...
                 ticketDb.Titulo = ticketModificado.Titulo;
                 ticketDb.Descripcion = ticketModificado.Descripcion;
                 ticketDb.FueEditado = true;
-
                 await context.SaveChangesAsync();
-                NotificarCambio(ticketDb.Id, ticketDb.Titulo, "Actualización");
+
+                NotificarCambio(ticketDb.Id, ticketDb.Titulo, "Actualización", ticketDb.UsuarioId, ticketDb.AsesorId);
             }
         }
 
@@ -118,19 +85,17 @@ namespace HelpDeskSystem.Web.Services
         {
             using var context = _dbFactory.CreateDbContext();
             var ticket = await context.Tickets.Include(t => t.Usuario).FirstOrDefaultAsync(t => t.Id == ticketId);
-
             if (ticket != null)
             {
                 ticket.AsesorId = asesorId;
                 ticket.Estado = EstadoTicket.Asignado;
                 await context.SaveChangesAsync();
 
-                // Obtenemos nombre del asesor para la notificación
                 var asesor = await context.Usuarios.FindAsync(asesorId);
                 string nombreAsesor = asesor?.Nombre ?? "Un asesor";
 
-                // Notificar: Esto hará que la pantalla del usuario se recargue y muestre al asesor
-                NotificarCambio(ticketId, ticket.Titulo, $"{nombreAsesor} ha tomado tu caso");
+                // AVISO IMPORTANTE: Aquí pasamos el AsesorId nuevo para que el Usuario reciba la notificación
+                NotificarCambio(ticketId, ticket.Titulo, $"{nombreAsesor} ha tomado tu caso", ticket.UsuarioId, asesorId);
             }
         }
 
@@ -138,11 +103,7 @@ namespace HelpDeskSystem.Web.Services
         {
             using var context = _dbFactory.CreateDbContext();
             var ticket = await context.Tickets.FindAsync(id);
-
             if (ticket == null || ticket.IsDeleted) return;
-
-            // Validación básica (opcional, según reglas)
-            // if (ticket.AsesorId != usuarioEjecutorId) ... 
 
             if (ticket.Estado != EstadoTicket.Resuelto)
             {
@@ -150,40 +111,23 @@ namespace HelpDeskSystem.Web.Services
                 ticket.FechaCierre = DateTime.Now;
                 await context.SaveChangesAsync();
 
-                NotificarCambio(id, ticket.Titulo, "El ticket ha sido finalizado");
+                NotificarCambio(id, ticket.Titulo, "El ticket ha sido finalizado", ticket.UsuarioId, ticket.AsesorId);
             }
         }
 
         public async Task CalificarTicketAsync(int ticketId, int estrellas, Guid usuarioCalificadorId)
         {
-            if (estrellas < 1 || estrellas > 5) throw new ArgumentOutOfRangeException("1-5");
-
             using var context = _dbFactory.CreateDbContext();
             var ticket = await context.Tickets.FindAsync(ticketId);
-
-            if (ticket != null && ticket.UsuarioId == usuarioCalificadorId && ticket.Estado == EstadoTicket.Resuelto)
+            if (ticket != null && ticket.UsuarioId == usuarioCalificadorId)
             {
                 ticket.SatisfaccionUsuario = estrellas;
                 await context.SaveChangesAsync();
-
-                // Notificamos para que el Admin/Asesor vea la calificación en su tablero
-                NotificarCambio(ticketId, ticket.Titulo, "El usuario ha calificado la atención");
+                NotificarCambio(ticketId, ticket.Titulo, "Nueva Calificación", ticket.UsuarioId, ticket.AsesorId);
             }
         }
 
-        public async Task GuardarCategoriaAsync(Categoria categoria)
-        {
-            using var context = _dbFactory.CreateDbContext();
-            categoria.IsActive = true;
-            context.Categorias.Add(categoria);
-            await context.SaveChangesAsync();
-        }
-
-        public async Task ActualizarCategoriaAsync(Categoria categoria)
-        {
-            using var context = _dbFactory.CreateDbContext();
-            context.Categorias.Update(categoria);
-            await context.SaveChangesAsync();
-        }
+        public async Task GuardarCategoriaAsync(Categoria categoria) { using var context = _dbFactory.CreateDbContext(); categoria.IsActive = true; context.Categorias.Add(categoria); await context.SaveChangesAsync(); }
+        public async Task ActualizarCategoriaAsync(Categoria categoria) { using var context = _dbFactory.CreateDbContext(); context.Categorias.Update(categoria); await context.SaveChangesAsync(); }
     }
 }

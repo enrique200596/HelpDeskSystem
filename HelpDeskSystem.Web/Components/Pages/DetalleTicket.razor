@@ -300,8 +300,22 @@
                         </div>
 
                         <div class="p-3 bg-white border-top">
-                            @if (miTicket.Estado != HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
+                            @if (miTicket.Estado == HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto)
                             {
+                                <div class="alert alert-secondary text-center..."><i class="bi bi-lock-fill"></i> Conversación cerrada.</div>
+                            }
+                            else if (miTicket.AsesorId == null && rolUsuarioActual == "Usuario")
+                            {
+                                @* BLOQUEO VISUAL: *@
+                                <div class="alert alert-warning text-center mb-0 py-3 shadow-sm">
+                                    <i class="bi bi-hourglass-split fs-4 d-block mb-2"></i>
+                                    <strong>Esperando a un asesor...</strong><br />
+                                    Podrás escribir en el chat en cuanto un agente tome tu caso.
+                                </div>
+                            }
+                            else
+                            {
+                                @* AQUÍ VA TU <EditForm> ORIGINAL PARA ENVIAR MENSAJES *@
                                 <EditForm Model="nuevoMensaje" OnValidSubmit="EnviarMensaje">
                                     <div class="input-modern-container d-flex align-items-center">
                                         <label class="btn btn-link text-secondary rounded-circle" style="cursor: pointer;" title="Adjuntar">
@@ -315,10 +329,6 @@
                                         <div class="ms-3 mt-1 small text-primary"><i class="bi bi-check-circle me-1"></i> Archivo listo: @archivoSeleccionado.Name</div>
                                     }
                                 </EditForm>
-                            }
-                            else
-                            {
-                                <div class="alert alert-secondary text-center mb-0 py-2 small opacity-75 rounded-pill"><i class="bi bi-lock-fill me-1"></i> Conversación cerrada.</div>
                             }
                         </div>
                     </div>
@@ -381,36 +391,23 @@
     }
 
     // EL MÉTODO CORRECTO QUE ACEPTA EL ID Y ACTUALIZA LA UI
-    private async void ActualizarChatEnVivo(int? ticketIdNotificado, string? t, string? r)
+    private async void ActualizarChatEnVivo(int? ticketIdNotificado, string? t, string? r, Guid? o, Guid? a)
     {
         await InvokeAsync(async () =>
         {
-            // Si el evento es para otro ticket específico, ignoramos
             if (ticketIdNotificado.HasValue && ticketIdNotificado.Value != Id) return;
 
             int antes = mensajes.Count;
-
-            // 1. Recargar Chat y Ticket (Para actualizar estado y bloqueo)
             await CargarChat();
 
-            // Forzamos la recarga del ticket para ver si ya fue calificado o cerrado
+            // Recargar ticket para ver si ya asignaron asesor o cerraron
             var ticketActualizado = await ServicioTickets.ObtenerPorIdAsync(Id);
-            if (ticketActualizado != null)
-            {
-                miTicket = ticketActualizado;
-            }
+            if (ticketActualizado != null) miTicket = ticketActualizado;
 
-            StateHasChanged(); // Actualizar UI
-
-            // 2. Solo hacemos SCROLL si hay mensajes nuevos.
-            // La notificación de sonido/visual ahora es trabajo EXCLUSIVO de MainLayout
-            if (mensajes.Count > antes)
-            {
-                await ScrollAlFondo();
-            }
+            StateHasChanged();
+            if (mensajes.Count > antes) await ScrollAlFondo();
         });
-    }
-    // --- MÉTODOS AUXILIARES ---
+    }    // --- MÉTODOS AUXILIARES ---
     private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
     private void ManejarSeleccionArchivo(InputFileChangeEventArgs e) => archivoSeleccionado = e.File;
