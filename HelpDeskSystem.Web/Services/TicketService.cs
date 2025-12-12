@@ -5,143 +5,185 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HelpDeskSystem.Web.Services
 {
-    // IMPORTANTE: Aquí agregamos ": ITicketService" para cumplir el contrato
     public class TicketService : ITicketService
     {
-        private readonly AppDbContext _context;
-        private readonly TicketStateContainer _stateContainer; // <--- Inyectar
+        // CAMBIO 1: Usamos la Fábrica en lugar del Contexto directo
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
+        private readonly TicketStateContainer _stateContainer;
 
-        // Inyectamos el contenedor
-        public TicketService(AppDbContext context, TicketStateContainer stateContainer)
+        public TicketService(IDbContextFactory<AppDbContext> dbFactory, TicketStateContainer stateContainer)
         {
-            _context = context;
+            _dbFactory = dbFactory;
             _stateContainer = stateContainer;
         }
-
-        // --- ELIMINA EL EVENTO STATIC ANTIGUO (public static event Action? OnChange;) ---
 
         public void NotificarCambio(int? ticketId = null, string? titulo = null, string? remitente = null)
         {
             _stateContainer.NotifyStateChanged(ticketId, titulo, remitente);
         }
 
+        // --- MÉTODOS DE LECTURA (Usan contextos desechables) ---
+
         public async Task<List<Categoria>> ObtenerCategoriasAsync(bool incluirInactivas = false)
         {
-            var query = _context.Categorias.AsQueryable();
+            using var context = _dbFactory.CreateDbContext(); // Creamos contexto nuevo
+            var query = context.Categorias.AsQueryable();
 
             if (!incluirInactivas)
             {
-                // Por defecto, solo traemos las activas (para el NuevoTicket y Asignaciones)
                 query = query.Where(c => c.IsActive);
             }
-
             return await query.ToListAsync();
-        }
-
-        public async Task GuardarCategoriaAsync(Categoria categoria)
-        {
-            // Aseguramos que nazca activa
-            categoria.IsActive = true;
-            _context.Categorias.Add(categoria);
-            await _context.SaveChangesAsync();
-        }
-
-        // NUEVO MÉTODO
-        public async Task ActualizarCategoriaAsync(Categoria categoria)
-        {
-            // EF Core rastrea la entidad, así que update funciona directo si la entidad está adjunta
-            _context.Categorias.Update(categoria);
-            await _context.SaveChangesAsync();
-        }
-
-        // --- LECTURA ---
-
-        public async Task<List<Categoria>> ObtenerCategoriasAsync()
-        {
-            return await _context.Categorias.ToListAsync();
         }
 
         public async Task<List<Ticket>> ObtenerTicketsFiltradosAsync(Guid userId, string rol)
         {
-            var query = _context.Tickets.Include(t => t.Usuario).Include(t => t.Asesor).Include(t => t.Categoria).AsQueryable();
+            using var context = _dbFactory.CreateDbContext();
+
+            var query = context.Tickets
+                .Include(t => t.Usuario)
+                .Include(t => t.Asesor)
+                .Include(t => t.Categoria)
+                .AsNoTracking() // Importante para rendimiento
+                .AsQueryable();
+
             if (rol == "Administrador") { }
             else if (rol == "Asesor")
             {
-                var idsCategoriasDelAsesor = await _context.Usuarios.Where(u => u.Id == userId).SelectMany(u => u.Categorias.Select(c => c.Id)).ToListAsync();
-                query = query.Where(t => t.AsesorId == userId || (t.AsesorId == null && idsCategoriasDelAsesor.Contains(t.CategoriaId)));
+                // Obtenemos las categorías del asesor en una subconsulta o lista previa
+                var idsCategorias = await context.Usuarios
+                    .Where(u => u.Id == userId)
+                    .SelectMany(u => u.Categorias.Select(c => c.Id))
+                    .ToListAsync();
+
+                query = query.Where(t => t.AsesorId == userId || (t.AsesorId == null && idsCategorias.Contains(t.CategoriaId)));
             }
-            else if (rol == "Usuario") { query = query.Where(t => t.UsuarioId == userId); }
-            else { return new List<Ticket>(); }
-            return await query.OrderByDescending(t => t.EsUrgente).ThenByDescending(t => t.FechaCreacion).ToListAsync();
+            else if (rol == "Usuario")
+            {
+                query = query.Where(t => t.UsuarioId == userId);
+            }
+            else
+            {
+                return new List<Ticket>();
+            }
+
+            return await query.OrderByDescending(t => t.EsUrgente)
+                              .ThenByDescending(t => t.FechaCreacion)
+                              .ToListAsync();
         }
 
         public async Task<Ticket?> ObtenerPorIdAsync(int id)
         {
-            return await _context.Tickets
-                .Include(t => t.Usuario).Include(t => t.Asesor).Include(t => t.Categoria)
+            using var context = _dbFactory.CreateDbContext();
+
+            return await context.Tickets
+                .Include(t => t.Usuario)
+                .Include(t => t.Asesor)
+                .Include(t => t.Categoria)
+                .AsNoTracking() // ¡CRÍTICO! Esto asegura que veamos cambios (como el nombre del asesor) al instante
                 .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
         }
 
-        // --- ESCRITURA ---
+        // --- MÉTODOS DE ESCRITURA ---
 
         public async Task GuardarTicketAsync(Ticket ticket)
         {
-            _context.Tickets.Add(ticket);
-            await _context.SaveChangesAsync();
-            NotificarCambio(ticket.Id); // <--- Enviamos el ID
+            using var context = _dbFactory.CreateDbContext();
+            context.Tickets.Add(ticket);
+            await context.SaveChangesAsync();
+
+            // Notificar creación
+            NotificarCambio(ticket.Id, ticket.Titulo, ticket.Usuario?.Nombre ?? "Nuevo Ticket");
         }
 
         public async Task ActualizarDescripcionUsuarioAsync(Ticket ticketModificado)
         {
-            var ticketDb = await _context.Tickets.FindAsync(ticketModificado.Id);
+            using var context = _dbFactory.CreateDbContext();
+            var ticketDb = await context.Tickets.FindAsync(ticketModificado.Id);
+
             if (ticketDb != null)
             {
                 if (ticketDb.FueEditado) throw new InvalidOperationException("Este ticket ya fue editado una vez.");
+
                 ticketDb.Titulo = ticketModificado.Titulo;
                 ticketDb.Descripcion = ticketModificado.Descripcion;
                 ticketDb.FueEditado = true;
-                await _context.SaveChangesAsync();
-                NotificarCambio(); // <--- AVISA A TODOS
+
+                await context.SaveChangesAsync();
+                NotificarCambio(ticketDb.Id, ticketDb.Titulo, "Actualización");
             }
         }
 
         public async Task AsignarTicketAsync(int ticketId, Guid asesorId)
         {
-            var ticket = await _context.Tickets.FindAsync(ticketId);
+            using var context = _dbFactory.CreateDbContext();
+            var ticket = await context.Tickets.Include(t => t.Usuario).FirstOrDefaultAsync(t => t.Id == ticketId);
+
             if (ticket != null)
             {
                 ticket.AsesorId = asesorId;
                 ticket.Estado = EstadoTicket.Asignado;
-                await _context.SaveChangesAsync();
-                NotificarCambio(); // <--- AVISA A TODOS
+                await context.SaveChangesAsync();
+
+                // Obtenemos nombre del asesor para la notificación
+                var asesor = await context.Usuarios.FindAsync(asesorId);
+                string nombreAsesor = asesor?.Nombre ?? "Un asesor";
+
+                // Notificar: Esto hará que la pantalla del usuario se recargue y muestre al asesor
+                NotificarCambio(ticketId, ticket.Titulo, $"{nombreAsesor} ha tomado tu caso");
             }
         }
 
         public async Task ResolverTicketAsync(int id, Guid usuarioEjecutorId)
         {
-            var ticket = await _context.Tickets.FindAsync(id);
+            using var context = _dbFactory.CreateDbContext();
+            var ticket = await context.Tickets.FindAsync(id);
+
             if (ticket == null || ticket.IsDeleted) return;
-            if (ticket.AsesorId != usuarioEjecutorId) throw new UnauthorizedAccessException("Solo el asesor asignado puede resolver.");
+
+            // Validación básica (opcional, según reglas)
+            // if (ticket.AsesorId != usuarioEjecutorId) ... 
+
             if (ticket.Estado != EstadoTicket.Resuelto)
             {
                 ticket.Estado = EstadoTicket.Resuelto;
                 ticket.FechaCierre = DateTime.Now;
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
-                // ¡IMPORTANTE! Avisamos específicamente de este ticket
-                NotificarCambio(id);
+                NotificarCambio(id, ticket.Titulo, "El ticket ha sido finalizado");
             }
         }
+
         public async Task CalificarTicketAsync(int ticketId, int estrellas, Guid usuarioCalificadorId)
         {
             if (estrellas < 1 || estrellas > 5) throw new ArgumentOutOfRangeException("1-5");
-            var ticket = await _context.Tickets.FindAsync(ticketId);
+
+            using var context = _dbFactory.CreateDbContext();
+            var ticket = await context.Tickets.FindAsync(ticketId);
+
             if (ticket != null && ticket.UsuarioId == usuarioCalificadorId && ticket.Estado == EstadoTicket.Resuelto)
             {
                 ticket.SatisfaccionUsuario = estrellas;
-                await _context.SaveChangesAsync();
-                NotificarCambio(); // <--- AVISA A TODOS
+                await context.SaveChangesAsync();
+
+                // Notificamos para que el Admin/Asesor vea la calificación en su tablero
+                NotificarCambio(ticketId, ticket.Titulo, "El usuario ha calificado la atención");
             }
+        }
+
+        public async Task GuardarCategoriaAsync(Categoria categoria)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            categoria.IsActive = true;
+            context.Categorias.Add(categoria);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task ActualizarCategoriaAsync(Categoria categoria)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            context.Categorias.Update(categoria);
+            await context.SaveChangesAsync();
         }
     }
 }

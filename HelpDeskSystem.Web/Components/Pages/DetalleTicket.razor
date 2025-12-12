@@ -385,37 +385,31 @@
     {
         await InvokeAsync(async () =>
         {
-            // Filtro: Si notificaron un ticket específico y NO es este, ignoramos para ahorrar recursos.
+            // Si el evento es para otro ticket específico, ignoramos
             if (ticketIdNotificado.HasValue && ticketIdNotificado.Value != Id) return;
 
             int antes = mensajes.Count;
 
-            // 1. Recargar Chat
+            // 1. Recargar Chat y Ticket (Para actualizar estado y bloqueo)
             await CargarChat();
 
-            // 2. Recargar Ticket (Para ver si cambió a Resuelto y bloquear el chat)
-            var t = await ServicioTickets.ObtenerPorIdAsync(Id);
-            if (t != null) miTicket = t;
+            // Forzamos la recarga del ticket para ver si ya fue calificado o cerrado
+            var ticketActualizado = await ServicioTickets.ObtenerPorIdAsync(Id);
+            if (ticketActualizado != null)
+            {
+                miTicket = ticketActualizado;
+            }
 
-            StateHasChanged();
+            StateHasChanged(); // Actualizar UI
 
-            // 3. Notificación visual (Scroll y Toast si es mensaje nuevo de otro)
+            // 2. Solo hacemos SCROLL si hay mensajes nuevos.
+            // La notificación de sonido/visual ahora es trabajo EXCLUSIVO de MainLayout
             if (mensajes.Count > antes)
             {
-                var ultimoMensaje = mensajes.LastOrDefault();
-                if (ultimoMensaje != null && ultimoMensaje.UsuarioId != usuarioActualId)
-                {
-                    await ScrollAlFondo();
-                    await JS.InvokeVoidAsync("mostrarNotificacion", $"Nuevo mensaje de {ultimoMensaje.Usuario?.Nombre}", "info");
-                }
-                else
-                {
-                    await ScrollAlFondo();
-                }
+                await ScrollAlFondo();
             }
         });
     }
-
     // --- MÉTODOS AUXILIARES ---
     private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
@@ -453,8 +447,23 @@
 
     private async Task GuardarCambios() { if (miTicket != null) { try { await ServicioTickets.ActualizarDescripcionUsuarioAsync(miTicket); modoEdicion = false; } catch { } } }
 
-    private async Task Calificar(int estrellas) { if (miTicket != null) { await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId); } }
+    // En DetalleTicket.razor
 
+    private async Task Calificar(int estrellas)
+    {
+        if (miTicket != null)
+        {
+            // 1. Guardar en BD
+            await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId);
+
+            // 2. TRUCO CLAVE: Recargar inmediatamente el ticket en memoria local
+            // Esto hace que el @if(miTicket.SatisfaccionUsuario == null) se vuelva falso al instante
+            miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
+
+            // 3. Forzar renderizado
+            StateHasChanged();
+        }
+    }
     private async Task CancelarEdicion()
     {
         modoEdicion = false;

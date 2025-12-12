@@ -1,5 +1,6 @@
 ﻿using HelpDeskSystem.Data;
 using HelpDeskSystem.Domain.Entities;
+using HelpDeskSystem.Domain.Enums; // Asegúrate de tener este using
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Hosting;
@@ -9,11 +10,11 @@ namespace HelpDeskSystem.Web.Services
 {
     public class ChatService : IChatService
     {
-        private readonly AppDbContext _context;
+        // Usamos Factory aquí también
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly IWebHostEnvironment _env;
-        private readonly ITicketService _ticketService; // Inyección para el evento del chat
+        private readonly ITicketService _ticketService;
 
-        // Lista blanca de tipos MIME permitidos (Magic Numbers simplificados)
         private static readonly Dictionary<string, string> TiposPermitidos = new()
         {
             { ".jpg", "image/jpeg" },
@@ -23,44 +24,31 @@ namespace HelpDeskSystem.Web.Services
             { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
         };
 
-        public ChatService(AppDbContext context, IWebHostEnvironment env, ITicketService ticketService)
+        public ChatService(IDbContextFactory<AppDbContext> dbFactory, IWebHostEnvironment env, ITicketService ticketService)
         {
-            _context = context;
+            _dbFactory = dbFactory; // Inyección de fábrica
             _env = env;
             _ticketService = ticketService;
         }
 
         public async Task<string> SubirArchivoAsync(IBrowserFile archivo)
         {
+            // ... (Tu lógica de validación de archivos queda IDÉNTICA) ...
+            // Solo copia la parte interna del método que ya tenías, no cambia nada de lógica.
+
             // 1. Validar Extensión
             var extension = Path.GetExtension(archivo.Name).ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(extension) || !TiposPermitidos.ContainsKey(extension))
-            {
-                throw new InvalidOperationException("Tipo de archivo no permitido por extensión.");
-            }
+                throw new InvalidOperationException("Tipo de archivo no permitido.");
 
-            // 2. NUEVA SEGURIDAD: Validar Content-Type (MIME)
-            // Esto verifica que el navegador haya detectado que el contenido coincide con la extensión.
-            // Ejemplo: Si renombras virus.exe a foto.jpg, el navegador suele enviar "application/x-msdownload", no "image/jpeg".
             if (archivo.ContentType != TiposPermitidos[extension])
-            {
-                throw new InvalidOperationException("El archivo parece corrupto o manipulado (MIME type no coincide).");
-            }
+                throw new InvalidOperationException("Archivo corrupto o manipulado.");
 
-            // 3. Validar Tamaño (Máx 5MB)
-            if (archivo.Size > 5 * 1024 * 1024)
-            {
-                throw new InvalidOperationException("El archivo excede el límite de 5MB.");
-            }
+            if (archivo.Size > 5 * 1024 * 1024) throw new InvalidOperationException("Máx 5MB.");
 
-            // 4. Guardar archivo
             var carpetaDestino = Path.Combine(_env.WebRootPath, "uploads");
-            if (!Directory.Exists(carpetaDestino))
-            {
-                Directory.CreateDirectory(carpetaDestino);
-            }
+            if (!Directory.Exists(carpetaDestino)) Directory.CreateDirectory(carpetaDestino);
 
-            // Limpieza de nombre para evitar caracteres raros
             var nombreOriginalSeguro = Regex.Replace(Path.GetFileName(archivo.Name), "[^a-zA-Z0-9._-]", "_");
             var nombreArchivo = $"{Guid.NewGuid()}_{nombreOriginalSeguro}";
             var rutaCompleta = Path.Combine(carpetaDestino, nombreArchivo);
@@ -71,39 +59,46 @@ namespace HelpDeskSystem.Web.Services
 
             return $"/uploads/{nombreArchivo}";
         }
-        // ESTE ES EL NOMBRE CORRECTO QUE USAREMOS:
+
         public async Task<List<Mensaje>> ObtenerMensajesPorTicketId(int ticketId)
         {
-            return await _context.Mensajes
+            using var context = _dbFactory.CreateDbContext(); // Contexto limpio
+            return await context.Mensajes
                 .Where(m => m.TicketId == ticketId)
                 .Include(m => m.Usuario)
                 .OrderBy(m => m.FechaHora)
+                .AsNoTracking()
                 .ToListAsync();
         }
+
         public async Task EnviarMensaje(Mensaje mensaje)
         {
-            _context.Mensajes.Add(mensaje);
-            await _context.SaveChangesAsync();
+            using var context = _dbFactory.CreateDbContext(); // Contexto limpio
 
-            // --- LÓGICA DE NOTIFICACIÓN ENRIQUECIDA ---
-            // 1. Cargamos datos para la notificación (si no están cargados)
-            var ticket = await _context.Tickets.FindAsync(mensaje.TicketId);
+            // 1. BLINDAJE: Verificar si el ticket está cerrado
+            var ticket = await context.Tickets.FindAsync(mensaje.TicketId);
+            if (ticket == null) throw new Exception("Ticket no encontrado");
 
-            // Intentamos obtener el nombre del remitente
-            // Si el objeto mensaje.Usuario ya vino cargado, lo usamos, si no, lo buscamos.
-            string nombreRemitente = "Alguien";
-            if (mensaje.Usuario != null)
+            if (ticket.Estado == EstadoTicket.Resuelto)
             {
-                nombreRemitente = mensaje.Usuario.Nombre;
+                throw new InvalidOperationException("El ticket está cerrado. No se pueden enviar mensajes.");
             }
+
+            // 2. Guardar Mensaje
+            context.Mensajes.Add(mensaje);
+            await context.SaveChangesAsync();
+
+            // 3. Preparar Notificación
+            string nombreRemitente = "Usuario";
+            if (mensaje.Usuario != null) nombreRemitente = mensaje.Usuario.Nombre;
             else
             {
-                var usuario = await _context.Usuarios.FindAsync(mensaje.UsuarioId);
+                var usuario = await context.Usuarios.FindAsync(mensaje.UsuarioId);
                 if (usuario != null) nombreRemitente = usuario.Nombre;
             }
 
-            // 2. Notificamos con todos los detalles
-            _ticketService.NotificarCambio(mensaje.TicketId, ticket?.Titulo, nombreRemitente);
+            // Notificar a todos (Dashboard, Detalle, etc.)
+            _ticketService.NotificarCambio(mensaje.TicketId, ticket.Titulo, nombreRemitente);
         }
     }
 }

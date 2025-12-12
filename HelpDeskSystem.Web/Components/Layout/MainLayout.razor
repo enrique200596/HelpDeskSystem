@@ -84,46 +84,48 @@
 @code {
     private string nombrePagina = "";
 
+    // En MainLayout.razor
+
     private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, string? remitente)
     {
         await InvokeAsync(async () =>
         {
-            // 1. REGLA DE ORO: Si no hay sesión iniciada, NO HACER NADA.
+            // 1. OBTENER USUARIO ACTUAL
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            if (user == null || user.Identity == null || !user.Identity.IsAuthenticated)
+
+            // Si no hay nadie logueado, no hacemos nada
+            if (user == null || user.Identity == null || !user.Identity.IsAuthenticated) return;
+
+            // 2. REGLA DE "AUTO-SILENCIO":
+            // Si el remitente soy YO (el usuario conectado), NO mostrar notificación.
+            // Comparamos el nombre que viene del evento con el nombre del usuario actual.
+            if (!string.IsNullOrEmpty(remitente) && remitente.Equals(user.Identity.Name, StringComparison.OrdinalIgnoreCase))
             {
-                return;
+                return; // Salimos, fui yo quien envió el mensaje.
             }
 
-            // 2. EVITAR AUTO-NOTIFICACIÓN: Si yo envié el mensaje, no me notifiques.
-            // Comparamos el nombre del remitente con el usuario actual
-            if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name)
-            {
-                return;
-            }
+            // 3. REGLA DE UBICACIÓN:
+            // ¿Está el usuario navegando en el ticket que recibió el mensaje?
+            var urlActual = NavManager.Uri.ToLower();
+            bool usuarioEstaEnElTicket = false;
 
-            // 3. Chequeo de URL para saber si estoy viendo el ticket
-            var urlActual = NavManager.Uri;
-            bool estaViendoElTicket = false;
             if (ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}"))
             {
-                estaViendoElTicket = true;
+                usuarioEstaEnElTicket = true;
             }
 
-            // 4. Construir Mensaje Personalizado
-            // "Juan Perez escribió en: Problema con Impresora"
-            string mensajeNotificacion = "Nueva actividad en el sistema";
-            if (!string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente))
+            // 4. PREPARAR MENSAJE
+            // Si no viene título (ej. es una actualización genérica), ponemos uno por defecto.
+            string textoMostrar = "Nueva actividad en el sistema";
+            if (!string.IsNullOrEmpty(remitente) && !string.IsNullOrEmpty(tituloTicket))
             {
-                mensajeNotificacion = $"{remitente} escribió en: {tituloTicket}";
+                textoMostrar = $"{remitente} escribió en: {tituloTicket}";
             }
 
-            // 5. Llamar a JS con la lógica de sonido/bloqueo
-            await JS.InvokeVoidAsync("verificarYNotificar",
-                mensajeNotificacion,
-                "info",
-                estaViendoElTicket);
+            // 5. ENVIAR A JAVASCRIPT
+            // Pasamos la bandera 'usuarioEstaEnElTicket' para que JS decida si muestra el Toast o solo reproduce sonido
+            await JS.InvokeVoidAsync("verificarYNotificar", textoMostrar, "info", usuarioEstaEnElTicket);
 
             StateHasChanged();
         });
