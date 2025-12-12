@@ -1,10 +1,9 @@
 ﻿@inherits LayoutComponentBase
-@using Microsoft.AspNetCore.Components.Authorization
-@using System.Security.Claims
 @using HelpDeskSystem.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager NavManager
-@inject AuthenticationStateProvider AuthStateProvider
 @inject TicketStateContainer StateContainer
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -85,13 +84,55 @@
 @code {
     private string nombrePagina = "";
 
+    private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, string? remitente)
+    {
+        await InvokeAsync(async () =>
+        {
+            // 1. REGLA DE ORO: Si no hay sesión iniciada, NO HACER NADA.
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user == null || user.Identity == null || !user.Identity.IsAuthenticated)
+            {
+                return;
+            }
+
+            // 2. EVITAR AUTO-NOTIFICACIÓN: Si yo envié el mensaje, no me notifiques.
+            // Comparamos el nombre del remitente con el usuario actual
+            if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name)
+            {
+                return;
+            }
+
+            // 3. Chequeo de URL para saber si estoy viendo el ticket
+            var urlActual = NavManager.Uri;
+            bool estaViendoElTicket = false;
+            if (ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}"))
+            {
+                estaViendoElTicket = true;
+            }
+
+            // 4. Construir Mensaje Personalizado
+            // "Juan Perez escribió en: Problema con Impresora"
+            string mensajeNotificacion = "Nueva actividad en el sistema";
+            if (!string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente))
+            {
+                mensajeNotificacion = $"{remitente} escribió en: {tituloTicket}";
+            }
+
+            // 5. Llamar a JS con la lógica de sonido/bloqueo
+            await JS.InvokeVoidAsync("verificarYNotificar",
+                mensajeNotificacion,
+                "info",
+                estaViendoElTicket);
+
+            StateHasChanged();
+        });
+    }
     protected override void OnInitialized()
     {
         NavManager.LocationChanged += AlCambiarUrl;
         ActualizarNombrePagina();
-
-        // AGREGA ESTA LÍNEA:
-        StateContainer.OnChange += NotificarCambioGlobal;
+        StateContainer.OnChange += ManejarCambioGlobal;
     }
 
     // AGREGA ESTE MÉTODO:
@@ -135,7 +176,6 @@
     public void Dispose()
     {
         NavManager.LocationChanged -= AlCambiarUrl;
-        // AGREGA ESTA LÍNEA:
-        StateContainer.OnChange -= NotificarCambioGlobal;
+        StateContainer.OnChange -= ManejarCambioGlobal;
     }
 }

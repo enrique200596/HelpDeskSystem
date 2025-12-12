@@ -138,7 +138,6 @@ else
     {
         // 1. Suscribirse al evento global
         StateContainer.OnChange += ActualizarTablero;
-
         await CargarDatos();
     }
 
@@ -146,22 +145,32 @@ else
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        // ... (Tu lógica existente para obtener ID y Rol) ...
 
-        // Llamada al servicio
-        metricas = await ServicioDashboard.ObtenerMetricasAsync(usuarioId, rolActual);
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            nombreUsuario = user.Identity.Name ?? "";
+            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Usuario";
+
+            var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId))
+            {
+                usuarioId = parsedId;
+            }
+
+            // Llamar al servicio
+            metricas = await ServicioDashboard.ObtenerMetricasAsync(usuarioId, rolActual);
+        }
     }
 
-    private async void ActualizarTablero()
+    // ✅ CORRECCIÓN AQUÍ: Agregamos el parámetro (int? id) aunque no lo usemos
+    private async void ActualizarTablero(int? id, string? t, string? r)
     {
-        // Esta función se ejecuta cuando CUALQUIER usuario modifica un ticket
         await CargarDatos();
         await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
-        // IMPORTANTE: Desuscribirse para evitar fugas de memoria
         StateContainer.OnChange -= ActualizarTablero;
     }
 }

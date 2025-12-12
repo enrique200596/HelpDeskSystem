@@ -349,13 +349,11 @@
     private Guid usuarioActualId = Guid.Empty;
     private string rolUsuarioActual = "";
     private string? imagenModalUrl = null;
-
-    // Variable para controlar el conteo anterior de mensajes
     private int conteoMensajesAnterior = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        // CAMBIO: Usar StateContainer en vez de TicketService.OnChange
+        // Suscribirse al evento (Ahora acepta el parámetro int?)
         StateContainer.OnChange += ActualizarChatEnVivo;
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -372,45 +370,45 @@
         if (rolUsuarioActual == "Administrador") listaAsesores = await ServicioUsuarios.ObtenerAsesoresAsync();
 
         await CargarChat();
-        conteoMensajesAnterior = mensajes.Count; // Inicializamos conteo
+        conteoMensajesAnterior = mensajes.Count;
         await ScrollAlFondo();
     }
 
-    // Reemplaza TODO el método Dispose por este (SOLO DEBE HABER UNO):
     public void Dispose()
     {
-        // Usamos StateContainer, NO TicketService
+        // Desuscribirse correctamente
         StateContainer.OnChange -= ActualizarChatEnVivo;
     }
 
-    // Asegúrate de que tu método ActualizarChatEnVivo recargue el ticket completo
-    private async void ActualizarChatEnVivo()
+    // EL MÉTODO CORRECTO QUE ACEPTA EL ID Y ACTUALIZA LA UI
+    private async void ActualizarChatEnVivo(int? ticketIdNotificado, string? t, string? r)
     {
         await InvokeAsync(async () =>
         {
-            // 1. Definimos la variable 'antes' que faltaba
+            // Filtro: Si notificaron un ticket específico y NO es este, ignoramos para ahorrar recursos.
+            if (ticketIdNotificado.HasValue && ticketIdNotificado.Value != Id) return;
+
             int antes = mensajes.Count;
 
-            // 2. Recargar Mensajes
+            // 1. Recargar Chat
             await CargarChat();
 
-            // 3. Recargar el ticket (CRÍTICO para saber si se cerró)
-            miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
+            // 2. Recargar Ticket (Para ver si cambió a Resuelto y bloquear el chat)
+            var t = await ServicioTickets.ObtenerPorIdAsync(Id);
+            if (t != null) miTicket = t;
 
             StateHasChanged();
 
-            // 4. Lógica de notificación
+            // 3. Notificación visual (Scroll y Toast si es mensaje nuevo de otro)
             if (mensajes.Count > antes)
             {
                 var ultimoMensaje = mensajes.LastOrDefault();
-
-                // Si hay un mensaje nuevo y NO LO ESCRIBÍ YO
                 if (ultimoMensaje != null && ultimoMensaje.UsuarioId != usuarioActualId)
                 {
                     await ScrollAlFondo();
                     await JS.InvokeVoidAsync("mostrarNotificacion", $"Nuevo mensaje de {ultimoMensaje.Usuario?.Nombre}", "info");
                 }
-                else if (ultimoMensaje != null && ultimoMensaje.UsuarioId == usuarioActualId)
+                else
                 {
                     await ScrollAlFondo();
                 }
@@ -418,7 +416,7 @@
         });
     }
 
-    // --- MÉTODOS AUXILIARES (Igual que antes) ---
+    // --- MÉTODOS AUXILIARES ---
     private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
     private void ManejarSeleccionArchivo(InputFileChangeEventArgs e) => archivoSeleccionado = e.File;
@@ -428,15 +426,19 @@
     {
         if (!string.IsNullOrWhiteSpace(nuevoMensaje.Contenido) || archivoSeleccionado != null)
         {
-            if (archivoSeleccionado != null) { try { nuevoMensaje.AdjuntoUrl = await ServicioChat.SubirArchivoAsync(archivoSeleccionado); } catch { return; } }
+            if (archivoSeleccionado != null)
+            {
+                try { nuevoMensaje.AdjuntoUrl = await ServicioChat.SubirArchivoAsync(archivoSeleccionado); }
+                catch { return; }
+            }
             nuevoMensaje.TicketId = Id;
-            nuevoMensaje.FechaHora = DateTime.Now; nuevoMensaje.UsuarioId = usuarioActualId;
+            nuevoMensaje.FechaHora = DateTime.Now;
+            nuevoMensaje.UsuarioId = usuarioActualId;
 
-            // Al enviar, el ChatService llamará a NotificarCambio(), lo que disparará ActualizarChatEnVivo aquí y en la pantalla del otro usuario.
             await ServicioChat.EnviarMensaje(nuevoMensaje);
 
-            nuevoMensaje = new Mensaje(); archivoSeleccionado = null;
-            // No hace falta llamar CargarChat() aquí manual, el evento lo hará, pero para feedback instantáneo local está bien dejarlo o confiar en el evento.
+            nuevoMensaje = new Mensaje();
+            archivoSeleccionado = null;
             await ScrollAlFondo();
             await PonerFoco();
         }
@@ -448,14 +450,14 @@
     private async Task AsignarAsesor() { if (idAsesorSeleccionado != Guid.Empty && miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, idAsesorSeleccionado); } }
     private async Task AutoAsignar() { if (miTicket != null) { await ServicioTickets.AsignarTicketAsync(miTicket.Id, usuarioActualId); } }
     private async Task MarcarComoResuelto() { if (miTicket != null) { await ServicioTickets.ResolverTicketAsync(Id, usuarioActualId); } }
+
     private async Task GuardarCambios() { if (miTicket != null) { try { await ServicioTickets.ActualizarDescripcionUsuarioAsync(miTicket); modoEdicion = false; } catch { } } }
+
     private async Task Calificar(int estrellas) { if (miTicket != null) { await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId); } }
 
-    // Agregar método para cancelar y revertir cambios locales si se arrepiente
     private async Task CancelarEdicion()
     {
         modoEdicion = false;
-        // Recargamos del servidor para deshacer cambios en memoria no guardados
         miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
     }
 }

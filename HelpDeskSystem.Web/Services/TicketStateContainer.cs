@@ -1,14 +1,14 @@
-﻿// Ubicación: HelpDeskSystem.Web/Services/TicketStateContainer.cs
+﻿// HelpDeskSystem.Web/Services/TicketStateContainer.cs
 namespace HelpDeskSystem.Web.Services
 {
     public class TicketStateContainer
     {
-        // Este evento será escuchado por TODOS los usuarios conectados
-        public event Action? OnChange;
+        // Firma actualizada: ID, Título Ticket, Nombre Remitente
+        public event Action<int?, string?, string?>? OnChange;
 
-        public void NotifyStateChanged()
+        public void NotifyStateChanged(int? ticketId = null, string? titulo = null, string? remitente = null)
         {
-            OnChange?.Invoke();
+            OnChange?.Invoke(ticketId, titulo, remitente);
         }
     }
 }

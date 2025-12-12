@@ -85,8 +85,25 @@ namespace HelpDeskSystem.Web.Services
             _context.Mensajes.Add(mensaje);
             await _context.SaveChangesAsync();
 
-            // Notificamos para que se actualice la pantalla sin recargar
-            _ticketService.NotificarCambio();
+            // --- LÓGICA DE NOTIFICACIÓN ENRIQUECIDA ---
+            // 1. Cargamos datos para la notificación (si no están cargados)
+            var ticket = await _context.Tickets.FindAsync(mensaje.TicketId);
+
+            // Intentamos obtener el nombre del remitente
+            // Si el objeto mensaje.Usuario ya vino cargado, lo usamos, si no, lo buscamos.
+            string nombreRemitente = "Alguien";
+            if (mensaje.Usuario != null)
+            {
+                nombreRemitente = mensaje.Usuario.Nombre;
+            }
+            else
+            {
+                var usuario = await _context.Usuarios.FindAsync(mensaje.UsuarioId);
+                if (usuario != null) nombreRemitente = usuario.Nombre;
+            }
+
+            // 2. Notificamos con todos los detalles
+            _ticketService.NotificarCambio(mensaje.TicketId, ticket?.Titulo, nombreRemitente);
         }
     }
 }

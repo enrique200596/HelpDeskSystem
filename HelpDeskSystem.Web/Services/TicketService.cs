@@ -20,10 +20,9 @@ namespace HelpDeskSystem.Web.Services
 
         // --- ELIMINA EL EVENTO STATIC ANTIGUO (public static event Action? OnChange;) ---
 
-        public void NotificarCambio()
+        public void NotificarCambio(int? ticketId = null, string? titulo = null, string? remitente = null)
         {
-            // Avisamos al contenedor global
-            _stateContainer.NotifyStateChanged();
+            _stateContainer.NotifyStateChanged(ticketId, titulo, remitente);
         }
 
         public async Task<List<Categoria>> ObtenerCategoriasAsync(bool incluirInactivas = false)
@@ -89,7 +88,7 @@ namespace HelpDeskSystem.Web.Services
         {
             _context.Tickets.Add(ticket);
             await _context.SaveChangesAsync();
-            NotificarCambio(); // <--- AVISA A TODOS
+            NotificarCambio(ticket.Id); // <--- Enviamos el ID
         }
 
         public async Task ActualizarDescripcionUsuarioAsync(Ticket ticketModificado)
@@ -128,7 +127,9 @@ namespace HelpDeskSystem.Web.Services
                 ticket.Estado = EstadoTicket.Resuelto;
                 ticket.FechaCierre = DateTime.Now;
                 await _context.SaveChangesAsync();
-                NotificarCambio(); // <--- AVISA A TODOS
+
+                // ¡IMPORTANTE! Avisamos específicamente de este ticket
+                NotificarCambio(id);
             }
         }
         public async Task CalificarTicketAsync(int ticketId, int estrellas, Guid usuarioCalificadorId)
