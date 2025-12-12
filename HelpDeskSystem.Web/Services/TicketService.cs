@@ -55,20 +55,6 @@ namespace HelpDeskSystem.Web.Services
             await _context.SaveChangesAsync();
         }
 
-        // --- 2. MÉTODO PARA DISPARAR EL EVENTO ---
-        public void NotificarCambio()
-        {
-            try
-            {
-                OnChange?.Invoke();
-            }
-            catch
-            {
-                // Ignorar errores en notificaciones
-            }
-
-        }
-
         // --- LECTURA ---
 
         public async Task<List<Categoria>> ObtenerCategoriasAsync()

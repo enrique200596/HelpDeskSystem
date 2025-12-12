@@ -376,9 +376,10 @@
         await ScrollAlFondo();
     }
 
+    // Reemplaza TODO el método Dispose por este (SOLO DEBE HABER UNO):
     public void Dispose()
     {
-        // CAMBIO: Desuscribirse del container
+        // Usamos StateContainer, NO TicketService
         StateContainer.OnChange -= ActualizarChatEnVivo;
     }
 
@@ -387,15 +388,18 @@
     {
         await InvokeAsync(async () =>
         {
-            // Recargar Mensajes
+            // 1. Definimos la variable 'antes' que faltaba
+            int antes = mensajes.Count;
+
+            // 2. Recargar Mensajes
             await CargarChat();
 
-            // CRÍTICO: Recargar el estado del Ticket para saber si se cerró
+            // 3. Recargar el ticket (CRÍTICO para saber si se cerró)
             miTicket = await ServicioTickets.ObtenerPorIdAsync(Id);
 
             StateHasChanged();
 
-            // 4. LOGICA DE NOTIFICACIÓN Y SCROLL
+            // 4. Lógica de notificación
             if (mensajes.Count > antes)
             {
                 var ultimoMensaje = mensajes.LastOrDefault();
@@ -403,25 +407,15 @@
                 // Si hay un mensaje nuevo y NO LO ESCRIBÍ YO
                 if (ultimoMensaje != null && ultimoMensaje.UsuarioId != usuarioActualId)
                 {
-                    // Scroll automático al recibir
                     await ScrollAlFondo();
-
-                    // Notificación tipo Toast
                     await JS.InvokeVoidAsync("mostrarNotificacion", $"Nuevo mensaje de {ultimoMensaje.Usuario?.Nombre}", "info");
                 }
                 else if (ultimoMensaje != null && ultimoMensaje.UsuarioId == usuarioActualId)
                 {
-                    // Si lo escribí yo, solo scroll (ya se hace en EnviarMensaje, pero esto es un respaldo)
                     await ScrollAlFondo();
                 }
             }
         });
-    }
-
-    // 3. Importante: Desuscribirse al salir para evitar fugas de memoria
-    public void Dispose()
-    {
-        TicketService.OnChange -= ActualizarChatEnVivo;
     }
 
     // --- MÉTODOS AUXILIARES (Igual que antes) ---

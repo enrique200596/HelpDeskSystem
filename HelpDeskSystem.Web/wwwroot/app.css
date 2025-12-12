@@ -322,3 +322,16 @@ html, body {
         color: #0dcaf0;
         font-size: 1.2rem;
     }
+
+/* Sobrescribir estilos para Alertas LLAMATIVAS */
+.toast-danger {
+    background-color: #dc3545 !important; /* Rojo Intenso */
+    color: white !important;
+    border-left: 15px solid #8a1f29 !important; /* Borde grueso oscuro */
+    box-shadow: 0 10px 40px rgba(220, 53, 69, 0.6) !important; /* Resplandor rojo */
+    font-size: 1.1rem;
+}
+
+    .toast-danger i {
+        color: white !important;
+    }

@@ -1,6 +1,14 @@
-// wwwroot/js/notificaciones.js
+function reproducirSonido() {
+    // Asegúrate de poner un archivo 'alert.mp3' en wwwroot/sounds/
+    try {
+        var audio = new Audio('/sounds/alert.mp3');
+        audio.play().catch(e => console.log("Audio bloqueado por navegador hasta interacción"));
+    } catch (e) { }
+}
+
 function mostrarNotificacion(mensaje, tipo) {
-    // Crear el contenedor de toasts si no existe
+    reproducirSonido(); // <--- SONIDO
+
     let contenedor = document.getElementById('toast-container');
     if (!contenedor) {
         contenedor = document.createElement('div');
@@ -8,33 +16,28 @@ function mostrarNotificacion(mensaje, tipo) {
         document.body.appendChild(contenedor);
     }
 
-    // Crear el elemento del toast
     const toast = document.createElement('div');
-    toast.className = `toast-notification toast-${tipo}`;
-    toast.textContent = mensaje;
+    // Agregamos clase 'slide-in' para animaciones CSS
+    toast.className = `toast-notification toast-${tipo} slide-in`;
 
-    // Añadir icono
-    const icono = document.createElement('i');
-    icono.className = tipo === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill';
-    toast.prepend(icono);
+    // HTML más agresivo para alertas
+    toast.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="bi bi-bell-fill fs-2 me-3"></i>
+            <div>
+                <strong class="d-block text-uppercase" style="font-size:1.1rem;">NUEVA ACTIVIDAD</strong>
+                <span class="fw-bold">${mensaje}</span>
+            </div>
+        </div>
+    `;
 
-    // Añadir al contenedor
     contenedor.appendChild(toast);
 
-    // Mostrar con animación
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 100);
+    setTimeout(() => { toast.classList.add('show'); }, 100);
 
-    // Ocultar y eliminar después de 5 segundos
+    // Duración de 6 segundos
     setTimeout(() => {
         toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => {
-            toast.remove();
-            // Si el contenedor queda vacío, lo podemos eliminar
-            if (contenedor.childElementCount === 0) {
-                contenedor.remove();
-            }
-        });
-    }, 5000);
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 6000);
 }

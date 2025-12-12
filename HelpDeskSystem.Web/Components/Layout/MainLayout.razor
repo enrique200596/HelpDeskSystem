@@ -1,8 +1,11 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using HelpDeskSystem.Web.Services
 @inject NavigationManager NavManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject TicketStateContainer StateContainer
+@inject IJSRuntime JS
 @implements IDisposable
 
 <div class="page">
@@ -86,6 +89,19 @@
     {
         NavManager.LocationChanged += AlCambiarUrl;
         ActualizarNombrePagina();
+
+        // AGREGA ESTA LÍNEA:
+        StateContainer.OnChange += NotificarCambioGlobal;
+    }
+
+    // AGREGA ESTE MÉTODO:
+    private async void NotificarCambioGlobal()
+    {
+        await InvokeAsync(async () =>
+        {
+            // "danger" activará el estilo rojo intenso
+            await JS.InvokeVoidAsync("mostrarNotificacion", "¡Atención! Hay actividad reciente en el sistema.", "danger");
+        });
     }
 
     private void AlCambiarUrl(object? sender, LocationChangedEventArgs e)
@@ -119,5 +135,7 @@
     public void Dispose()
     {
         NavManager.LocationChanged -= AlCambiarUrl;
+        // AGREGA ESTA LÍNEA:
+        StateContainer.OnChange -= NotificarCambioGlobal;
     }
 }
