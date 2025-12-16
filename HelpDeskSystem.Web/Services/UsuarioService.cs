@@ -7,100 +7,107 @@ namespace HelpDeskSystem.Web.Services
 {
     public class UsuarioService : IUsuarioService
     {
-        private readonly AppDbContext _context;
+        // CAMBIO: Usar Factory
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-        public UsuarioService(AppDbContext context)
+        public UsuarioService(IDbContextFactory<AppDbContext> dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
-        // Método para traer SOLO a los asesores activos
         public async Task<List<Usuario>> ObtenerAsesoresAsync()
         {
-            return await _context.Usuarios
+            using var context = _dbFactory.CreateDbContext();
+            return await context.Usuarios
                 .Where(u => u.Rol == RolUsuario.Asesor && u.IsActive)
+                .AsNoTracking() // Recomendado para lectura
                 .ToListAsync();
         }
 
         public async Task<bool> CrearUsuarioAsync(Usuario usuario, string password)
         {
-            // Validar si el correo ya existe
-            if (await _context.Usuarios.AnyAsync(u => u.Email == usuario.Email))
+            using var context = _dbFactory.CreateDbContext();
+
+            if (await context.Usuarios.AnyAsync(u => u.Email == usuario.Email))
                 return false;
 
-            // Encriptar contraseña
             usuario.Password = BCrypt.Net.BCrypt.HashPassword(password);
-
-            // Asignar ID si no viene
             if (usuario.Id == Guid.Empty) usuario.Id = Guid.NewGuid();
 
-            _context.Usuarios.Add(usuario);
-            await _context.SaveChangesAsync();
+            context.Usuarios.Add(usuario);
+            await context.SaveChangesAsync();
             return true;
         }
 
         public async Task<Usuario?> ObtenerUsuarioConCategoriasAsync(Guid userId)
         {
-            return await _context.Usuarios
-                .Include(u => u.Categorias) // Importante: Cargar la relación
+            using var context = _dbFactory.CreateDbContext();
+            return await context.Usuarios
+                .Include(u => u.Categorias)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == userId);
         }
 
         public async Task ActualizarCategoriasUsuarioAsync(Guid userId, List<int> idsCategoriasSeleccionadas)
         {
-            var usuario = await _context.Usuarios
+            using var context = _dbFactory.CreateDbContext();
+
+            // Aquí NO usamos AsNoTracking porque vamos a modificar la entidad
+            var usuario = await context.Usuarios
                 .Include(u => u.Categorias)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (usuario != null)
             {
-                // 1. Limpiar las categorías actuales
                 usuario.Categorias.Clear();
 
-                // 2. Buscar las nuevas categorías en BD
-                var nuevasCategorias = await _context.Categorias
+                var nuevasCategorias = await context.Categorias
                     .Where(c => idsCategoriasSeleccionadas.Contains(c.Id))
                     .ToListAsync();
 
-                // 3. Agregarlas al usuario
                 foreach (var cat in nuevasCategorias)
                 {
                     usuario.Categorias.Add(cat);
                 }
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
         }
 
         public async Task<List<Usuario>> ObtenerTodosLosUsuariosAsync()
         {
-            // Retornamos todos ordenados por nombre
-            return await _context.Usuarios.OrderBy(u => u.Nombre).ToListAsync();
+            using var context = _dbFactory.CreateDbContext();
+            return await context.Usuarios
+                .OrderBy(u => u.Nombre)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<bool> ActualizarUsuarioAsync(Usuario usuarioModificado)
         {
-            var usuarioDb = await _context.Usuarios.FindAsync(usuarioModificado.Id);
+            using var context = _dbFactory.CreateDbContext();
+            var usuarioDb = await context.Usuarios.FindAsync(usuarioModificado.Id);
+
             if (usuarioDb == null) return false;
 
-            // Actualizamos solo los campos permitidos (NO la contraseña aquí)
             usuarioDb.Nombre = usuarioModificado.Nombre;
             usuarioDb.Email = usuarioModificado.Email;
             usuarioDb.Rol = usuarioModificado.Rol;
-            usuarioDb.IsActive = usuarioModificado.IsActive; // Para dar de baja/alta
+            usuarioDb.IsActive = usuarioModificado.IsActive;
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> CambiarPasswordAsync(Guid userId, string nuevaPasswordPlana)
         {
-            var usuarioDb = await _context.Usuarios.FindAsync(userId);
+            using var context = _dbFactory.CreateDbContext();
+            var usuarioDb = await context.Usuarios.FindAsync(userId);
+
             if (usuarioDb == null) return false;
 
-            // Encriptamos y guardamos
             usuarioDb.Password = BCrypt.Net.BCrypt.HashPassword(nuevaPasswordPlana);
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
             return true;
         }
     }

@@ -7,50 +7,38 @@ namespace HelpDeskSystem.Web.Services
 {
     public class ReportService : IReportService
     {
-        private readonly AppDbContext _context;
+        // CAMBIO: Usar Factory
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-        public ReportService(AppDbContext context)
+        public ReportService(IDbContextFactory<AppDbContext> dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
-        // --- MÉTODO PRIVADO: APLICA TODOS LOS FILTROS ---
+        // Método helper estático o privado para reutilizar lógica de filtros
+        // Nota: Recibe IQueryable, funciona siempre que se consuma dentro del mismo contexto
         private IQueryable<Ticket> AplicarFiltro(IQueryable<Ticket> query, Guid? asesorId, DateTime? desde, DateTime? hasta)
         {
-            // 1. Filtro por Asesor
-            if (asesorId.HasValue)
-            {
-                query = query.Where(t => t.AsesorId == asesorId.Value);
-            }
-
-            // 2. Filtro por Fecha Desde
-            if (desde.HasValue)
-            {
-                query = query.Where(t => t.FechaCreacion >= desde.Value);
-            }
-
-            // 3. Filtro por Fecha Hasta (Incluimos el final del día)
+            if (asesorId.HasValue) query = query.Where(t => t.AsesorId == asesorId.Value);
+            if (desde.HasValue) query = query.Where(t => t.FechaCreacion >= desde.Value);
             if (hasta.HasValue)
             {
-                // Ejemplo: Si eligen 31/12, buscamos hasta 31/12 23:59:59
                 var finDelDia = hasta.Value.Date.AddDays(1).AddTicks(-1);
                 query = query.Where(t => t.FechaCreacion <= finDelDia);
             }
-
             return query;
         }
 
-        // 1. KPI: Tiempo Promedio (Con Filtros de Fecha)
         public async Task<string> ObtenerTiempoPromedio(Guid? asesorId = null, DateTime? desde = null, DateTime? hasta = null)
         {
-            var query = _context.Tickets.AsQueryable();
+            using var context = _dbFactory.CreateDbContext();
+            var query = context.Tickets.AsNoTracking().AsQueryable();
 
-            // Aplicamos filtros de fecha/asesor
             query = AplicarFiltro(query, asesorId, desde, hasta);
 
-            // Solo tickets resueltos y cerrados
             var ticketsCerrados = await query
                 .Where(t => t.Estado == EstadoTicket.Resuelto && t.FechaCierre != null)
+                .Select(t => new { t.FechaCreacion, t.FechaCierre }) // Proyección para eficiencia
                 .ToListAsync();
 
             if (!ticketsCerrados.Any()) return "0.0 horas";
@@ -61,15 +49,12 @@ namespace HelpDeskSystem.Web.Services
             return $"{promedio:F1} horas";
         }
 
-        // 2. Gráfico: Tickets por Categoría (Con Filtros de Fecha)
         public async Task<List<ReporteDato>> ObtenerTicketsPorCategoria(Guid? asesorId = null, DateTime? desde = null, DateTime? hasta = null)
         {
-            var query = _context.Tickets.Include(t => t.Categoria).AsQueryable();
+            using var context = _dbFactory.CreateDbContext();
+            var query = context.Tickets.Include(t => t.Categoria).AsNoTracking().AsQueryable();
 
-            // Aplicamos filtros
             query = AplicarFiltro(query, asesorId, desde, hasta);
-
-            // Solo contamos tickets resueltos para el reporte final (Opcional: quitar filtro de estado si quieres ver todo lo creado)
             query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
 
             var datos = await query
@@ -83,31 +68,20 @@ namespace HelpDeskSystem.Web.Services
             return datos;
         }
 
-        // 4. NUEVO: Obtener el listado detallado de tickets para la tabla/excel
         public async Task<List<Ticket>> ObtenerDetalleTickets(Guid? asesorId = null, DateTime? desde = null, DateTime? hasta = null)
         {
-            var query = _context.Tickets
-                .Include(t => t.Usuario) // Cliente
-                .Include(t => t.Asesor)  // Asesor
-                .Include(t => t.Categoria) // Categoría
+            using var context = _dbFactory.CreateDbContext();
+            var query = context.Tickets
+                .Include(t => t.Usuario)
+                .Include(t => t.Asesor)
+                .Include(t => t.Categoria)
+                .AsNoTracking()
                 .AsQueryable();
 
-            // Reutilizamos tu lógica de filtros
             query = AplicarFiltro(query, asesorId, desde, hasta);
-
-            // Solo nos interesan los resueltos para el reporte de gestión
             query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
 
-            return await query
-                .OrderByDescending(t => t.FechaCierre)
-                .ToListAsync();
+            return await query.OrderByDescending(t => t.FechaCierre).ToListAsync();
         }
-    }
-
-    public class ReporteDato
-    {
-        public string Etiqueta { get; set; } = "";
-        public int Valor { get; set; }
-        public int Porcentaje { get; set; }
     }
 }

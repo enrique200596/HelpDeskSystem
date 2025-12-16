@@ -6,32 +6,32 @@ namespace HelpDeskSystem.Web.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly AppDbContext _context;
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-        public AuthService(AppDbContext context)
+        public AuthService(IDbContextFactory<AppDbContext> dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
         public async Task<(Usuario? Usuario, string MensajeError)> LoginAsync(string email, string password)
         {
-            // 1. Buscamos al usuario SOLO por correo (sin filtrar IsActive aún)
-            var usuario = await _context.Usuarios
+            using var context = _dbFactory.CreateDbContext();
+
+            // Usamos AsNoTracking porque solo estamos leyendo para verificar
+            var usuario = await context.Usuarios
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == email);
 
-            // CASO A: Usuario no existe en la BD
             if (usuario == null)
             {
                 return (null, "Usuario no existente.");
             }
 
-            // CASO B: Usuario existe, pero está deshabilitado
             if (!usuario.IsActive)
             {
                 return (null, "Su usuario está deshabilitado. Contacte al administrador.");
             }
 
-            // CASO C: Verificar contraseña
             bool passwordValida = false;
             try
             {
@@ -47,7 +47,6 @@ namespace HelpDeskSystem.Web.Services
                 return (null, "Contraseña errónea.");
             }
 
-            // ÉXITO: Retornamos el usuario y mensaje vacío
             return (usuario, "");
         }
     }
