@@ -12,9 +12,8 @@ namespace HelpDeskSystem.Data
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Mensaje> Mensajes { get; set; }
-
-        // 1. FALTABA ESTO: La tabla de Categorías
         public DbSet<Categoria> Categorias { get; set; }
+        public DbSet<Manual> Manuales { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -57,25 +56,22 @@ namespace HelpDeskSystem.Data
 
             // 4. RELACIÓN MUCHOS A MUCHOS (ASESORES <-> CATEGORÍAS)
             // Esto es lo que faltaba: Asignar las especialidades a cada asesor
-            modelBuilder.Entity<Usuario>()
-                .HasMany(u => u.Categorias)
-                .WithMany(c => c.Asesores)
-                .UsingEntity<Dictionary<string, object>>(
-                    "UsuarioCategoria", // Nombre de la tabla intermedia
-                    j => j.HasOne<Categoria>().WithMany().HasForeignKey("CategoriasId"),
-                    j => j.HasOne<Usuario>().WithMany().HasForeignKey("AsesoresId"),
-                    j =>
-                    {
-                        // AQUÍ ASIGNAMOS:
-                        j.HasData(
-                            // Juan atiende: Finanzas (1) y Genesis (2)
-                            new { AsesoresId = idJuan, CategoriasId = 1 },
-                            new { AsesoresId = idJuan, CategoriasId = 2 },
-
-                            // Ana atiende: Reportes (3)
-                            new { AsesoresId = idAna, CategoriasId = 3 }
-                        );
-                    });
+            modelBuilder.Entity<Usuario>().HasMany(u => u.Categorias).WithMany(c => c.Asesores).UsingEntity<Dictionary<string, object>>(
+                "UsuarioCategoria", // Nombre de la tabla intermedia
+                j => j.HasOne<Categoria>().WithMany().HasForeignKey("CategoriasId"),
+                j => j.HasOne<Usuario>().WithMany().HasForeignKey("AsesoresId"),
+                j =>
+                {
+                    // AQUÍ ASIGNAMOS:
+                    j.HasData(
+                        // Juan atiende: Finanzas (1) y Genesis (2)
+                        new { AsesoresId = idJuan, CategoriasId = 1 },
+                        new { AsesoresId = idJuan, CategoriasId = 2 },
+                        new { AsesoresId = idAna, CategoriasId = 3 }
+                    );
+                }
+            );
+            base.OnModelCreating(modelBuilder);
         }
     }
 }

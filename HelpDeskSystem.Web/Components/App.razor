@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="HelpDeskSystem.Web.styles.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="//cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link href="//cdn.quilljs.com/1.3.6/quill.bubble.css" rel="stylesheet">
 
     @* CLAVE: Prerender false evita que el F5 cierre sesión *@
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
@@ -52,6 +54,9 @@
             }
         };
     </script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="_content/Blazored.TextEditor/quill-blot-formatter.min.js"></script>
+    <script src="_content/Blazored.TextEditor/Blazored-BlazorQuill.js"></script>
 </body>
 
 </html>

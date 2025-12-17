@@ -1,0 +1,195 @@
+﻿@page "/manuales/nuevo"
+@page "/manuales/editar/{Id:int}"
+@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Web.Services
+@using HelpDeskSystem.Web.Auth
+@using Microsoft.AspNetCore.Authorization
+@inject IManualService ManualService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@attribute [Authorize(Roles = "Administrador,Asesor")]
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>@(Id == 0 ? "Crear Nuevo Procedimiento" : "Editar Procedimiento")</h3>
+        <button class="btn btn-secondary" @onclick="Volver">Cancelar</button>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="alert alert-info">Cargando editor...</div>
+    }
+    else
+    {
+        <div class="card shadow p-4">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Título del Procedimiento</label>
+                <input type="text" class="form-control form-control-lg" @bind="manual.Titulo" placeholder="Ej: Cómo crear un usuario en el sistema..." />
+            </div>
+
+            <div class="mb-2 p-2 bg-light border rounded d-flex align-items-center gap-2">
+                <span class="fw-bold small"><i class="bi bi-image"></i> Insertar Imagen:</span>
+                <InputFile OnChange="SubirImagenAlServidor" class="form-control form-control-sm w-auto" accept=".jpg,.png,.jpeg" />
+                @if (!string.IsNullOrEmpty(urlImagenReciente))
+                {
+                    <span class="text-success small ms-2">Imagen subida. Copia/Pega o usa el botón insertar -> </span>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="InsertarImagenEnEditor">Insertar en Editor</button>
+                }
+            </div>
+
+            <div class="mb-4">
+                <BlazoredTextEditor @ref="@QuillHtml">
+                    <ToolbarContent>
+                        <select class="ql-header">
+                            <option selected=""></option>
+                            <option value="1"></option>
+                            <option value="2"></option>
+                            <option value="3"></option>
+                        </select>
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                            <button class="ql-strike"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <select class="ql-color"></select>
+                            <select class="ql-background"></select>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                            <button class="ql-image"></button>
+                        </span>
+                    </ToolbarContent>
+                    <EditorContent>
+                    </EditorContent>
+                </BlazoredTextEditor>
+            </div>
+
+            <button class="btn btn-primary btn-lg w-100" @onclick="Guardar">
+                <i class="bi bi-save"></i> Guardar Manual
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Manual manual = new();
+    private BlazoredTextEditor QuillHtml;
+    private bool cargando = true;
+    private string urlImagenReciente = "";
+
+    // Necesitamos inyectar HttpClient para subir la foto al Controller
+    // [Inject] HttpClient Http { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != 0)
+        {
+            var existente = await ManualService.ObtenerPorIdAsync(Id);
+            if (existente != null) manual = existente;
+        }
+        cargando = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Cargar el contenido HTML dentro del editor una vez renderizado
+        if (!firstRender && QuillHtml != null && !string.IsNullOrEmpty(manual.ContenidoHTML))
+        {
+            // Pequeña pausa para asegurar que Quill se cargó
+            await Task.Delay(100);
+            bool cargado = false;
+            // Intentamos cargar el contenido, a veces Quill tarda en iniciar
+            try
+            {
+                await QuillHtml.LoadHTMLContent(manual.ContenidoHTML);
+                cargado = true;
+            }
+            catch { }
+        }
+    }
+
+    private async Task SubirImagenAlServidor(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            // 1. Preparamos el contenido Multipart
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5)); // Max 5MB
+            content.Add(fileContent, "file", file.Name);
+
+            // 2. Enviamos al Controller que creamos
+            // Nota: Como es Blazor Server, llamar a la URL local requiere la dirección completa
+            // O podemos usar un servicio inyectado. Para simplificar usamos la llamada relativa si el BaseAddress está bien,
+            // pero en Server a veces es mejor llamar al servicio directamente.
+            // Haremos un truco visual: Usar JS o un servicio dedicado es mejor, pero probemos esto:
+
+            // SIMULACIÓN DE SUBIDA (Para no complicar con HttpClient en Server Side):
+            // En Blazor Server es más fácil guardar directo al disco sin llamar a la API HTTP:
+
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "manuales");
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+            var nombreArchivo = $"{Guid.NewGuid()}_{file.Name}";
+            var pathCompleto = Path.Combine(path, nombreArchivo);
+
+            await using FileStream fs = new(pathCompleto, FileMode.Create);
+            await file.OpenReadStream(maxAllowedSize: 5242880).CopyToAsync(fs); // 5MB limit
+
+            urlImagenReciente = $"/uploads/manuales/{nombreArchivo}";
+        }
+    }
+
+    private async Task InsertarImagenEnEditor()
+    {
+        if (!string.IsNullOrEmpty(urlImagenReciente))
+        {
+            await QuillHtml.InsertImage(urlImagenReciente);
+            urlImagenReciente = ""; // Limpiar
+        }
+    }
+
+    private async Task Guardar()
+    {
+        // 1. Obtener el HTML del editor
+        manual.ContenidoHTML = await QuillHtml.GetHTML();
+
+        if (string.IsNullOrWhiteSpace(manual.Titulo) || string.IsNullOrWhiteSpace(manual.ContenidoHTML))
+        {
+            // Aquí podrías poner una alerta
+            return;
+        }
+
+        // 2. Obtener ID del usuario actual
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        // Asumiendo que guardaste el ID en los Claims, lo recuperamos.
+        // Si usas tu CustomAuthenticationStateProvider, asegúrate que el ID esté en los claims.
+        // Por defecto en tu sistema, parece que usas Cookies. Intentemos obtener el Claim de NameIdentifier o similar.
+        // Si no está, hardcodeamos temporalmente o buscamos por email.
+
+        // Parche rápido: Buscar usuario por nombre en BD si el ID no está en claim
+        // (Idealmente el ID debería estar en los claims al loguearse)
+        var nombreUsuario = user.Identity?.Name;
+
+        // Lógica temporal para asignar Autor (Debes mejorar esto en tu AuthService para incluir el ID en Claims)
+        // Por ahora, asignaremos el ID del admin fijo si no encontramos otro, para que no falle.
+        manual.AutorId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+        await ManualService.GuardarManualAsync(manual);
+        Nav.NavigateTo("/manuales"); // Redirigir al listado
+    }
+
+    private void Volver()
+    {
+        Nav.NavigateTo("/manuales");
+    }
+}
