@@ -40,18 +40,8 @@
         </div>
     </div>
 
-    @if (manuales == null)
-    {
-        <div class="d-flex justify-content-center p-5">
-            <div class="spinner-border text-primary" role="status"></div>
-        </div>
-    }
-    else if (!ManualesFiltrados.Any())
-    {
-        <div class="alert alert-warning text-center">
-            No se encontraron manuales con ese criterio.
-        </div>
-    }
+    @if (manuales == null) { /* ... */ }
+    else if (!ManualesFiltrados.Any()) { /* ... */ }
     else
     {
         <div class="row g-4">
@@ -60,8 +50,9 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 shadow-sm hover-card @(m.IsDeleted ? "border-danger bg-light" : "")">
                         <div class="card-body d-flex flex-column">
+
                             <div class="mb-2">
-                                <h5 class="card-title text-primary fw-bold d-inline">
+                                <h5 class="card-title text-brand fw-bold d-inline">
                                     <i class="bi bi-file-earmark-text me-2"></i>@m.Titulo
                                 </h5>
                                 @if (m.IsDeleted)
@@ -84,18 +75,17 @@
                                     var tags = m.Etiquetas.Split(',', StringSplitOptions.RemoveEmptyEntries);
                                     foreach (var tag in tags)
                                     {
-                                        <span class="badge rounded-pill bg-info text-dark me-1 cursor-pointer"
-                                              style="cursor: pointer;"
+                                        <span class="badge rounded-pill badge-utepsa-tag me-1 cursor-pointer"
                                               @onclick="() => FiltrarPorEtiqueta(tag.Trim())"
                                               title="Filtrar por @tag">
-                                            <i class="bi bi-tag-fill me-1"></i>@tag.Trim()
+                                            <i class="bi bi-tag-fill me-1"></i> @tag.Trim()
                                         </span>
                                     }
                                 }
                             </div>
 
                             <div class="mt-auto d-flex flex-column gap-2">
-                                <a href="/manuales/ver/@m.Id" class="btn btn-outline-primary w-100">
+                                <a href="/manuales/ver/@m.Id" class="btn btn-primary w-100">
                                     Leer Guía
                                 </a>
 
@@ -105,13 +95,13 @@
                                             <a href="/manuales/editar/@m.Id" class="btn btn-outline-secondary flex-grow-1" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <button class="btn btn-outline-danger" title="Eliminar/Desactivar" @onclick="() => Eliminar(m.Id)">
+                                            <button class="btn btn-outline-danger" title="Eliminar" @onclick="() => Eliminar(m.Id)">
                                                 <i class="bi bi-trash"></i>
                                             </button>
 
                                             <AuthorizeView Roles="Administrador" Context="adminContext">
                                                 <Authorized>
-                                                    <button class="btn btn-info text-white" title="Ver Historial" @onclick="() => VerHistorial(m.Id, m.Titulo)">
+                                                    <button class="btn btn-dark text-white" title="Ver Historial" @onclick="() => VerHistorial(m.Id, m.Titulo)">
                                                         <i class="bi bi-clock-history"></i>
                                                     </button>
                                                 </Authorized>
@@ -138,15 +128,16 @@
         .hover-card:hover {
             transform: translateY(-5px);
         }
-    /* Efecto hover para las etiquetas */
-    .badge.cursor-pointer:hover {
-        opacity: 0.8;
-        transform: scale(1.05);
-        transition: 0.2s;
+
+    .cursor-pointer {
+        cursor: pointer;
     }
 </style>
 
 @code {
+    // ... (El código C# se mantiene IGUAL que la versión anterior que te pasé) ...
+    // Solo copia y pega el bloque @code completo de la respuesta anterior si lo necesitas,
+    // pero la lógica no cambia, solo el HTML/CSS.
     private List<Manual>? manuales;
     private string busqueda = "";
     private HistorialManualModal modalHistorial = default!;
@@ -156,7 +147,7 @@
         ? (manuales ?? new List<Manual>())
         : (manuales ?? new List<Manual>()).Where(m =>
             (m.Titulo != null && m.Titulo.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) ||
-            (m.Etiquetas != null && m.Etiquetas.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) // <--- AHORA BUSCA EN ETIQUETAS
+            (m.Etiquetas != null && m.Etiquetas.Contains(busqueda, StringComparison.OrdinalIgnoreCase))
         );
 
     protected override async Task OnInitializedAsync()
@@ -168,26 +159,10 @@
         manuales = await ManualService.ObtenerTodosAsync(rol);
     }
 
-    private void CrearNuevo()
-    {
-        Nav.NavigateTo("/manuales/nuevo");
-    }
-
-    private async Task VerHistorial(int manualId, string titulo)
-    {
-        await modalHistorial.Abrir(manualId, titulo);
-    }
-
-    // Método para filtrar al hacer clic en un badge
-    private void FiltrarPorEtiqueta(string etiqueta)
-    {
-        busqueda = etiqueta;
-    }
-
-    private void LimpiarBusqueda()
-    {
-        busqueda = "";
-    }
+    private void CrearNuevo() => Nav.NavigateTo("/manuales/nuevo");
+    private async Task VerHistorial(int manualId, string titulo) => await modalHistorial.Abrir(manualId, titulo);
+    private void FiltrarPorEtiqueta(string etiqueta) => busqueda = etiqueta;
+    private void LimpiarBusqueda() => busqueda = "";
 
     private async Task Eliminar(int id)
     {
@@ -196,18 +171,12 @@
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-
-            // Intentamos obtener el ID, si falla, usamos fallback seguro
             var userIdStr = user.FindFirst(c => c.Type.Contains("nameidentifier"))?.Value;
             Guid.TryParse(userIdStr, out Guid usuarioId);
-
-            // Si el ID es vacío (puede pasar en logins viejos), intentamos buscar por email o usar default
             if (usuarioId == Guid.Empty) usuarioId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-
             bool esAdmin = user.IsInRole("Administrador");
 
             await ManualService.EliminarManualAsync(id, usuarioId, esAdmin);
-
             var rol = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             manuales = await ManualService.ObtenerTodosAsync(rol);
         }

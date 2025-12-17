@@ -335,3 +335,33 @@ html, body {
     .toast-danger i {
         color: white !important;
     }
+
+/* =========================================
+   8. MEJORAS VISUALES MANUALES (BRANDING)
+   ========================================= */
+
+/* Títulos corporativos (Reemplaza al azul por defecto) */
+.text-brand {
+    color: var(--utepsa-red) !important;
+}
+
+/* Etiquetas (Tags) estilo UTEPSA */
+.badge-utepsa-tag {
+    background-color: var(--utepsa-light); /* Fondo claro */
+    color: var(--utepsa-dark); /* Texto oscuro */
+    border: 1px solid #e0e0e0;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+    .badge-utepsa-tag:hover {
+        background-color: var(--utepsa-red); /* Rojo al pasar el mouse */
+        color: white;
+        border-color: var(--utepsa-red);
+    }
+
+/* Enlaces dentro de textos (para que no sean azules estándar) */
+.manual-content a {
+    color: var(--utepsa-red);
+    text-decoration: underline;
+}

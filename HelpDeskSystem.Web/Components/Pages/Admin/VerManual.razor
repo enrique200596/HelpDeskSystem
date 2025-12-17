@@ -5,7 +5,7 @@
 @inject NavigationManager Nav
 
 <div class="container mt-4">
-    <button class="btn btn-link text-decoration-none mb-3" @onclick="Volver">
+    <button class="btn btn-link text-decoration-none mb-3 text-secondary" @onclick="Volver">
         <i class="bi bi-arrow-left"></i> Volver al listado
     </button>
 
@@ -13,13 +13,12 @@
     {
         @if (noEncontrado)
         {
-            <div class="alert alert-danger">El manual solicitado no existe o fue eliminado.</div>
+            <div class="alert alert-danger">No existe.</div>
         }
         else
         {
-            <div class="text-center p-5">
-                <div class="spinner-border" role="status"></div>
-            </div>
+
+            <div class="text-center p-5"><div class="spinner-border text-danger"></div></div>
         }
     }
     else
@@ -28,9 +27,10 @@
             <div class="col-lg-10">
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-body p-4 bg-light rounded-top border-bottom">
-                        <h1 class="display-6 fw-bold text-dark mb-2">@manual.Titulo</h1>
+                        <h1 class="display-6 fw-bold mb-2" style="color: var(--utepsa-dark);">@manual.Titulo</h1>
+
                         <div class="d-flex text-muted small gap-3">
-                            <span><i class="bi bi-person-circle"></i> @(manual.Autor?.Nombre ?? "Sistema")</span>
+                            <span><i class="bi bi-person-circle text-brand"></i> @(manual.Autor?.Nombre ?? "Sistema")</span>
                             <span><i class="bi bi-calendar"></i> @manual.FechaCreacion.ToLongDateString()</span>
                             @if (manual.UltimaActualizacion.HasValue)
                             {
@@ -49,6 +49,7 @@
 </div>
 
 <style>
+    /* Estilos corregidos para usar variables CSS */
     .manual-content img {
         max-width: 100%;
         height: auto;
@@ -63,13 +64,21 @@
         color: #333;
     }
 
-    .manual-content h2, .manual-content h3 {
+    /* Aquí estaba el error del color azul. Lo cambiamos a Rojo UTEPSA */
+    .manual-content h2, .manual-content h3, .manual-content h4 {
         margin-top: 1.5rem;
-        color: #0d6efd;
+        color: var(--utepsa-red);
+        font-weight: 700;
+    }
+
+    .manual-content a {
+        color: var(--utepsa-red);
+        text-decoration: underline;
     }
 </style>
 
 @code {
+    // ... Código C# igual ...
     [Parameter] public int Id { get; set; }
     private Manual? manual;
     private bool noEncontrado = false;
@@ -80,8 +89,5 @@
         if (manual == null) noEncontrado = true;
     }
 
-    private void Volver()
-    {
-        Nav.NavigateTo("/manuales");
-    }
+    private void Volver() => Nav.NavigateTo("/manuales");
 }
