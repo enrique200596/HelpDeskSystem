@@ -13,15 +13,29 @@ namespace HelpDeskSystem.Domain.Entities
         [MaxLength(200)]
         public string Titulo { get; set; } = string.Empty;
 
-        // Aquí guardaremos el HTML generado por el editor de texto
         [Required(ErrorMessage = "El contenido es obligatorio")]
         public string ContenidoHTML { get; set; } = string.Empty;
 
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        // --- NUEVOS CAMPOS ---
 
+        // Guardaremos las etiquetas separadas por comas. Ej: "Redes,Wifi,Configuración"
+        [MaxLength(500)]
+        public string Etiquetas { get; set; } = string.Empty;
+
+        // Guardaremos los roles permitidos separados por comas. Ej: "Administrador,Asesor"
+        // Si está vacío, asumiremos que es público para todos.
+        [MaxLength(200)]
+        public string RolesVisibles { get; set; } = string.Empty;
+
+        // Control de eliminación lógica (Soft Delete)
+        public bool IsDeleted { get; set; } = false;
+        public bool IsActive { get; set; } = true; // Para borrador/publicado
+
+        // ---------------------
+
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
         public DateTime? UltimaActualizacion { get; set; }
 
-        // Relación con el usuario que creó/editó el manual
         public Guid AutorId { get; set; }
 
         [ForeignKey("AutorId")]

@@ -13,5 +13,6 @@ namespace HelpDeskSystem.Web.Services
         Task<List<Usuario>> ObtenerTodosLosUsuariosAsync();
         Task<bool> ActualizarUsuarioAsync(Usuario usuario);
         Task<bool> CambiarPasswordAsync(Guid userId, string nuevaPasswordPlana);
+        Task<Usuario?> ObtenerPorEmailAsync(string email);
     }
 }

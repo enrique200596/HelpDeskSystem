@@ -8,12 +8,12 @@ namespace HelpDeskSystem.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
         public AppDbContext() { }
-
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Mensaje> Mensajes { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
         public DbSet<Manual> Manuales { get; set; }
+        public DbSet<ManualLog> ManualLogs { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -26,11 +26,7 @@ namespace HelpDeskSystem.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configuración de Ticket
-            modelBuilder.Entity<Ticket>()
-                .HasOne(t => t.Usuario)
-                .WithMany()
-                .HasForeignKey(t => t.UsuarioId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Ticket>().HasOne(t => t.Usuario).WithMany().HasForeignKey(t => t.UsuarioId).OnDelete(DeleteBehavior.Restrict);
 
             // 2. SEMILLA DE CATEGORÍAS
             var catFinanzas = new Categoria { Id = 1, Nombre = "Sistema Financiero" };
@@ -57,7 +53,7 @@ namespace HelpDeskSystem.Data
             // 4. RELACIÓN MUCHOS A MUCHOS (ASESORES <-> CATEGORÍAS)
             // Esto es lo que faltaba: Asignar las especialidades a cada asesor
             modelBuilder.Entity<Usuario>().HasMany(u => u.Categorias).WithMany(c => c.Asesores).UsingEntity<Dictionary<string, object>>(
-                "UsuarioCategoria", // Nombre de la tabla intermedia
+                "UsuarioCategoria",
                 j => j.HasOne<Categoria>().WithMany().HasForeignKey("CategoriasId"),
                 j => j.HasOne<Usuario>().WithMany().HasForeignKey("AsesoresId"),
                 j =>
@@ -71,7 +67,13 @@ namespace HelpDeskSystem.Data
                     );
                 }
             );
-            base.OnModelCreating(modelBuilder);
+            // ESTO ES NECESARIO TÉCNICAMENTE PARA EVITAR EL ERROR DE CICLOS EN SQL
+            modelBuilder.Entity<ManualLog>()
+                .HasOne(log => log.Usuario)
+                .WithMany()
+                .HasForeignKey(log => log.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict); // Protege la auditoría
+
         }
     }
 }

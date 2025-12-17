@@ -110,5 +110,12 @@ namespace HelpDeskSystem.Web.Services
             await context.SaveChangesAsync();
             return true;
         }
+        public async Task<Usuario?> ObtenerPorEmailAsync(string email)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            return await context.Usuarios
+                .Include(u => u.Categorias)
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
     }
 }

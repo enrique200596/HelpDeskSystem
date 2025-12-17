@@ -5,6 +5,7 @@
 @inject IManualService ManualService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -26,8 +27,15 @@
         <div class="col-md-6">
             <div class="input-group">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control border-start-0" placeholder="Buscar procedimiento..."
+                <input type="text" class="form-control border-start-0"
+                       placeholder="Buscar por título o etiqueta..."
                        @bind="busqueda" @bind:event="oninput" />
+                @if (!string.IsNullOrEmpty(busqueda))
+                {
+                    <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -35,9 +43,7 @@
     @if (manuales == null)
     {
         <div class="d-flex justify-content-center p-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     }
     else if (!ManualesFiltrados.Any())
@@ -52,62 +58,114 @@
             @foreach (var m in ManualesFiltrados)
             {
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 shadow-sm hover-card">
+                    <div class="card h-100 shadow-sm hover-card @(m.IsDeleted ? "border-danger bg-light" : "")">
                         <div class="card-body d-flex flex-column">
-                            <h5 class="card-title text-primary fw-bold mb-3">
-                                <i class="bi bi-file-earmark-text me-2"></i>@m.Titulo
-                            </h5>
+                            <div class="mb-2">
+                                <h5 class="card-title text-primary fw-bold d-inline">
+                                    <i class="bi bi-file-earmark-text me-2"></i>@m.Titulo
+                                </h5>
+                                @if (m.IsDeleted)
+                                {
+                                    <span class="badge bg-danger ms-1">Eliminado</span>
+                                }
+                                @if (!m.IsActive)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1">Borrador</span>
+                                }
+                            </div>
 
-                            <p class="card-text text-muted small flex-grow-1">
-                                Publicado por: <strong>@(m.Autor?.Nombre ?? "Admin")</strong><br />
-                                Fecha: @m.FechaCreacion.ToShortDateString()
+                            <p class="card-text text-muted small mb-2">
+                                Por: <strong>@(m.Autor?.Nombre ?? "Admin")</strong> | @m.FechaCreacion.ToShortDateString()
                             </p>
 
-                            <div class="mt-3 d-flex gap-2">
+                            <div class="mb-3">
+                                @if (!string.IsNullOrEmpty(m.Etiquetas))
+                                {
+                                    var tags = m.Etiquetas.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                    foreach (var tag in tags)
+                                    {
+                                        <span class="badge rounded-pill bg-info text-dark me-1 cursor-pointer"
+                                              style="cursor: pointer;"
+                                              @onclick="() => FiltrarPorEtiqueta(tag.Trim())"
+                                              title="Filtrar por @tag">
+                                            <i class="bi bi-tag-fill me-1"></i>@tag.Trim()
+                                        </span>
+                                    }
+                                }
+                            </div>
+
+                            <div class="mt-auto d-flex flex-column gap-2">
                                 <a href="/manuales/ver/@m.Id" class="btn btn-outline-primary w-100">
                                     Leer Guía
                                 </a>
 
                                 <AuthorizeView Roles="Administrador,Asesor">
                                     <Authorized>
-                                        <a href="/manuales/editar/@m.Id" class="btn btn-outline-secondary" title="Editar">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <button class="btn btn-outline-danger" title="Eliminar" @onclick="() => Eliminar(m.Id)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <a href="/manuales/editar/@m.Id" class="btn btn-outline-secondary flex-grow-1" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" title="Eliminar/Desactivar" @onclick="() => Eliminar(m.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+
+                                            <AuthorizeView Roles="Administrador" Context="adminContext">
+                                                <Authorized>
+                                                    <button class="btn btn-info text-white" title="Ver Historial" @onclick="() => VerHistorial(m.Id, m.Titulo)">
+                                                        <i class="bi bi-clock-history"></i>
+                                                    </button>
+                                                </Authorized>
+                                            </AuthorizeView>
+                                        </div>
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                        </div>
-                        <div class="card-footer bg-light text-muted small">
-                            Actualizado: @(m.UltimaActualizacion?.ToShortDateString() ?? m.FechaCreacion.ToShortDateString())
                         </div>
                     </div>
                 </div>
             }
         </div>
     }
+
+    <HistorialManualModal @ref="modalHistorial" />
 </div>
 
 <style>
-    .hover-card { transition: transform 0.2s; }
-    .hover-card:hover { transform: translateY(-5px); }
+    .hover-card {
+        transition: transform 0.2s;
+    }
+
+        .hover-card:hover {
+            transform: translateY(-5px);
+        }
+    /* Efecto hover para las etiquetas */
+    .badge.cursor-pointer:hover {
+        opacity: 0.8;
+        transform: scale(1.05);
+        transition: 0.2s;
+    }
 </style>
 
 @code {
     private List<Manual>? manuales;
     private string busqueda = "";
+    private HistorialManualModal modalHistorial = default!;
 
-    // Propiedad calculada para el filtro
     private IEnumerable<Manual> ManualesFiltrados =>
         string.IsNullOrWhiteSpace(busqueda)
-        ? manuales ?? new List<Manual>()
-        : manuales.Where(m => m.Titulo.Contains(busqueda, StringComparison.OrdinalIgnoreCase));
+        ? (manuales ?? new List<Manual>())
+        : (manuales ?? new List<Manual>()).Where(m =>
+            (m.Titulo != null && m.Titulo.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) ||
+            (m.Etiquetas != null && m.Etiquetas.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) // <--- AHORA BUSCA EN ETIQUETAS
+        );
 
     protected override async Task OnInitializedAsync()
     {
-        manuales = await ManualService.ObtenerTodosAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var rol = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+        manuales = await ManualService.ObtenerTodosAsync(rol);
     }
 
     private void CrearNuevo()
@@ -115,15 +173,43 @@
         Nav.NavigateTo("/manuales/nuevo");
     }
 
+    private async Task VerHistorial(int manualId, string titulo)
+    {
+        await modalHistorial.Abrir(manualId, titulo);
+    }
+
+    // Método para filtrar al hacer clic en un badge
+    private void FiltrarPorEtiqueta(string etiqueta)
+    {
+        busqueda = etiqueta;
+    }
+
+    private void LimpiarBusqueda()
+    {
+        busqueda = "";
+    }
+
     private async Task Eliminar(int id)
     {
         bool confirmado = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar este manual?");
         if (confirmado)
         {
-            await ManualService.EliminarManualAsync(id);
-            manuales = await ManualService.ObtenerTodosAsync(); // Recargar lista
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Intentamos obtener el ID, si falla, usamos fallback seguro
+            var userIdStr = user.FindFirst(c => c.Type.Contains("nameidentifier"))?.Value;
+            Guid.TryParse(userIdStr, out Guid usuarioId);
+
+            // Si el ID es vacío (puede pasar en logins viejos), intentamos buscar por email o usar default
+            if (usuarioId == Guid.Empty) usuarioId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+            bool esAdmin = user.IsInRole("Administrador");
+
+            await ManualService.EliminarManualAsync(id, usuarioId, esAdmin);
+
+            var rol = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            manuales = await ManualService.ObtenerTodosAsync(rol);
         }
     }
-
-    [Inject] IJSRuntime JS { get; set; }
 }

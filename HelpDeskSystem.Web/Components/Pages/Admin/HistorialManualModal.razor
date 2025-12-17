@@ -1,0 +1,123 @@
+﻿@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Web.Services
+@inject IManualService ManualService
+
+@if (Mostrar)
+{
+    <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clock-history me-2"></i>Historial de Cambios
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="text-primary fw-bold mb-3">Manual: @TituloManual</h6>
+
+                    @if (cargando)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2 text-muted">Cargando bitácora...</p>
+                        </div>
+                    }
+                    else if (logs == null || !logs.Any())
+                    {
+                        <div class="alert alert-secondary text-center">
+                            No hay registros de historial para este manual.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover small">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Fecha/Hora</th>
+                                        <th>Usuario</th>
+                                        <th>Acción</th>
+                                        <th>Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in logs)
+                                    {
+                                        <tr>
+                                            <td>@log.FechaEvento.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    @if (!string.IsNullOrEmpty(log.Usuario?.FotoPerfilUrl))
+                                                    {
+                                                        <img src="@log.Usuario.FotoPerfilUrl" class="rounded-circle" width="24" height="24" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-person-circle text-muted"></i>
+                                                    }
+                                                    <span>@(log.Usuario?.Nombre ?? "Desconocido")</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @switch (log.Accion)
+                                                {
+                                                    case "Creación":
+                                                        <span class="badge bg-success">Creación</span>
+                                                        break;
+                                                    case "Edición":
+
+                                                        <span class="badge bg-primary">Edición</span>
+                                                        break;
+                                                    case "Eliminación Lógica":
+
+                                                        <span class="badge bg-warning text-dark">Desactivado</span>
+                                                        break;
+                                                    default:
+
+                                                        <span class="badge bg-secondary">@log.Accion</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td>@log.Detalle</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Cerrar">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool Mostrar = false;
+    private List<ManualLog> logs = new();
+    private bool cargando = false;
+    private string TituloManual = "";
+
+    public async Task Abrir(int manualId, string titulo)
+    {
+        Mostrar = true;
+        TituloManual = titulo;
+        cargando = true;
+        StateHasChanged(); // Forzar renderizado para mostrar spinner
+
+        // Cargar datos
+        logs = await ManualService.ObtenerHistorialAsync(manualId);
+
+        cargando = false;
+        StateHasChanged();
+    }
+
+    private void Cerrar()
+    {
+        Mostrar = false;
+        logs.Clear();
+    }
+}
