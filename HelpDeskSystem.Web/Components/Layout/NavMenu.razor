@@ -6,8 +6,9 @@
 
 <div class="top-row ps-3 navbar navbar-dark border-bottom border-secondary bg-utepsa-dark">
     <div class="container-fluid">
+        @* ALINEACIÓN: d-flex align-items-center para centrar logo y texto *@
         <a class="navbar-brand d-flex align-items-center gap-2" href="">
-            <i class="bi bi-shield-check fs-4 text-utepsa-red"></i>
+            <i class="bi bi-shield-check fs-4 text-utepsa-red d-flex align-items-center"></i>
             <span class="fw-bold tracking-tight">HelpDesk UTEPSA</span>
         </a>
     </div>
@@ -19,90 +20,83 @@
     <nav class="flex-column pt-3">
         <AuthorizeView>
             <Authorized>
-                @* --- SECCIÓN GENERAL --- *@
                 <div class="nav-header px-3 mb-2 text-uppercase small text-muted fw-bold">Principal</div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <i class="bi bi-kanban-fill me-3"></i> Tablero
+                        <i class="bi bi-kanban-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Tablero
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="dashboard">
-                        <i class="bi bi-bar-chart-line-fill me-3"></i> Estadísticas
+                        <i class="bi bi-bar-chart-line-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Estadísticas
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
+                    @* CORRECCIÓN: Clase del ícono arreglada *@
                     <NavLink class="nav-link" href="manuales">
-                        <span class="bi bi-journal-richtext-nav-menu" aria-hidden="true"></span> Base de Conocimiento
+                        <i class="bi bi-journal-richtext me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Base de Conocimiento
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
+                    @* CORRECCIÓN: Clase del ícono arreglada *@
                     <NavLink class="nav-link" href="ayuda">
-                        <span class="bi bi-question-circle-fill-nav-menu" aria-hidden="true"></span> Ayuda
+                        <i class="bi bi-question-circle-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Ayuda
                     </NavLink>
                 </div>
 
-                @* --- SECCIÓN USUARIO --- *@
                 @if (EsRol("Usuario"))
                 {
                     <div class="nav-item px-3 mt-2">
                         <NavLink class="nav-link btn-crear-ticket" href="nuevo-ticket">
-                            <i class="bi bi-plus-circle-fill me-3"></i> Nuevo Ticket
+                            <i class="bi bi-plus-circle-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Nuevo Ticket
                         </NavLink>
                     </div>
                 }
 
-                @* --- SECCIÓN ADMINISTRADOR --- *@
                 @if (EsRol("Administrador"))
                 {
                     <div class="nav-header px-3 mt-3 mb-2 text-uppercase small text-muted fw-bold">Administración</div>
 
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="reportes">
-                            <i class="bi bi-file-earmark-bar-graph-fill me-3"></i> Reportes
+                            <i class="bi bi-file-earmark-bar-graph-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Reportes
                         </NavLink>
                     </div>
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="admin/usuarios">
-                            <i class="bi bi-people-fill me-3"></i> Usuarios
+                            <i class="bi bi-people-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Usuarios
                         </NavLink>
                     </div>
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="admin/categorias">
-                            <i class="bi bi-tags-fill me-3"></i> Categorías
+                            <i class="bi bi-tags-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Categorías
                         </NavLink>
                     </div>
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="admin/asignar-especialidades">
-                            <i class="bi bi-person-gear me-3"></i> Especialidades
+                            <i class="bi bi-person-gear me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Especialidades
                         </NavLink>
                     </div>
-
                 }
 
                 <div class="nav-item px-3 mt-auto mb-3">
                     <hr class="text-secondary opacity-50" />
-
-                    @* USAMOS UN FORMULARIO PARA EL LOGOUT SEGURO *@
                     <form action="/account/logout" method="post">
-                        @* Este token es obligatorio en .NET 8 para evitar ataques CSRF *@
                         <AntiforgeryToken />
-
                         <button type="submit" class="nav-link w-100 text-start text-danger bg-transparent border-0">
-                            <i class="bi bi-box-arrow-right me-3"></i> Cerrar Sesión
+                            <i class="bi bi-box-arrow-right me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Cerrar Sesión
                         </button>
                     </form>
                 </div>
             </Authorized>
-
             <NotAuthorized>
                 <div class="nav-item px-3 mt-3">
                     <NavLink class="nav-link active-login" href="login">
-                        <i class="bi bi-box-arrow-in-right me-3"></i> Iniciar Sesión
+                        <i class="bi bi-box-arrow-in-right me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Iniciar Sesión
                     </NavLink>
                 </div>
             </NotAuthorized>
@@ -113,19 +107,9 @@
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
     private ClaimsPrincipal? user;
-
     protected override async Task OnInitializedAsync()
     {
-        if (AuthState != null)
-        {
-            var state = await AuthState;
-            user = state.User;
-        }
+        if (AuthState != null) { var state = await AuthState; user = state.User; }
     }
-
-    // Método auxiliar para limpiar la vista de lógica compleja
-    private bool EsRol(string rolRequerido)
-    {
-        return user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
-    }
+    private bool EsRol(string rolRequerido) => user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
 }

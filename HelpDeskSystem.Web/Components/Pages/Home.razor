@@ -1,6 +1,7 @@
 ﻿@page "/"
 @attribute [Authorize]
 @using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Domain.Enums
 @using HelpDeskSystem.Web.Services
 @using HelpDeskSystem.Data
 @using Microsoft.EntityFrameworkCore
@@ -11,106 +12,217 @@
 @inject TicketStateContainer StateContainer
 @implements IDisposable
 
-<PageTitle>Tablero | HelpDesk</PageTitle>
+<PageTitle>Tablero Principal | HelpDesk</PageTitle>
 
-<div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center my-4">
-        <div>
-            <h2 class="fw-bold text-dark mb-0">Tablero de Tickets</h2>
-            <p class="text-muted">Gestión y seguimiento de solicitudes.</p>
+<div class="container-fluid px-4 pb-5">
+
+    @* --- ENCABEZADO --- *@
+    <div class="row align-items-center my-4">
+        <div class="col-md-6">
+            <h2 class="fw-bold text-dark mb-0">
+                Hola, @nombreUsuario
+                @if (tickets != null)
+                {
+                    <span class="badge bg-light text-secondary fs-6 align-middle ms-2 border">Total: @tickets.Count</span>
+                }
+            </h2>
+            <p class="text-muted mb-0">Estado actual de tus solicitudes.</p>
         </div>
-        @if (rolActual == "Usuario")
+        @if (esRolUsuario)
         {
-            <a href="nuevo-ticket" class="btn btn-primary shadow-sm" title="Crear una nueva solicitud de soporte">
-                <i class="bi bi-plus-lg me-2"></i>Nuevo Ticket
-            </a>
+            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                <a href="nuevo-ticket" class="btn btn-primary shadow-sm rounded-pill px-4">
+                    <i class="bi bi-plus-lg me-2"></i>Nuevo Ticket
+                </a>
+            </div>
         }
     </div>
 
     @if (tickets == null)
     {
         <div class="d-flex justify-content-center mt-5">
-            <div class="spinner-border text-utepsa-red" role="status"></div>
-        </div>
-    }
-    else if (tickets.Count == 0)
-    {
-        <div class="text-center py-5">
-            <div class="mb-3 text-muted opacity-25">
-                <i class="bi bi-clipboard-check" style="font-size: 5rem;"></i>
-            </div>
-            <h4>Todo está limpio por aquí</h4>
-            <p class="text-muted">No tienes tickets pendientes en este momento.</p>
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     }
     else
     {
-        <div class="row g-4">
-            @foreach (var ticket in tickets)
-            {
-                <div class="col-12 col-md-6 col-lg-4 col-xl-3">
-                    <div class="card h-100 card-hover position-relative overflow-hidden">
-                        <div class="position-absolute top-0 start-0 bottom-0"
-                             style="width: 5px; background-color: @(ticket.EsUrgente ? "#dc3545" : "#28a745");"></div>
+        @* --- TARJETAS DE INDICADORES (KPIs) CORREGIDAS --- *@
+        <div class="row g-3 mb-4">
 
-                        <div class="card-body ps-4">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="badge rounded-pill bg-light text-dark border">#@ticket.Id</span>
-                                <small class="text-muted">@ticket.FechaCreacion.ToString("dd MMM")</small>
-                            </div>
+            @* 1. ABIERTOS (Antes Pendientes): Coherencia con el estado del ticket *@
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm bg-secondary bg-opacity-10 h-100 border-start border-4 border-secondary">
+                    @* Agregamos h-100 a card-body también *@
+                    <div class="card-body d-flex align-items-center justify-content-between h-100">
+                        <div>
+                            <h6 class="text-uppercase text-secondary small fw-bold mb-1">Abiertos</h6>
+                            <h2 class="fw-bold mb-0 text-dark">@tickets.Count(t => t.Estado == EstadoTicket.Abierto)</h2>
+                            <small class="text-muted" style="font-size: 0.7rem;">Esperando atención</small>
+                        </div>
+                        @* Ícono centrado verticalmente *@
+                        <i class="bi bi-inbox fs-1 text-secondary opacity-50 d-flex align-items-center"></i>
+                    </div>
+                </div>
+            </div>
 
-                            <h5 class="card-title fw-bold text-truncate mb-1" title="@ticket.Titulo">
-                                <a href="/ticket/@ticket.Id" class="text-dark text-decoration-none stretched-link">
-                                    @ticket.Titulo
-                                </a>
-                            </h5>
+            @* 2. EN PROCESO (Nuevo): Muestra los tickets Asignados *@
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100 border-start border-4 border-primary">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-primary small fw-bold mb-1">En Proceso</h6>
+                            <h2 class="fw-bold mb-0 text-dark">@tickets.Count(t => t.Estado == EstadoTicket.Asignado)</h2>
+                            <small class="text-muted" style="font-size: 0.7rem;">Siendo atendidos</small>
+                        </div>
+                        <i class="bi bi-gear-wide-connected fs-1 text-primary opacity-50"></i>
+                    </div>
+                </div>
+            </div>
 
-                            <p class="card-text text-muted small text-truncate mb-3">
-                                @ticket.Descripcion
-                            </p>
+            @* 3. RESUELTOS *@
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100 border-start border-4 border-success">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-success small fw-bold mb-1">Resueltos</h6>
+                            <h2 class="fw-bold mb-0 text-dark">@tickets.Count(t => t.Estado == EstadoTicket.Resuelto)</h2>
+                            <small class="text-muted" style="font-size: 0.7rem;">Finalizados</small>
+                        </div>
+                        <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
+                    </div>
+                </div>
+            </div>
 
-                            <div class="d-flex align-items-center justify-content-between mt-auto pt-3 border-top border-light">
-                                @{
-                                    var (claseEstado, textoEstado) = ticket.Estado switch
-                                    {
-                                        var e when e == HelpDeskSystem.Domain.Enums.EstadoTicket.Abierto => ("bg-secondary", "Abierto"),
-                                        var e when e == HelpDeskSystem.Domain.Enums.EstadoTicket.Asignado => ("bg-primary", "Asignado"),
-                                        var e when e == HelpDeskSystem.Domain.Enums.EstadoTicket.Resuelto => ("bg-success", "Resuelto"),
-                                        _ => ("bg-dark", "Otro")
-                                    };
-                                }
-                                <span class="badge @claseEstado bg-opacity-75">@textoEstado</span>
+            @* 4. URGENTES (Activos) *@
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm bg-danger bg-opacity-10 h-100 border-start border-4 border-danger">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-danger small fw-bold mb-1">Urgentes</h6>
+                            <h2 class="fw-bold mb-0 text-dark">@tickets.Count(t => t.EsUrgente && t.Estado != EstadoTicket.Resuelto)</h2>
+                            <small class="text-muted" style="font-size: 0.7rem;">Requieren acción ya</small>
+                        </div>
+                        <i class="bi bi-fire fs-1 text-danger opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                                <div class="small text-end">
+        @* --- BARRA DE FILTROS --- *@
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-2">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0"
+                                   placeholder="Buscar por título o #ID..."
+                                   @bind="filtroTexto" @bind:event="oninput" />
+                        </div>
+                    </div>
+                    <div class="col-md-8 text-md-end">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm @(filtroEstado == "Todos" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => filtroEstado = "Todos"'>Todos</button>
+                            <button type="button" class="btn btn-sm @(filtroEstado == "Abierto" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => filtroEstado = "Abierto"'>Abiertos</button>
+                            @* El valor del enum es 'Asignado', pero visualmente lo llamamos 'En Proceso' *@
+                            <button type="button" class="btn btn-sm @(filtroEstado == "Asignado" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => filtroEstado = "Asignado"'>En Proceso</button>
+                            <button type="button" class="btn btn-sm @(filtroEstado == "Resuelto" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => filtroEstado = "Resuelto"'>Resueltos</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* --- LISTADO DE TICKETS --- *@
+        if (!TicketsFiltrados.Any())
+        {
+            <div class="text-center py-5 opacity-50">
+                <div class="mb-3">
+                    <i class="bi bi-clipboard-x" style="font-size: 4rem;"></i>
+                </div>
+                <h4>No se encontraron tickets</h4>
+                <p>Prueba ajustando los filtros de búsqueda.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var ticket in TicketsFiltrados)
+                {
+                    <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+                        <div class="card h-100 card-hover border-0 shadow-sm position-relative overflow-hidden">
+
+                            @* Borde de color según estado *@
+                            <div class="position-absolute top-0 start-0 bottom-0"
+                                 style="width: 4px; background-color: @ObtenerColorBorde(ticket);"></div>
+
+                            <div class="card-body ps-4 d-flex flex-column">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge bg-light text-secondary border">#@ticket.Id</span>
+                                    <small class="text-muted" style="font-size: 0.75rem;">@ticket.FechaCreacion.ToString("dd MMM HH:mm")</small>
+                                </div>
+
+                                <h6 class="card-title fw-bold mb-2 text-truncate-2" style="min-height: 2.5em;" title="@ticket.Titulo">
+                                    <a href="/ticket/@ticket.Id" class="text-dark text-decoration-none stretched-link">
+                                        @if (ticket.EsUrgente && ticket.Estado != EstadoTicket.Resuelto)
+                                        {
+                                            <i class="bi bi-exclamation-circle-fill text-danger me-1" title="Urgente"></i>
+                                        }
+                                        @ticket.Titulo
+                                    </a>
+                                </h6>
+
+                                <div class="mb-3">
+                                    <span class="badge bg-light text-dark border rounded-pill small">
+                                        <i class="bi bi-tag-fill text-secondary me-1"></i>@(ticket.Categoria?.Nombre ?? "General")
+                                    </span>
+                                </div>
+
+                                <div class="mt-auto d-flex align-items-center justify-content-between pt-3 border-top border-light">
+                                    @* Badge de Estado con nombre coherente *@
+                                    <span class="badge @ObtenerClaseBadge(ticket.Estado)">
+                                        @(ticket.Estado == EstadoTicket.Asignado ? "En Proceso" : ticket.Estado.ToString())
+                                    </span>
+
                                     @if (ticket.Asesor != null)
                                     {
-                                        <span class="text-success fw-bold" title="Asesor Asignado">
-                                            <i class="bi bi-headset me-1"></i>@ticket.Asesor.Nombre
-                                        </span>
+                                        <div class="d-flex align-items-center" title="Asesor: @ticket.Asesor.Nombre">
+                                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle small d-flex align-items-center justify-content-center fw-bold"
+                                                 style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                                @ticket.Asesor.Nombre.Substring(0, 1)
+                                            </div>
+                                        </div>
                                     }
                                     else
                                     {
-                                        <span class="text-muted fst-italic">Sin asignar</span>
+                                        <span class="text-muted small fst-italic" style="font-size: 0.75rem;">--</span>
                                     }
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
     }
 </div>
 
 <style>
-    .ticket-card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    .card-hover {
+        transition: transform 0.2s, box-shadow 0.2s;
     }
 
-        .ticket-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important;
         }
+
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 </style>
 
 @code {
@@ -120,17 +232,18 @@
     private string nombreUsuario = "";
     private bool esRolUsuario = false;
 
+    private string filtroTexto = "";
+    private string filtroEstado = "Todos";
+
     protected override async Task OnInitializedAsync()
     {
-        // 3. SUSCRIBIRSE AL EVENTO GLOBAL
-        StateContainer.OnChange += RecargarTicketsEnVivo; // <--- NUEVO
+        StateContainer.OnChange += RecargarTicketsEnVivo;
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
-            nombreUsuario = user.Identity.Name ?? "Desconocido";
+            nombreUsuario = user.Identity.Name ?? "Usuario";
             var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
 
             if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId))
@@ -141,19 +254,15 @@
             rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Sin Rol";
             esRolUsuario = user.IsInRole("Usuario");
 
-            // Carga inicial
             await CargarLista();
         }
     }
 
-    // 4. MÉTODO PARA RECARGAR LA LISTA
     private async Task CargarLista()
     {
-        // Gracias a tu DbFactory en el servicio, esto traerá datos frescos siempre
         tickets = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
     }
 
-    // 5. EVENT HANDLER (El que reacciona a las notificaciones)
     private async void RecargarTicketsEnVivo(int? id, string? t, string? r, Guid? o, Guid? a)
     {
         await InvokeAsync(async () =>
@@ -163,9 +272,55 @@
         });
     }
 
-    // 6. LIMPIEZA
+    private IEnumerable<Ticket> TicketsFiltrados
+    {
+        get
+        {
+            if (tickets == null) return Enumerable.Empty<Ticket>();
+
+            var resultado = tickets.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(filtroTexto))
+            {
+                resultado = resultado.Where(t =>
+                    t.Titulo.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ||
+                    t.Id.ToString().Contains(filtroTexto)
+                );
+            }
+
+            if (filtroEstado != "Todos")
+            {
+                if (Enum.TryParse<EstadoTicket>(filtroEstado, out var estadoEnum))
+                {
+                    resultado = resultado.Where(t => t.Estado == estadoEnum);
+                }
+            }
+
+            // Ordenar: Urgentes activos primero, luego los más recientes
+            return resultado
+                .OrderByDescending(t => t.EsUrgente && t.Estado != EstadoTicket.Resuelto)
+                .ThenByDescending(t => t.FechaCreacion);
+        }
+    }
+
     public void Dispose()
     {
         StateContainer.OnChange -= RecargarTicketsEnVivo;
     }
+
+    private string ObtenerColorBorde(Ticket t)
+    {
+        if (t.Estado == EstadoTicket.Resuelto) return "#198754"; // Verde
+        if (t.EsUrgente) return "#dc3545"; // Rojo
+        if (t.Estado == EstadoTicket.Asignado) return "#0d6efd"; // Azul (En Proceso)
+        return "#6c757d"; // Gris (Abierto)
+    }
+
+    private string ObtenerClaseBadge(EstadoTicket estado) => estado switch
+    {
+        EstadoTicket.Abierto => "bg-secondary bg-opacity-10 text-secondary border border-secondary",
+        EstadoTicket.Asignado => "bg-primary bg-opacity-10 text-primary border border-primary",
+        EstadoTicket.Resuelto => "bg-success bg-opacity-10 text-success border border-success",
+        _ => "bg-light text-dark"
+    };
 }

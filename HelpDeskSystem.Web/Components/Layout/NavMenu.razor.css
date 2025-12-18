@@ -40,19 +40,22 @@
     .nav-item ::deep .nav-link {
         color: #d7d7d7;
         background: none;
-        border: none;
+        border-left: 4px solid transparent; /* Reserva espacio para el borde activo */
         border-radius: 4px;
         height: 3rem;
         display: flex;
-        align-items: center;
-        line-height: 3rem;
+        align-items: center; /* Centrado vertical vital */
         width: 100%;
+        /* --- NUEVAS REGLAS PARA EVITAR SALTO DE LÍNEA --- */
+        white-space: nowrap; /* Prohíbe el salto de línea */
+        overflow: hidden; /* Oculta lo que se salga */
+        text-overflow: ellipsis; /* Pone "..." si el texto es muy largo */
     }
 
     .nav-item ::deep a.active {
-        background-color: rgba(200, 16, 46, 0.8); /* Rojo semitransparente */
+        background-color: rgba(200, 16, 46, 0.8);
         color: white;
-        border-left: 4px solid white; /* Indicador visual */
+        border-left: 4px solid white;
     }
 
     .nav-item ::deep .nav-link:hover {

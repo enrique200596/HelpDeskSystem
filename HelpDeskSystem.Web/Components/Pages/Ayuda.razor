@@ -1,194 +1,248 @@
 ﻿@page "/ayuda"
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Centro de Ayuda | HelpDesk</PageTitle>
 
 <div class="container py-4">
+    @* --- ENCABEZADO Y BUSCADOR --- *@
     <div class="text-center mb-5">
         <h1 class="fw-bold text-dark"><i class="bi bi-life-preserver text-danger me-2"></i>Centro de Ayuda</h1>
-        <p class="text-muted lead">Guías operativas según tu rol en el sistema.</p>
+        <p class="text-muted lead">¿En qué podemos ayudarte hoy?</p>
+
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-6">
+                <div class="input-group input-group-lg shadow-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-primary"></i></span>
+                    <input type="text" class="form-control border-start-0"
+                           placeholder="Buscar temas (ej. ticket, contraseña, manual)..."
+                           @bind="terminoBusqueda" @bind:event="oninput" />
+                    @if (!string.IsNullOrEmpty(terminoBusqueda))
+                    {
+                        <button class="btn btn-outline-secondary border-start-0" type="button" @onclick="() => terminoBusqueda = string.Empty">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row justify-content-center">
         <div class="col-lg-10">
 
-            @* --- ROL: ADMINISTRADOR --- *@
-            <AuthorizeView Roles="Administrador">
-                <div class="card shadow-sm mb-4 border-0">
-                    <div class="card-header bg-dark text-white py-3">
-                        <h5 class="mb-0"><i class="bi bi-shield-lock-fill me-2"></i>Funciones de Administrador</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="accordion" id="accordionAdmin">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#adm1">
-                                        <i class="bi bi-people-fill me-2"></i> 1. Gestión de Usuarios
-                                    </button>
-                                </h2>
-                                <div id="adm1" class="accordion-collapse collapse show" data-bs-parent="#accordionAdmin">
-                                    <div class="accordion-body">
-                                        Ve a <strong>Gestión de Usuarios</strong> para:
-                                        <ul>
-                                            <li><strong>Crear:</strong> Registrar nuevos Asesores o Usuarios con correo y contraseña.</li>
-                                            <li><strong>Editar:</strong> Modificar datos básicos o roles.</li>
-                                            <li><strong>Dar de Baja:</strong> Desactivar el acceso (checkbox "Activo") sin borrar el historial.</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#adm2">
-                                        <i class="bi bi-award-fill me-2"></i> 2. Asignar Especialidades
-                                    </button>
-                                </h2>
-                                <div id="adm2" class="accordion-collapse collapse" data-bs-parent="#accordionAdmin">
-                                    <div class="accordion-body">
-                                        Para que un Asesor reciba tickets, debes asignarle categorías (ej. "Sistemas", "Hardware").
-                                        <br />
-                                        Ve a <strong>Asignar Especialidades</strong> > Selecciona el Asesor > Marca sus áreas > Guardar.
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#adm3">
-                                        <i class="bi bi-bar-chart-fill me-2"></i> 3. Reportes Gerenciales
-                                    </button>
-                                </h2>
-                                <div id="adm3" class="accordion-collapse collapse" data-bs-parent="#accordionAdmin">
-                                    <div class="accordion-body">
-                                        Accede a <strong>Reportes</strong> para ver KPIs en tiempo real:
-                                        <ul>
-                                            <li><strong>Tiempo Promedio:</strong> Horas que tardan los asesores en resolver casos.</li>
-                                            <li><strong>Volumen:</strong> Cantidad de tickets por categoría.</li>
-                                            <li><strong>Filtros:</strong> Puedes filtrar la data por fecha y por asesor específico.</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </AuthorizeView>
+            @* --- RESULTADOS DE BÚSQUEDA / CONTENIDO --- *@
+            <AuthorizeView>
+                <Authorized>
+                    @if (TemasFiltrados.Any())
+                    {
+                        var rolUsuario = context.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            @* --- ROL: ASESOR --- *@
-            <AuthorizeView Roles="Asesor">
-                <div class="card shadow-sm mb-4 border-0">
-                    <div class="card-header bg-warning text-dark py-3">
-                        <h5 class="mb-0"><i class="bi bi-headset me-2"></i>Funciones de Asesor</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="accordion" id="accordionAsesor">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#ase1">
-                                        1. Auto-asignación de Tickets
-                                    </button>
-                                </h2>
-                                <div id="ase1" class="accordion-collapse collapse show" data-bs-parent="#accordionAsesor">
-                                    <div class="accordion-body">
-                                        Tu tablero muestra tickets de tus categorías que nadie ha tomado.
-                                        <ol>
-                                            <li>Abre el ticket pendiente.</li>
-                                            <li>Haz clic en el botón amarillo <strong>"Tomar Caso"</strong>.</li>
-                                            <li>El ticket se asignará a tu nombre y desaparecerá del tablero de otros asesores.</li>
-                                        </ol>
-                                    </div>
+                        @* SECCIÓN 1: TEMAS ESPECÍFICOS DE TU ROL *@
+                        @if (TemasFiltrados.Any(t => t.RolRequerido == rolUsuario))
+                        {
+                            <div class="card shadow-sm mb-4 border-0 animate-fade-in">
+                                <div class="card-header @ObtenerClaseHeader(rolUsuario) text-white py-3">
+                                    <h5 class="mb-0"><i class="bi bi-person-badge-fill me-2"></i>Guías para @rolUsuario</h5>
                                 </div>
-                            </div>
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ase2">
-                                        2. Gestión del Chat
-                                    </button>
-                                </h2>
-                                <div id="ase2" class="accordion-collapse collapse" data-bs-parent="#accordionAsesor">
-                                    <div class="accordion-body">
-                                        Una vez asignado, se habilita el chat con el usuario.
-                                        <ul>
-                                            <li>Envía mensajes de texto para dar soporte.</li>
-                                            <li>Usa el icono de <strong>Clip</strong> para adjuntar imágenes o PDFs (Máx 5MB).</li>
-                                            <li>Recibirás una notificación sonora si el usuario responde mientras estás en otra pantalla.</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ase3">
-                                        3. Cerrar el Ticket
-                                    </button>
-                                </h2>
-                                <div id="ase3" class="accordion-collapse collapse" data-bs-parent="#accordionAsesor">
-                                    <div class="accordion-body">
-                                        Cuando el problema esté resuelto, presiona el botón verde <strong>"Finalizar"</strong>.
-                                        Esto bloqueará el chat y solicitará al usuario que califique tu atención.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </AuthorizeView>
+                                <div class="card-body">
+                                    <div class="accordion" id="accordionRol">
+                                        @foreach (var item in TemasFiltrados.Where(t => t.RolRequerido == rolUsuario))
+                                        {
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-@item.Id">
+                                                        <i class="@item.Icono me-2 text-secondary"></i> @item.Titulo
+                                                    </button>
+                                                </h2>
+                                                <div id="item-@item.Id" class="accordion-collapse collapse" data-bs-parent="#accordionRol">
+                                                    <div class="accordion-body">
+                                                        @item.ContenidoHTML
 
-            @* --- ROL: USUARIO --- *@
-            <AuthorizeView Roles="Usuario">
-                <div class="card shadow-sm mb-4 border-0">
-                    <div class="card-header bg-primary text-white py-3">
-                        <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Funciones de Usuario</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="accordion" id="accordionUser">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#usr1">
-                                        1. Solicitar Soporte
-                                    </button>
-                                </h2>
-                                <div id="usr1" class="accordion-collapse collapse show" data-bs-parent="#accordionUser">
-                                    <div class="accordion-body">
-                                        Usa el botón <strong>"Nuevo Ticket"</strong>. Completa el título, selecciona la categoría (ej. Finanzas) y detalla tu problema.
-                                        Si es una emergencia real, marca la casilla "Urgente" para que aparezca con borde rojo a los asesores.
+                                                        @if (!string.IsNullOrEmpty(item.EnlaceUrl))
+                                                        {
+                                                            <div class="mt-3">
+                                                                <a href="@item.EnlaceUrl" class="btn btn-sm btn-outline-primary">
+                                                                    @item.EnlaceTexto <i class="bi bi-arrow-right ms-1"></i>
+                                                                </a>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             </div>
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#usr2">
-                                        2. ¿Cuándo puedo chatear?
-                                    </button>
-                                </h2>
-                                <div id="usr2" class="accordion-collapse collapse" data-bs-parent="#accordionUser">
-                                    <div class="accordion-body">
-                                        Al crear el ticket, el chat estará en modo <strong>"Esperando asesor..."</strong>.
-                                        No podrás escribir hasta que un asesor tome tu caso. En ese momento, el sistema te avisará con un sonido y el chat se desbloqueará automáticamente.
+                        }
+
+                        @* SECCIÓN 2: PREGUNTAS FRECUENTES (GENERAL) *@
+                        @if (TemasFiltrados.Any(t => t.RolRequerido == "General"))
+                        {
+                            <div class="card shadow-sm mb-4 border-0 animate-fade-in">
+                                <div class="card-header bg-light text-dark py-3 border-bottom">
+                                    <h5 class="mb-0"><i class="bi bi-question-circle-fill me-2 text-success"></i>Preguntas Frecuentes</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="accordion" id="accordionGeneral">
+                                        @foreach (var item in TemasFiltrados.Where(t => t.RolRequerido == "General"))
+                                        {
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gen-@item.Id">
+                                                        @item.Titulo
+                                                    </button>
+                                                </h2>
+                                                <div id="gen-@item.Id" class="accordion-collapse collapse" data-bs-parent="#accordionGeneral">
+                                                    <div class="accordion-body text-muted">
+                                                        @item.ContenidoHTML
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             </div>
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#usr3">
-                                        3. Calificar Atención
-                                    </button>
-                                </h2>
-                                <div id="usr3" class="accordion-collapse collapse" data-bs-parent="#accordionUser">
-                                    <div class="accordion-body">
-                                        Cuando el asesor finalice el ticket, aparecerán 5 estrellas en la parte superior.
-                                        Selecciona una calificación para cerrar el proceso. Esto nos ayuda a mejorar.
-                                    </div>
-                                </div>
-                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-emoji-frown fs-1 text-muted"></i>
+                            <h4 class="mt-3 text-muted">No encontramos resultados para "@terminoBusqueda"</h4>
+                            <p>Intenta con otra palabra clave o revisa los manuales.</p>
+                            <button class="btn btn-link" @onclick="() => terminoBusqueda = string.Empty">Mostrar todo</button>
                         </div>
+                    }
+                </Authorized>
+                <NotAuthorized>
+                    <div class="alert alert-warning text-center">
+                        Debes <a href="login" class="alert-link">iniciar sesión</a> para ver la ayuda personalizada.
                     </div>
-                </div>
+                </NotAuthorized>
             </AuthorizeView>
 
         </div>
     </div>
 </div>
 
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
 @code {
+    private string terminoBusqueda = "";
+
+    // Modelo interno para los temas de ayuda
+    private class TemaAyuda
+    {
+        public int Id { get; set; }
+        public string RolRequerido { get; set; } = ""; // "Administrador", "Asesor", "Usuario", "General"
+        public string Titulo { get; set; } = "";
+        public string Icono { get; set; } = "bi-circle";
+        public MarkupString ContenidoHTML { get; set; }
+        public string? EnlaceUrl { get; set; }
+        public string? EnlaceTexto { get; set; }
+    }
+
+    // Base de datos de conocimientos en memoria (Hardcoded pero estructurada)
+    private List<TemaAyuda> TodosLosTemas = new()
+    {
+        // --- ADMIN ---
+        new TemaAyuda {
+            Id = 1, RolRequerido = "Administrador", Titulo = "Gestión de Usuarios", Icono = "bi-people-fill",
+            ContenidoHTML = new MarkupString("<p>Administra el acceso al sistema. Puedes crear nuevos usuarios, editar sus roles o darlos de baja (desactivar acceso).</p>"),
+            EnlaceUrl = "admin/usuarios", EnlaceTexto = "Ir a Usuarios"
+        },
+        new TemaAyuda {
+            Id = 2, RolRequerido = "Administrador", Titulo = "Gestión de Categorías", Icono = "bi-tags-fill",
+            ContenidoHTML = new MarkupString("<p>Crea o desactiva áreas de soporte (ej. 'Hardware', 'Redes'). Las categorías inactivas no aparecen al crear tickets.</p>"),
+            EnlaceUrl = "admin/categorias", EnlaceTexto = "Gestionar Categorías"
+        },
+        new TemaAyuda {
+            Id = 3, RolRequerido = "Administrador", Titulo = "Asignar Especialidades", Icono = "bi-person-gear",
+            ContenidoHTML = new MarkupString("<p>Vincula asesores a categorías específicas para que puedan recibir y atender tickets.</p>"),
+            EnlaceUrl = "admin/asignar-especialidades", EnlaceTexto = "Asignar Especialidades"
+        },
+        new TemaAyuda {
+            Id = 4, RolRequerido = "Administrador", Titulo = "Reportes y KPIs", Icono = "bi-bar-chart-fill",
+            ContenidoHTML = new MarkupString("<p>Visualiza el rendimiento del equipo: Tiempo promedio de respuesta, volumen de tickets y satisfacción del usuario.</p>"),
+            EnlaceUrl = "reportes", EnlaceTexto = "Ver Reportes"
+        },
+
+        // --- ASESOR ---
+        new TemaAyuda {
+            Id = 5, RolRequerido = "Asesor", Titulo = "Tomar Tickets (Auto-asignación)", Icono = "bi-inbox-fill",
+            ContenidoHTML = new MarkupString("<p>Ve al Tablero, abre un ticket 'Abierto' y haz clic en <strong>Tomar Caso</strong>. Pasará a tu bandeja personal.</p>"),
+            EnlaceUrl = "", EnlaceTexto = "Ir al Tablero"
+        },
+        new TemaAyuda {
+            Id = 6, RolRequerido = "Asesor", Titulo = "Uso del Chat y Archivos", Icono = "bi-chat-dots-fill",
+            ContenidoHTML = new MarkupString("<p>Usa el chat para comunicarte. Puedes adjuntar imágenes o PDFs (Max 5MB). El sistema te avisará con sonido si responden.</p>")
+        },
+        new TemaAyuda {
+            Id = 7, RolRequerido = "Asesor", Titulo = "Base de Conocimiento", Icono = "bi-journal-bookmark-fill",
+            ContenidoHTML = new MarkupString("<p>Consulta o crea manuales para problemas recurrentes. Ayuda a reducir la carga de tickets futuros.</p>"),
+            EnlaceUrl = "manuales", EnlaceTexto = "Ver Manuales"
+        },
+
+        // --- USUARIO ---
+        new TemaAyuda {
+            Id = 8, RolRequerido = "Usuario", Titulo = "Antes de crear un ticket...", Icono = "bi-lightbulb-fill text-warning",
+            ContenidoHTML = new MarkupString("<p><strong>¡Ahorra tiempo!</strong> Revisa nuestra sección de Manuales. Es muy probable que la solución a tu problema ya esté documentada.</p>"),
+            EnlaceUrl = "manuales", EnlaceTexto = "Buscar en Manuales"
+        },
+        new TemaAyuda {
+            Id = 9, RolRequerido = "Usuario", Titulo = "Crear un Nuevo Ticket", Icono = "bi-plus-circle-fill",
+            ContenidoHTML = new MarkupString("<p>Si no encuentras solución, crea un ticket seleccionando la categoría correcta. Marca 'Urgente' solo si es crítico.</p>"),
+            EnlaceUrl = "nuevo-ticket", EnlaceTexto = "Crear Ticket"
+        },
+        new TemaAyuda {
+            Id = 10, RolRequerido = "Usuario", Titulo = "Calificar Atención", Icono = "bi-star-fill",
+            ContenidoHTML = new MarkupString("<p>Al finalizar el soporte, califica a tu asesor con estrellas. Tu retroalimentación es vital.</p>")
+        },
+
+        // --- GENERAL (FAQ) ---
+        new TemaAyuda {
+            Id = 11, RolRequerido = "General", Titulo = "¿Cómo cambio mi contraseña?",
+            ContenidoHTML = new MarkupString("Por seguridad, contacta a un Administrador para restablecer tus credenciales si no puedes ingresar.")
+        },
+        new TemaAyuda {
+            Id = 12, RolRequerido = "General", Titulo = "El sistema está lento",
+            ContenidoHTML = new MarkupString("Verifica tu conexión a internet. Si el problema persiste, reportalo seleccionando la categoría 'Sistemas'.")
+        },
+        new TemaAyuda {
+            Id = 13, RolRequerido = "General", Titulo = "¿Qué formatos de archivo puedo subir?",
+            ContenidoHTML = new MarkupString("Soportamos imágenes (.jpg, .png) y documentos PDF. El tamaño máximo por archivo es de 5MB.")
+        }
+    };
+
+    private IEnumerable<TemaAyuda> TemasFiltrados =>
+        string.IsNullOrWhiteSpace(terminoBusqueda)
+        ? TodosLosTemas
+        : TodosLosTemas.Where(t => t.Titulo.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+                                || t.ContenidoHTML.Value.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase));
+
+    private string ObtenerClaseHeader(string? rol) => rol switch
+    {
+        "Administrador" => "bg-dark",
+        "Asesor" => "bg-warning text-dark",
+        "Usuario" => "bg-primary",
+        _ => "bg-secondary"
+    };
 }
