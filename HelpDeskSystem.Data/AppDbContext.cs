@@ -8,6 +8,7 @@ namespace HelpDeskSystem.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
         public AppDbContext() { }
+
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Mensaje> Mensajes { get; set; }
@@ -17,63 +18,63 @@ namespace HelpDeskSystem.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!optionsBuilder.IsConfigured)
-            {
-                optionsBuilder.UseSqlServer("Server=srv-sistem-saf;Database=HelpDeskDB;User Id=sa;Password=$Sin123$5;TrustServerCertificate=True;");
-            }
+            // SE ELIMINÓ LA CADENA DE CONEXIÓN HARDCODED
+            // Ahora la aplicación utilizará la configuración inyectada desde Program.cs (appsettings.json).
+            // Si necesitas ejecutar migraciones manualmente desde consola sin iniciar la app, 
+            // usa el parámetro --connection o configura los User Secrets.
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configuración de Ticket
-            modelBuilder.Entity<Ticket>().HasOne(t => t.Usuario).WithMany().HasForeignKey(t => t.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            // 1. Configuración de Ticket
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Usuario)
+                .WithMany()
+                .HasForeignKey(t => t.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // 2. SEMILLA DE CATEGORÍAS
+            // 2. SEMILLA DE CATEGORÍAS (Estructurales del sistema)
+            // Se mantienen para que el sistema no esté vacío de opciones al iniciar.
             var catFinanzas = new Categoria { Id = 1, Nombre = "Sistema Financiero" };
             var catGenesis = new Categoria { Id = 2, Nombre = "Sistema Genesis" };
             var catReportes = new Categoria { Id = 3, Nombre = "Reportes" };
 
             modelBuilder.Entity<Categoria>().HasData(catFinanzas, catGenesis, catReportes);
 
-            // 3. USUARIOS (Tus usuarios fijos)
+            // 3. USUARIO ADMINISTRADOR (Único usuario inicial)
+            // Necesario para poder hacer Login y crear a los demás usuarios desde la App.
             var idAdmin = Guid.Parse("11111111-1111-1111-1111-111111111111");
-            var idJuan = Guid.Parse("22222222-2222-2222-2222-222222222222"); // Asesor
-            var idCarla = Guid.Parse("33333333-3333-3333-3333-333333333333"); // Usuario
-            var idAna = Guid.Parse("44444444-4444-4444-4444-444444444444"); // Asesor
-            var idPedro = Guid.Parse("55555555-5555-5555-5555-555555555555"); // Usuario
 
             modelBuilder.Entity<Usuario>().HasData(
-                new Usuario { Id = idAdmin, Nombre = "Administrador Jefe", Email = "admin@helpdesk.com", Rol = RolUsuario.Administrador, Password = BCrypt.Net.BCrypt.HashPassword("admin"), IsActive = true },
-                new Usuario { Id = idJuan, Nombre = "Juan Asesor", Email = "juan@helpdesk.com", Rol = RolUsuario.Asesor, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true },
-                new Usuario { Id = idCarla, Nombre = "Carla Usuario", Email = "carla@cliente.com", Rol = RolUsuario.Usuario, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true },
-                new Usuario { Id = idAna, Nombre = "Ana Asesora", Email = "ana@helpdesk.com", Rol = RolUsuario.Asesor, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true },
-                new Usuario { Id = idPedro, Nombre = "Pedro Cliente", Email = "pedro@cliente.com", Rol = RolUsuario.Usuario, Password = BCrypt.Net.BCrypt.HashPassword("1234"), IsActive = true }
+                new Usuario
+                {
+                    Id = idAdmin,
+                    Nombre = "Administrador Jefe",
+                    Email = "admin@helpdesk.com",
+                    Rol = RolUsuario.Administrador,
+                    // Password es "admin" encriptado con BCrypt
+                    Password = BCrypt.Net.BCrypt.HashPassword("$50pt3Uteps4"),
+                    IsActive = true
+                }
             );
 
             // 4. RELACIÓN MUCHOS A MUCHOS (ASESORES <-> CATEGORÍAS)
-            // Esto es lo que faltaba: Asignar las especialidades a cada asesor
-            modelBuilder.Entity<Usuario>().HasMany(u => u.Categorias).WithMany(c => c.Asesores).UsingEntity<Dictionary<string, object>>(
-                "UsuarioCategoria",
-                j => j.HasOne<Categoria>().WithMany().HasForeignKey("CategoriasId"),
-                j => j.HasOne<Usuario>().WithMany().HasForeignKey("AsesoresId"),
-                j =>
-                {
-                    // AQUÍ ASIGNAMOS:
-                    j.HasData(
-                        // Juan atiende: Finanzas (1) y Genesis (2)
-                        new { AsesoresId = idJuan, CategoriasId = 1 },
-                        new { AsesoresId = idJuan, CategoriasId = 2 },
-                        new { AsesoresId = idAna, CategoriasId = 3 }
-                    );
-                }
-            );
-            // ESTO ES NECESARIO TÉCNICAMENTE PARA EVITAR EL ERROR DE CICLOS EN SQL
+            // Definimos la estructura de la tabla intermedia sin insertar datos falsos.
+            modelBuilder.Entity<Usuario>()
+                .HasMany(u => u.Categorias)
+                .WithMany(c => c.Asesores)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UsuarioCategoria",
+                    j => j.HasOne<Categoria>().WithMany().HasForeignKey("CategoriasId"),
+                    j => j.HasOne<Usuario>().WithMany().HasForeignKey("AsesoresId")
+                );
+
+            // 5. Configuración de ManualLog
             modelBuilder.Entity<ManualLog>()
                 .HasOne(log => log.Usuario)
                 .WithMany()
                 .HasForeignKey(log => log.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict); // Protege la auditoría
-
         }
     }
 }

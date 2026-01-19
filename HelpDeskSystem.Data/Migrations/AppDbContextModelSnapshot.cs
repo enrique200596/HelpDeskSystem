@@ -275,48 +275,8 @@ namespace HelpDeskSystem.Data.Migrations
                             FotoPerfilUrl = "",
                             IsActive = true,
                             Nombre = "Administrador Jefe",
-                            Password = "$2a$11$2.LI0se.9Yu9ciOs7ep7AOALc1gwhiM.7Ph6co.tEOsk6z4Y5LYd2",
+                            Password = "$2a$11$1HNOG2ZR2uupKVADY9XI4eyIw36CkVYl0xGXfdxqoaB1MMO4cmY.m",
                             Rol = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            Email = "juan@helpdesk.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Juan Asesor",
-                            Password = "$2a$11$wnobxBfTwCvF3luvG9RB3O8w5NabDY503sR1oPgeUO9.QuQ5ht5BS",
-                            Rol = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            Email = "carla@cliente.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Carla Usuario",
-                            Password = "$2a$11$1N9Vzeg4ofoWCe8XQdofk.RcLnHLsaFjLMIYC7aJlng/lAi1ozCIm",
-                            Rol = 3
-                        },
-                        new
-                        {
-                            Id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            Email = "ana@helpdesk.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Ana Asesora",
-                            Password = "$2a$11$sAoShInM36jYw8qTy/JvMus7g3KI2uK5WzMjbvCM5d/JH7qu8yo2e",
-                            Rol = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("55555555-5555-5555-5555-555555555555"),
-                            Email = "pedro@cliente.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Pedro Cliente",
-                            Password = "$2a$11$z2ypKqowxpTlouXAfjEU0.Uy4hF2P6V4QcY73JDOjv9PSwNub.E6C",
-                            Rol = 3
                         });
                 });
 
@@ -333,23 +293,6 @@ namespace HelpDeskSystem.Data.Migrations
                     b.HasIndex("CategoriasId");
 
                     b.ToTable("UsuarioCategoria");
-
-                    b.HasData(
-                        new
-                        {
-                            AsesoresId = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CategoriasId = 1
-                        },
-                        new
-                        {
-                            AsesoresId = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CategoriasId = 2
-                        },
-                        new
-                        {
-                            AsesoresId = new Guid("44444444-4444-4444-4444-444444444444"),
-                            CategoriasId = 3
-                        });
                 });
 
             modelBuilder.Entity("HelpDeskSystem.Domain.Entities.Manual", b =>

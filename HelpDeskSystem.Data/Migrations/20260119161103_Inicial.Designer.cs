@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HelpDeskSystem.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251217133622_AgregarManuales")]
-    partial class AgregarManuales
+    [Migration("20260119161103_Inicial")]
+    partial class Inicial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -80,8 +80,24 @@ namespace HelpDeskSystem.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Etiquetas")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RolesVisibles")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
@@ -96,6 +112,40 @@ namespace HelpDeskSystem.Data.Migrations
                     b.HasIndex("AutorId");
 
                     b.ToTable("Manuales");
+                });
+
+            modelBuilder.Entity("HelpDeskSystem.Domain.Entities.ManualLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Accion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Detalle")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaEvento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ManualId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManualId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("ManualLogs");
                 });
 
             modelBuilder.Entity("HelpDeskSystem.Domain.Entities.Mensaje", b =>
@@ -228,48 +278,8 @@ namespace HelpDeskSystem.Data.Migrations
                             FotoPerfilUrl = "",
                             IsActive = true,
                             Nombre = "Administrador Jefe",
-                            Password = "$2a$11$YcIayIG7h.6aosFQ/ZchYuxpKzeLekasWsmvJlr2JEDZvNhjadQKS",
+                            Password = "$2a$11$1HNOG2ZR2uupKVADY9XI4eyIw36CkVYl0xGXfdxqoaB1MMO4cmY.m",
                             Rol = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            Email = "juan@helpdesk.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Juan Asesor",
-                            Password = "$2a$11$JMAEZo3ks/xqXSzaBYq4VubmnpIn4pA4aXdsDmLKc6.goL.2UNjQy",
-                            Rol = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            Email = "carla@cliente.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Carla Usuario",
-                            Password = "$2a$11$r9zJKLFVn3kskR.YX5Lsje4agHr6dPd6VPpVe/0CsNySXg9LY4RgG",
-                            Rol = 3
-                        },
-                        new
-                        {
-                            Id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            Email = "ana@helpdesk.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Ana Asesora",
-                            Password = "$2a$11$fj91JzhalMZd4.tOb2mYVelRIT455HW9U4sewihNm1fBPN0UhBgke",
-                            Rol = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("55555555-5555-5555-5555-555555555555"),
-                            Email = "pedro@cliente.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Pedro Cliente",
-                            Password = "$2a$11$x5HAx6Ta3HdXdHsfl/3m4ecef.qsgauouv2CBdEIeuzlOz8PvdKa2",
-                            Rol = 3
                         });
                 });
 
@@ -286,23 +296,6 @@ namespace HelpDeskSystem.Data.Migrations
                     b.HasIndex("CategoriasId");
 
                     b.ToTable("UsuarioCategoria");
-
-                    b.HasData(
-                        new
-                        {
-                            AsesoresId = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CategoriasId = 1
-                        },
-                        new
-                        {
-                            AsesoresId = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CategoriasId = 2
-                        },
-                        new
-                        {
-                            AsesoresId = new Guid("44444444-4444-4444-4444-444444444444"),
-                            CategoriasId = 3
-                        });
                 });
 
             modelBuilder.Entity("HelpDeskSystem.Domain.Entities.Manual", b =>
@@ -314,6 +307,25 @@ namespace HelpDeskSystem.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Autor");
+                });
+
+            modelBuilder.Entity("HelpDeskSystem.Domain.Entities.ManualLog", b =>
+                {
+                    b.HasOne("HelpDeskSystem.Domain.Entities.Manual", "Manual")
+                        .WithMany()
+                        .HasForeignKey("ManualId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HelpDeskSystem.Domain.Entities.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Manual");
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("HelpDeskSystem.Domain.Entities.Mensaje", b =>
