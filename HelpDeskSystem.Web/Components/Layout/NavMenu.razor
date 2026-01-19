@@ -134,7 +134,32 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthState != null) { var state = await AuthState; user = state.User; }
+        try // <--- ESTO ES CRÍTICO
+        {
+            if (AuthState != null)
+            {
+                var state = await AuthState;
+                user = state.User;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Si falla la autenticación al iniciar (ej. error de Storage),
+            // atrapamos el error para que el menú no rompa la página entera.
+            Console.WriteLine($"Error en NavMenu: {ex.Message}");
+            user = null; // Asumimos usuario no conectado
+        }
     }
-    private bool EsRol(string rolRequerido) => user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
+
+    private bool EsRol(string rolRequerido)
+    {
+        try
+        {
+            return user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
