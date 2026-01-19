@@ -256,8 +256,27 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Suscripción al evento
         StateContainer.OnChange += ActualizarTablero;
-        await CargarDatos();
+
+        // BLINDAJE: Envolvemos la carga de datos en un try-catch
+        try
+        {
+            await CargarDatos();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando dashboard: {ex.Message}");
+            // Inicializamos métricas en cero para evitar nulos en la vista
+            metricas = new DashboardDto
+            {
+                TotalTickets = 0,
+                Pendientes = 0,
+                Resueltos = 0,
+                PromedioSatisfaccion = 0
+            };
+            ultimosTickets = new List<Ticket>();
+        }
     }
 
     private async Task CargarDatos()

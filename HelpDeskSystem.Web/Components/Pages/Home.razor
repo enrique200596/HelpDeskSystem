@@ -255,9 +255,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Suscripción al evento
         StateContainer.OnChange += RecargarTicketsEnVivo;
+
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
             nombreUsuario = user.Identity.Name ?? "Usuario";
@@ -271,9 +274,19 @@
             rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Sin Rol";
             esRolUsuario = user.IsInRole("Usuario");
 
-            // Simulamos un pequeño delay artificial para que veas el Skeleton Loading (puedes quitarlo luego)
-            await Task.Delay(500);
-            await CargarLista();
+            // BLINDAJE: Envolvemos la carga de datos en un try-catch
+            try
+            {
+                // Simulamos el delay (opcional, puedes quitarlo si quieres)
+                await Task.Delay(500);
+                await CargarLista();
+            }
+            catch (Exception ex)
+            {
+                // Si falla, inicializamos la lista vacía para que no explote la vista
+                Console.WriteLine($"Error cargando tickets: {ex.Message}");
+                tickets = new List<Ticket>();
+            }
         }
     }
 
