@@ -284,11 +284,15 @@
 
     private async void RecargarTicketsEnVivo(int? id, string? t, string? r, Guid? o, Guid? a)
     {
-        await InvokeAsync(async () =>
+        try // <--- BLINDAJE
         {
-            await CargarLista();
-            StateHasChanged();
-        });
+            await InvokeAsync(async () =>
+            {
+                await CargarLista();
+                StateHasChanged();
+            });
+        }
+        catch { /* Ignorar si el usuario ya salió */ }
     }
 
     // --- LÓGICA DE FILTROS Y PAGINACIÓN ---

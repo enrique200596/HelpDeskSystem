@@ -112,35 +112,49 @@
     private string nombrePagina = "";
 
     // --- LÓGICA DE NOTIFICACIONES (PRESERVADA) ---
+    // --- LÓGICA DE NOTIFICACIONES CORREGIDA (BLINDADA) ---
     private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, string? remitente, Guid? ownerId, Guid? asesorId)
     {
-        await InvokeAsync(async () =>
+        try // <--- ESTO ES LO QUE FALTA PARA EVITAR EL CRASH
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            if (user == null || user.Identity == null || !user.Identity.IsAuthenticated) return;
-
-            // Filtros de privacidad (Tu lógica original)
-            var myIdStr = user.FindFirst(ClaimTypes.Sid)?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(myIdStr, out Guid myId))
+            await InvokeAsync(async () =>
             {
-                if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name) return;
-                if (asesorId != null)
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                if (user == null || user.Identity == null || !user.Identity.IsAuthenticated) return;
+
+                // Filtros de privacidad
+                var myIdStr = user.FindFirst(ClaimTypes.Sid)?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(myIdStr, out Guid myId))
                 {
-                    if (myId != ownerId && myId != asesorId) return;
+                    if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name) return;
+                    if (asesorId != null)
+                    {
+                        if (myId != ownerId && myId != asesorId) return;
+                    }
                 }
-            }
 
-            var urlActual = NavManager.Uri.ToLower();
-            bool estaViendoElTicket = ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}");
-            string mensajeNotificacion = "Actividad en el sistema";
+                var urlActual = NavManager.Uri.ToLower();
+                bool estaViendoElTicket = ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}");
 
-            if (!string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente))
-                mensajeNotificacion = $"{remitente}: {tituloTicket}";
+                string mensajeNotificacion = "Actividad en el sistema";
+                if (!string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente))
+                    mensajeNotificacion = $"{remitente}: {tituloTicket}";
 
-            await JS.InvokeVoidAsync("verificarYNotificar", mensajeNotificacion, "info", estaViendoElTicket);
-            StateHasChanged();
-        });
+                // Protegemos la llamada a JS también
+                try
+                {
+                    await JS.InvokeVoidAsync("verificarYNotificar", mensajeNotificacion, "info", estaViendoElTicket);
+                }
+                catch { /* Ignorar error de JS si el componente se está desmontando */ }
+
+                StateHasChanged();
+            });
+        }
+        catch
+        {
+            // Si algo falla aquí arriba, lo ignoramos para que NO salga la barra amarilla
+        }
     }
 
     protected override void OnInitialized()
