@@ -494,13 +494,20 @@
 
     private async void ActualizarChatEnVivo(int? ticketIdNotificado, string? t, string? r, Guid? o, Guid? a)
     {
-        await InvokeAsync(async () =>
+        try
         {
-            if (ticketIdNotificado.HasValue && ticketIdNotificado.Value != Id) return;
-            await CargarDatosCompletos();
-            StateHasChanged();
-            await ScrollAlFondo();
-        });
+            await InvokeAsync(async () =>
+            {
+                if (ticketIdNotificado.HasValue && ticketIdNotificado.Value != Id) return;
+                await CargarDatosCompletos();
+                StateHasChanged();
+                await ScrollAlFondo();
+            });
+        }
+        catch
+        {
+            // Ignoramos el error si el usuario ya salió de la página
+        }
     }
 
     private async Task EnviarMensaje()
@@ -581,7 +588,10 @@
     private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
     private async Task ScrollAlFondo() { await Task.Delay(100); await JS.InvokeVoidAsync("utilidadesChat.bajarScroll", "chatBox"); }
-    public void Dispose() { StateContainer.OnChange -= ActualizarChatEnVivo; }
+    public void Dispose()
+    {
+        StateContainer.OnChange -= ActualizarChatEnVivo;
+    }
 
     private string ObtenerClaseBadge(EstadoTicket estado) => estado switch
     {

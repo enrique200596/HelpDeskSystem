@@ -380,8 +380,11 @@
         return fecha.ToString("dd MMM");
     }
 
+    // Asegúrate de que al inicio del archivo diga: @implements IDisposable
+
     public void Dispose()
     {
+        // El signo MENOS (-=) es obligatorio. Si tienes +=, cámbialo.
         StateContainer.OnChange -= RecargarTicketsEnVivo;
     }
 }
