@@ -4,109 +4,134 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
-<div class="top-row ps-3 navbar navbar-dark border-bottom border-secondary bg-utepsa-dark">
-    <div class="container-fluid">
-        @* ALINEACIÓN: d-flex align-items-center para centrar logo y texto *@
-        <a class="navbar-brand d-flex align-items-center gap-2" href="">
-            <i class="bi bi-shield-check fs-4 text-utepsa-red d-flex align-items-center"></i>
-            <span class="fw-bold tracking-tight">HelpDesk UTEPSA</span>
+<div class="d-flex flex-column h-100 bg-utepsa-dark text-white shadow-pro">
+
+    @* --- BRANDING --- *@
+    <div class="d-flex align-items-center px-4 py-3 border-bottom border-secondary border-opacity-25" style="height: 64px;">
+        <a class="navbar-brand d-flex align-items-center gap-2 text-white text-decoration-none" href="">
+            <i class="bi bi-shield-check-fill text-utepsa-red fs-4"></i>
+            <span class="fw-bold tracking-tight" style="font-size: 1.1rem;">HelpDesk <span class="fw-light opacity-75">UTEPSA</span></span>
         </a>
+    </div>
+
+    @* --- NAVEGACIÓN SCROLLABLE --- *@
+    <div class="flex-grow-1 overflow-auto py-3 custom-scrollbar">
+        <nav class="nav flex-column px-2 gap-1">
+            <AuthorizeView>
+                <Authorized>
+
+                    <div class="nav-header px-3 mb-2 mt-2 text-uppercase fw-bold text-white-50" style="font-size: 0.7rem; letter-spacing: 1px;">Principal</div>
+
+                    <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="" Match="NavLinkMatch.All">
+                        <i class="bi bi-kanban-fill"></i> <span>Tablero</span>
+                    </NavLink>
+
+                    <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="dashboard">
+                        <i class="bi bi-bar-chart-line-fill"></i> <span>Estadísticas</span>
+                    </NavLink>
+
+                    <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="manuales">
+                        <i class="bi bi-journal-richtext"></i> <span>Base de Conocimiento</span>
+                    </NavLink>
+
+                    <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="ayuda">
+                        <i class="bi bi-question-circle-fill"></i> <span>Ayuda</span>
+                    </NavLink>
+
+                    @if (EsRol("Usuario"))
+                    {
+                        <div class="mt-3 px-2">
+                            <NavLink class="btn btn-utepsa w-100 d-flex align-items-center justify-content-center gap-2 shadow-sm" href="nuevo-ticket">
+                                <i class="bi bi-plus-lg"></i> <span>Nuevo Ticket</span>
+                            </NavLink>
+                        </div>
+                    }
+
+                    @if (EsRol("Administrador"))
+                    {
+                        <div class="nav-header px-3 mb-2 mt-4 text-uppercase fw-bold text-white-50" style="font-size: 0.7rem; letter-spacing: 1px;">Administración</div>
+
+                        <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="reportes">
+                            <i class="bi bi-file-earmark-bar-graph-fill"></i> <span>Reportes</span>
+                        </NavLink>
+
+                        <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="admin/usuarios">
+                            <i class="bi bi-people-fill"></i> <span>Usuarios</span>
+                        </NavLink>
+
+                        <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="admin/categorias">
+                            <i class="bi bi-tags-fill"></i> <span>Categorías</span>
+                        </NavLink>
+
+                        <NavLink class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white opacity-75 hover-effect" href="admin/asignar-especialidades">
+                            <i class="bi bi-person-gear"></i> <span>Especialidades</span>
+                        </NavLink>
+                    }
+                </Authorized>
+            </AuthorizeView>
+        </nav>
+    </div>
+
+    @* --- FOOTER: LOGOUT --- *@
+    <div class="p-3 border-top border-secondary border-opacity-25 bg-black bg-opacity-25">
+        <AuthorizeView>
+            <Authorized>
+                <form action="/account/logout" method="post">
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 border-0 bg-danger bg-opacity-10 text-danger-emphasis">
+                        <i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span>
+                    </button>
+                </form>
+            </Authorized>
+            <NotAuthorized>
+                <NavLink class="btn btn-utepsa w-100" href="login">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Iniciar Sesión
+                </NavLink>
+            </NotAuthorized>
+        </AuthorizeView>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<style>
+    /* Estilos locales para hover effects */
+    .hover-effect {
+        transition: all 0.2s ease;
+    }
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column pt-3">
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-header px-3 mb-2 text-uppercase small text-muted fw-bold">Principal</div>
+        .hover-effect:hover, .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white !important;
+            opacity: 1 !important;
+            transform: translateX(5px);
+        }
 
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <i class="bi bi-kanban-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Tablero
-                    </NavLink>
-                </div>
+    .text-utepsa-red {
+        color: var(--utepsa-red) !important;
+    }
 
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="dashboard">
-                        <i class="bi bi-bar-chart-line-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Estadísticas
-                    </NavLink>
-                </div>
+    .bg-utepsa-dark {
+        background-color: var(--utepsa-dark) !important;
+    }
 
-                <div class="nav-item px-3">
-                    @* CORRECCIÓN: Clase del ícono arreglada *@
-                    <NavLink class="nav-link" href="manuales">
-                        <i class="bi bi-journal-richtext me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Base de Conocimiento
-                    </NavLink>
-                </div>
+    /* Scrollbar sutil */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+    }
 
-                <div class="nav-item px-3">
-                    @* CORRECCIÓN: Clase del ícono arreglada *@
-                    <NavLink class="nav-link" href="ayuda">
-                        <i class="bi bi-question-circle-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Ayuda
-                    </NavLink>
-                </div>
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-                @if (EsRol("Usuario"))
-                {
-                    <div class="nav-item px-3 mt-2">
-                        <NavLink class="nav-link btn-crear-ticket" href="nuevo-ticket">
-                            <i class="bi bi-plus-circle-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Nuevo Ticket
-                        </NavLink>
-                    </div>
-                }
-
-                @if (EsRol("Administrador"))
-                {
-                    <div class="nav-header px-3 mt-3 mb-2 text-uppercase small text-muted fw-bold">Administración</div>
-
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="reportes">
-                            <i class="bi bi-file-earmark-bar-graph-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Reportes
-                        </NavLink>
-                    </div>
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="admin/usuarios">
-                            <i class="bi bi-people-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Usuarios
-                        </NavLink>
-                    </div>
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="admin/categorias">
-                            <i class="bi bi-tags-fill me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Categorías
-                        </NavLink>
-                    </div>
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="admin/asignar-especialidades">
-                            <i class="bi bi-person-gear me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Especialidades
-                        </NavLink>
-                    </div>
-                }
-
-                <div class="nav-item px-3 mt-auto mb-3">
-                    <hr class="text-secondary opacity-50" />
-                    <form action="/account/logout" method="post">
-                        <AntiforgeryToken />
-                        <button type="submit" class="nav-link w-100 text-start text-danger bg-transparent border-0">
-                            <i class="bi bi-box-arrow-right me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Cerrar Sesión
-                        </button>
-                    </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3 mt-3">
-                    <NavLink class="nav-link active-login" href="login">
-                        <i class="bi bi-box-arrow-in-right me-3 fs-5 d-flex align-items-center justify-content-center" style="width: 24px;"></i> Iniciar Sesión
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+    }
+</style>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
     private ClaimsPrincipal? user;
+
     protected override async Task OnInitializedAsync()
     {
         if (AuthState != null) { var state = await AuthState; user = state.User; }

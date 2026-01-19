@@ -8,67 +8,80 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<div class="page">
-    <div class="sidebar">
+<div class="d-flex w-100 h-100 overflow-hidden bg-app font-main">
+
+    @* === SIDEBAR (Fijo a la izquierda) === *@
+    <aside class="d-none d-lg-flex flex-column flex-shrink-0" style="width: 260px; z-index: 1040;">
         <NavMenu />
-    </div>
+    </aside>
 
-    <main>
-        <div class="top-row px-4 d-flex justify-content-between align-items-center bg-white shadow-sm" style="z-index: 10;">
+    @* === CONTENIDO PRINCIPAL === *@
+    <div class="flex-grow-1 d-flex flex-column h-100 overflow-hidden position-relative">
 
-            @* 1. Breadcrumbs Alineados *@
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 bg-transparent p-0 d-flex align-items-center">
-                    <li class="breadcrumb-item d-flex align-items-center">
-                        @* ALINEACIÓN: d-inline-flex para centrar icono y texto *@
-                        <a href="/" class="text-decoration-none text-muted small hover-red d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-house-door-fill mb-0"></i> Inicio
-                        </a>
-                    </li>
-                    @if (!string.IsNullOrEmpty(nombrePagina) && nombrePagina != "Tablero Principal")
-                    {
-                        @* El separador "/" lo pone Bootstrap automáticamente, solo aseguramos la alineación del item *@
-                        <li class="breadcrumb-item active text-danger fw-bold small d-flex align-items-center" aria-current="page">
-                            <span class="mt-1">@nombrePagina</span> @* mt-1 es un ajuste fino óptico *@
+        @* HEADER FLOTANTE *@
+        <header class="bg-white border-bottom shadow-sm d-flex align-items-center justify-content-between px-4 py-2" style="height: 64px; flex-shrink: 0; z-index: 1000;">
+
+            @* 1. Breadcrumbs / Título Dinámico *@
+            <div class="d-flex align-items-center overflow-hidden">
+                <button class="btn btn-link text-dark d-lg-none me-2 p-0" onclick="alert('Menu móvil pendiente de JS')">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 align-items-center bg-transparent p-0">
+                        <li class="breadcrumb-item">
+                            <a href="/" class="text-decoration-none text-muted small d-flex align-items-center hover-red">
+                                <i class="bi bi-house-door-fill me-1"></i> Inicio
+                            </a>
                         </li>
-                    }
-                </ol>
-            </nav>
+                        @if (!string.IsNullOrEmpty(nombrePagina) && nombrePagina != "Tablero Principal")
+                        {
+                            <li class="breadcrumb-item active text-dark fw-bold small d-flex align-items-center" aria-current="page">
+                                <span class="badge bg-light text-dark border ms-1">@nombrePagina</span>
+                            </li>
+                        }
+                    </ol>
+                </nav>
+            </div>
 
-            @* 2. Perfil de Usuario Alineado *@
+            @* 2. Perfil de Usuario *@
             <AuthorizeView>
                 <Authorized>
-                    <div class="d-flex align-items-center gap-3 border-start ps-3 my-1">
+                    <div class="d-flex align-items-center gap-3 ps-3 border-start">
                         <div class="text-end lh-1 d-none d-md-block">
-                            <div class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                @context.User.Identity?.Name
-                            </div>
-                            <span class="badge bg-danger bg-opacity-10 text-danger mt-1 d-inline-flex align-items-center" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                            <div class="fw-bold text-dark" style="font-size: 0.9rem;">@context.User.Identity?.Name</div>
+                            <small class="text-muted" style="font-size: 0.75rem;">
                                 @(context.User.FindFirst(ClaimTypes.Role)?.Value?.ToUpper() ?? "USUARIO")
-                            </span>
+                            </small>
                         </div>
 
-                        @* Avatar Perfectamente Centrado *@
-                        <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
-                             style="width: 38px; height: 38px; font-weight: 600; font-size: 1.1rem; cursor: default;">
-                            @* Ajuste óptico: a veces las letras mayúsculas se ven mejor subiéndolas 1px *@
-                            <span style="margin-top: -1px;">@ObtenerIniciales(context.User.Identity?.Name)</span>
+                        <div class="position-relative">
+                            <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center shadow-sm fw-bold"
+                                 style="width: 40px; height: 40px; font-size: 1.1rem; cursor: pointer; border: 2px solid #fff;">
+                                @ObtenerIniciales(context.User.Identity?.Name)
+                            </div>
+                            @* Punto verde de "Online" *@
+                            <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
+                                  style="width: 12px; height: 12px;"></span>
                         </div>
                     </div>
                 </Authorized>
-                <NotAuthorized>
-                    <a href="login" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">
-                        <i class="bi bi-person-circle me-1"></i> Iniciar Sesión
-                    </a>
-                </NotAuthorized>
             </AuthorizeView>
 
-        </div>
+        </header>
 
-        <article class="content px-4 py-4">
+        @* CONTENEDOR CON SCROLL *@
+        <main class="flex-grow-1 overflow-auto p-0 scroll-smooth">
+            @* Aquí se renderiza Home, Dashboard, etc. *@
             @Body
-        </article>
-    </main>
+
+            <div class="container-fluid px-4 py-3">
+                <footer class="text-center text-muted small mt-4 pb-4 opacity-50">
+                    &copy; @DateTime.Now.Year HelpDesk UTEPSA - Todos los derechos reservados
+                </footer>
+            </div>
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui">
@@ -77,11 +90,28 @@
     <a class="dismiss">🗙</a>
 </div>
 
+<style>
+    .font-main {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .bg-app {
+        background-color: #f3f4f6;
+    }
+
+    .scroll-smooth {
+        scroll-behavior: smooth;
+    }
+
+    .hover-red:hover {
+        color: var(--utepsa-red) !important;
+    }
+</style>
+
 @code {
     private string nombrePagina = "";
 
-    // En MainLayout.razor
-
+    // --- LÓGICA DE NOTIFICACIONES (PRESERVADA) ---
     private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, string? remitente, Guid? ownerId, Guid? asesorId)
     {
         await InvokeAsync(async () =>
@@ -90,36 +120,21 @@
             var user = authState.User;
             if (user == null || user.Identity == null || !user.Identity.IsAuthenticated) return;
 
-            // --- FILTRO DE PRIVACIDAD ---
+            // Filtros de privacidad (Tu lógica original)
             var myIdStr = user.FindFirst(ClaimTypes.Sid)?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (Guid.TryParse(myIdStr, out Guid myId))
             {
-                // 1. Si yo envié el mensaje, no me notifico.
                 if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name) return;
-
-                // 2. Si el ticket YA TIENE ASESOR (es un chat privado):
-                // Solo notifico si soy el DUEÑO (ownerId) o el ASESOR ASIGNADO (asesorId).
                 if (asesorId != null)
                 {
-                    if (myId != ownerId && myId != asesorId)
-                    {
-                        // Si soy Admin, quizás quiera ver todo, si no, retorno.
-                        // Para cumplir tu regla estricta:
-                        return;
-                    }
+                    if (myId != ownerId && myId != asesorId) return;
                 }
-                // Si asesorId es null (Ticket Nuevo), dejamos pasar la notificación para que los asesores se enteren.
             }
 
-            // --- VISUALIZACIÓN ---
             var urlActual = NavManager.Uri.ToLower();
-            bool estaViendoElTicket = false;
-            if (ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}"))
-            {
-                estaViendoElTicket = true;
-            }
-
+            bool estaViendoElTicket = ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}");
             string mensajeNotificacion = "Actividad en el sistema";
+
             if (!string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente))
                 mensajeNotificacion = $"{remitente}: {tituloTicket}";
 
@@ -134,18 +149,20 @@
         ActualizarNombrePagina();
         StateContainer.OnChange += ManejarCambioGlobal;
     }
-    // AGREGA ESTE MÉTODO:
-    private async void NotificarCambioGlobal()
-    {
-        await InvokeAsync(async () =>
-        {
-            // "danger" activará el estilo rojo intenso
-            await JS.InvokeVoidAsync("mostrarNotificacion", "¡Atención! Hay actividad reciente en el sistema.", "danger");
-        });
-    }
 
     private void AlCambiarUrl(object? sender, LocationChangedEventArgs e) { ActualizarNombrePagina(); StateHasChanged(); }
-    private void ActualizarNombrePagina() { /* Tu lógica de nombres... */ }
-    private string ObtenerIniciales(string? nombre) { return string.IsNullOrEmpty(nombre) ? "U" : nombre.Substring(0, 1).ToUpper(); }
+
+    // Simplificado para el ejemplo, puedes expandir tu lógica de nombres aquí
+    private void ActualizarNombrePagina()
+    {
+        var uri = NavManager.Uri.ToLower();
+        if (uri.EndsWith("dashboard")) nombrePagina = "Estadísticas";
+        else if (uri.EndsWith("manuales")) nombrePagina = "Base de Conocimiento";
+        else if (uri.Contains("nuevo-ticket")) nombrePagina = "Nuevo Ticket";
+        else nombrePagina = "";
+    }
+
+    private string ObtenerIniciales(string? nombre) => string.IsNullOrEmpty(nombre) ? "U" : nombre.Substring(0, 1).ToUpper();
+
     public void Dispose() { NavManager.LocationChanged -= AlCambiarUrl; StateContainer.OnChange -= ManejarCambioGlobal; }
 }

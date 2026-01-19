@@ -1,367 +1,186 @@
 /* =========================================
-   1. VARIABLES Y IDENTIDAD UTEPSA
+   1. VARIABLES & FUNDAMENTOS (ADN UTEPSA)
    ========================================= */
 :root {
-    /* Paleta UTEPSA */
-    --utepsa-red: #C8102E; /* Rojo Institucional */
-    --utepsa-dark: #111111; /* Negro Profundo */
-    --utepsa-gray: #6c757d; /* Gris Secundario */
-    --utepsa-light: #f8f9fa; /* Fondo Claro */
-    --utepsa-white: #ffffff;
-    /* Configuración UI */
-    --border-radius-main: 12px; /* Bordes redondeados modernos */
-    --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.05);
-    --shadow-hover: 0 8px 25px rgba(200, 16, 46, 0.15); /* Sombra roja sutil */
-    --font-main: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* --- Paleta de Marca --- */
+    --utepsa-red: #C8102E; /* Rojo Institucional Oficial */
+    --utepsa-red-dark: #a00c24; /* Rojo Oscuro (Hover) */
+    --utepsa-dark: #0f172a; /* Azul Noche (Más moderno que el negro puro) */
+    /* --- Superficies y Fondos --- */
+    --bg-app: #f1f5f9; /* Gris azulado muy suave (Estilo Enterprise) */
+    --bg-surface: #ffffff; /* Blanco puro para tarjetas */
+    --bg-subtle: #f8fafc; /* Fondo sutil para headers internos */
+    /* --- Tipografía y Textos --- */
+    --text-primary: #1e293b; /* Gris oscuro para lectura cómoda */
+    --text-secondary: #64748b; /* Gris medio para metadatos */
+    --text-light: #94a3b8; /* Gris claro para placeholders */
+    --font-main: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    /* --- UI Moderno (Shadows & Radius) --- */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px; /* Bordes más redondeados (Tendencia 2025) */
+    /* Sombras Profesionales (Diffuse Shadows) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-pro: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-red-glow: 0 10px 15px -3px rgba(200, 16, 46, 0.25); /* Resplandor rojo sutil */
 }
 
 html, body {
     font-family: var(--font-main);
-    background-color: #f4f6f9; /* Gris muy suave de fondo para reducir fatiga visual */
-    color: var(--utepsa-dark);
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased; /* Texto más nítido */
 }
 
 /* =========================================
-   2. BOTONES Y ACCIONES (UX)
+   2. COMPONENTES "PRO" (REUTILIZABLES)
    ========================================= */
-.btn {
-    border-radius: 8px; /* Bordes redondeados */
-    font-weight: 600;
-    padding: 0.5rem 1.25rem;
-    transition: all 0.3s ease-in-out;
-    letter-spacing: 0.5px;
+
+/* --- Tarjetas Profesionales (Card Pro) --- */
+/* Reemplaza a la .card de Bootstrap visualmente */
+.card-pro {
+    background: var(--bg-surface);
+    border: 1px solid rgba(255, 255, 255, 0.5); /* Borde sutil */
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-pro);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden; /* Para que la imagen no se salga del borde */
 }
 
-/* Botón Primario (Rojo UTEPSA) */
-.btn-primary {
-    background-color: var(--utepsa-red);
-    border-color: var(--utepsa-red);
-    color: white;
-}
-
-    .btn-primary:hover, .btn-primary:focus {
-        background-color: #a30d25; /* Rojo más oscuro */
-        border-color: #a30d25;
-        transform: translateY(-2px); /* Feedback visual de elevación */
+    .card-pro:hover {
+        transform: translateY(-4px);
         box-shadow: var(--shadow-hover);
+        border-color: rgba(200, 16, 46, 0.1); /* Toque rojo al pasar mouse */
     }
 
-/* Botón Secundario (Gris/Negro) */
-.btn-secondary, .btn-dark {
-    background-color: var(--utepsa-dark);
-    border: none;
+/* Header de Tarjeta Limpio */
+.card-pro-header {
+    background: transparent;
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    border-bottom: none;
 }
 
-    .btn-secondary:hover {
-        background-color: #333;
-        transform: translateY(-2px);
-    }
-
-/* =========================================
-   3. TARJETAS Y CONTENEDORES (UI)
-   ========================================= */
-.card {
-    border: none;
-    border-radius: var(--border-radius-main);
-    box-shadow: var(--shadow-soft);
-    background-color: white;
-    transition: transform 0.2s ease;
+.card-pro-body {
+    padding: 1.5rem;
 }
 
-/* Efecto hover en tarjetas para indicar interactividad */
-.card-hover:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    border-bottom: 3px solid var(--utepsa-red); /* Detalle de marca */
-}
-
-.card-header {
-    background-color: white;
-    border-bottom: 1px solid #eee;
-    border-radius: var(--border-radius-main) var(--border-radius-main) 0 0 !important;
-    padding: 1.25rem;
-    font-weight: 700;
-    color: var(--utepsa-dark);
-}
-
-/* =========================================
-   4. FORMULARIOS (Inputs)
-   ========================================= */
-.form-control, .form-select {
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-    padding: 0.6rem 1rem;
-}
-
-    .form-control:focus, .form-select:focus {
-        border-color: var(--utepsa-red);
-        box-shadow: 0 0 0 0.25rem rgba(200, 16, 46, 0.15); /* Ring rojo suave */
-    }
-
-/* Placeholder animations o tooltips visuales */
-.form-label {
+/* --- Botones UTEPSA Modernos --- */
+.btn-utepsa {
+    background-color: var(--utepsa-red);
+    color: white;
     font-weight: 600;
-    color: #555;
-    font-size: 0.9rem;
+    padding: 0.6rem 1.5rem;
+    border-radius: var(--radius-md);
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(200, 16, 46, 0.3);
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
 }
+
+    .btn-utepsa:hover {
+        background-color: var(--utepsa-red-dark);
+        box-shadow: var(--shadow-red-glow);
+        transform: translateY(-1px);
+        color: white;
+    }
+
+    .btn-utepsa:active {
+        transform: translateY(0);
+    }
+
+.btn-utepsa-ghost {
+    background: transparent;
+    color: var(--utepsa-red);
+    font-weight: 600;
+    border: 2px solid transparent;
+}
+
+    .btn-utepsa-ghost:hover {
+        background: rgba(200, 16, 46, 0.05);
+        color: var(--utepsa-red-dark);
+    }
 
 /* =========================================
-   5. UTILIDADES
+   3. UTILIDADES DE ESTADO (BADGES)
    ========================================= */
-.text-utepsa-red {
-    color: var(--utepsa-red) !important;
-}
 
-.bg-utepsa-red {
-    background-color: var(--utepsa-red) !important;
-}
-
-/* Para elementos clicables */
-.clickable {
-    cursor: pointer;
-}
-
-/* Badges personalizados */
-.badge-status {
-    padding: 0.5em 0.8em;
-    border-radius: 6px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-}
-
-/* Estados de Tickets */
-.status-badge {
-    padding: 0.35em 0.65em;
+/* Badges estilo "Píldora" (Pills) */
+.badge-pill {
+    padding: 0.35em 0.85em;
     border-radius: 50rem;
-    font-size: 0.75em;
+    font-size: 0.75rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.status-abierto {
-    background-color: #e3f2fd;
-    color: #0d47a1;
+/* Variantes de Estado */
+.status-open {
+    background-color: #eff6ff; /* Azul muy claro */
+    color: #2563eb; /* Azul fuerte */
+    border: 1px solid #dbeafe;
 }
-/* Azul suave */
-.status-urgente {
-    background-color: #ffebee;
-    color: #c62828;
+
+.status-process {
+    background-color: #fefce8; /* Amarillo claro */
+    color: #ca8a04; /* Dorado oscuro */
+    border: 1px solid #fef9c3;
 }
-/* Rojo alerta */
-.status-resuelto {
-    background-color: #e8f5e9;
-    color: #1b5e20;
+
+.status-solved {
+    background-color: #f0fdf4; /* Verde claro */
+    color: #16a34a; /* Verde fuerte */
+    border: 1px solid #dcfce7;
+}
+
+.status-urgent {
+    background-color: #fef2f2; /* Rojo claro */
+    color: #dc2626; /* Rojo fuerte */
+    border: 1px solid #fee2e2;
 }
 
 /* =========================================
-   6. COMPONENTE ESPECIALIDADES (Asignar) - Estilo Rojo/Blanco
+   4. FORMULARIOS (Inputs Modernos)
    ========================================= */
-
-/* Avatar del Asesor (Sin cambios) */
-.avatar-circle {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
+.form-control-pro {
+    background-color: var(--bg-subtle);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
 }
 
-/* --- TARJETA BASE (Estado NO Seleccionado) --- */
-.specialty-card {
-    /* Fondo blanco, todo lo demás ROJO */
-    background-color: #ffffff;
-    border: 2px solid var(--utepsa-red); /* Borde rojo siempre */
-    color: var(--utepsa-red); /* Texto rojo */
-    cursor: pointer;
-    transition: all 0.25s ease-in-out;
-    position: relative;
-    overflow: hidden;
-}
-
-    /* Hover suave */
-    .specialty-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(200, 16, 46, 0.2); /* Sombra rojiza */
+    .form-control-pro:focus {
+        background-color: white;
+        border-color: var(--utepsa-red);
+        box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.1);
+        outline: none;
     }
 
-    /* Icono (Cajita) en estado normal */
-    .specialty-card .icon-box {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.25s ease-in-out;
-        /* Estado Normal: Fondo rojo muy suave, Icono Rojo */
-        background-color: rgba(200, 16, 46, 0.1);
-        color: var(--utepsa-red);
-    }
-
-/* Círculo de selección vacío */
-.circle-placeholder {
-    width: 22px;
-    height: 22px;
-    border: 2px solid var(--utepsa-red); /* Borde rojo */
-    border-radius: 50%;
-    opacity: 0.5;
+/* =========================================
+   5. EXTRAS & ANIMACIONES
+   ========================================= */
+.text-balance {
+    text-wrap: balance; /* Equilibra títulos automáticamente */
 }
 
-/* --- ESTADO ACTIVO (SELECCIONADO) --- */
-.specialty-card.active {
-    /* Inversión total: Fondo Rojo, lo demás Blanco */
-    background-color: var(--utepsa-red) !important;
-    color: white !important;
-    border-color: var(--utepsa-red);
+.animate-enter {
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-    /* Icono en estado activo */
-    .specialty-card.active .icon-box {
-        background-color: white; /* Cajita blanca para contraste */
-        color: var(--utepsa-red); /* Icono rojo dentro de la cajita */
-    }
-
-    /* Check de selección */
-    .specialty-card.active .bi-check-circle-fill {
-        color: white !important; /* Check blanco */
-    }
-
-/* --- Animaciones (Igual que antes) --- */
-.ls-1 {
-    letter-spacing: 1px;
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.4s ease-out;
-}
-
-.animate-pop {
-    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes fadeIn {
+@keyframes slideUpFade {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(20px);
     }
 
     to {
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-@keyframes popIn {
-    0% {
-        transform: scale(0);
-    }
-
-    80% {
-        transform: scale(1.2);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-/* =========================================
-   7. NOTIFICACIONES TOAST
-   ========================================= */
-
-/* Estilos para Notificaciones Toast */
-#toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.toast-notification {
-    background: white;
-    color: #333;
-    padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 300px;
-    transform: translateX(120%);
-    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-    border-left: 5px solid #ccc;
-}
-
-    .toast-notification.show {
-        transform: translateX(0);
-    }
-
-.toast-success {
-    border-left-color: #198754;
-}
-
-    .toast-success i {
-        color: #198754;
-        font-size: 1.2rem;
-    }
-
-.toast-error {
-    border-left-color: #dc3545;
-}
-
-    .toast-error i {
-        color: #dc3545;
-        font-size: 1.2rem;
-    }
-
-.toast-info {
-    border-left-color: #0dcaf0;
-}
-
-    .toast-info i {
-        color: #0dcaf0;
-        font-size: 1.2rem;
-    }
-
-/* Sobrescribir estilos para Alertas LLAMATIVAS */
-.toast-danger {
-    background-color: #dc3545 !important; /* Rojo Intenso */
-    color: white !important;
-    border-left: 15px solid #8a1f29 !important; /* Borde grueso oscuro */
-    box-shadow: 0 10px 40px rgba(220, 53, 69, 0.6) !important; /* Resplandor rojo */
-    font-size: 1.1rem;
-}
-
-    .toast-danger i {
-        color: white !important;
-    }
-
-/* =========================================
-   8. MEJORAS VISUALES MANUALES (BRANDING)
-   ========================================= */
-
-/* Títulos corporativos (Reemplaza al azul por defecto) */
-.text-brand {
-    color: var(--utepsa-red) !important;
-}
-
-/* Etiquetas (Tags) estilo UTEPSA */
-.badge-utepsa-tag {
-    background-color: var(--utepsa-light); /* Fondo claro */
-    color: var(--utepsa-dark); /* Texto oscuro */
-    border: 1px solid #e0e0e0;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-    .badge-utepsa-tag:hover {
-        background-color: var(--utepsa-red); /* Rojo al pasar el mouse */
-        color: white;
-        border-color: var(--utepsa-red);
-    }
-
-/* Enlaces dentro de textos (para que no sean azules estándar) */
-.manual-content a {
-    color: var(--utepsa-red);
-    text-decoration: underline;
 }
