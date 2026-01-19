@@ -129,12 +129,15 @@
 </style>
 
 @code {
-    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
     private ClaimsPrincipal? user;
 
     protected override async Task OnInitializedAsync()
     {
-        try // <--- ESTO ES CRÍTICO
+        // --- CORRECCIÓN CRÍTICA: Try-Catch para evitar crash en todas las vistas ---
+        try
         {
             if (AuthState != null)
             {
@@ -144,10 +147,10 @@
         }
         catch (Exception ex)
         {
-            // Si falla la autenticación al iniciar (ej. error de Storage),
-            // atrapamos el error para que el menú no rompa la página entera.
-            Console.WriteLine($"Error en NavMenu: {ex.Message}");
-            user = null; // Asumimos usuario no conectado
+            // Si la autenticación falla por la migración a .NET 9,
+            // esto evita que salga la barra amarilla.
+            Console.WriteLine($"Error cargando usuario en menú: {ex.Message}");
+            user = null;
         }
     }
 
@@ -155,6 +158,7 @@
     {
         try
         {
+            // Validación extra contra nulos
             return user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
         }
         catch
