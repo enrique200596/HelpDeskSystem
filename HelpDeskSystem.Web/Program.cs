@@ -10,9 +10,17 @@ using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Base de Datos
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// 1. Obtener cadena de conexión
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+// 2. Registrar la Fábrica (Singleton) - ESTO ES LO PRINCIPAL PARA BLAZOR
 builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseSqlServer(connectionString));
+
+// 3. Registrar el Contexto Normal (Scoped) - SOLUCIÓN DEL ERROR
+// En lugar de usar AddDbContext (que crea el conflicto), lo registramos manualmente 
+// diciéndole que use la fábrica para crear la instancia.
+builder.Services.AddScoped<AppDbContext>(p => p.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
 // 2. Seguridad
 builder.Services.AddAuthentication("Cookies").AddCookie("Cookies", options => { options.LoginPath = "/login"; options.ExpireTimeSpan = TimeSpan.FromDays(1); });
