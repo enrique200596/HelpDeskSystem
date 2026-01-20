@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Claims;
-using HelpDeskSystem.Domain.Entities; // Necesario para la clase Usuario
+using HelpDeskSystem.Domain.Entities; // Asegúrate de tener este using
 
 namespace HelpDeskSystem.Web.Auth
 {
@@ -15,20 +15,18 @@ namespace HelpDeskSystem.Web.Auth
             _sessionStorage = sessionStorage;
         }
 
-        // --- MÉTODO BLINDADO PARA LEER SESIÓN (CORREGIDO) ---
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                // El try-catch aquí es VITAL. Evita que la app explote si se llama 
-                // antes de que el navegador esté conectado (prerendering).
+                // Protegemos la lectura para que no falle al iniciar
                 var userSessionResult = await _sessionStorage.GetAsync<UserSession>("UserSession");
                 var userSession = userSessionResult.Success ? userSessionResult.Value : null;
 
                 if (userSession == null)
                     return await Task.FromResult(new AuthenticationState(_anonymous));
 
-                // Aquí usamos las propiedades correctas de tu clase (Nombre, Email, Rol, Id)
+                // Usamos las propiedades correctas: Nombre, Email, Rol, Id
                 var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, userSession.Nombre),
@@ -41,13 +39,11 @@ namespace HelpDeskSystem.Web.Auth
             }
             catch
             {
-                // Si ocurre cualquier error de conexión o lectura, devolvemos anónimo
-                // en lugar de lanzar la pantalla amarilla de la muerte.
                 return await Task.FromResult(new AuthenticationState(_anonymous));
             }
         }
 
-        // --- MANTENEMOS ESTE NOMBRE PARA QUE NO FALLE EL LOGIN ---
+        // Mantenemos los métodos originales para que el Login funcione
         public async Task MarcarUsuarioComoAutenticado(Usuario usuario)
         {
             var userSession = new UserSession
@@ -71,7 +67,6 @@ namespace HelpDeskSystem.Web.Auth
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
         }
 
-        // --- MANTENEMOS ESTE NOMBRE PARA QUE NO FALLE EL LOGOUT ---
         public async Task MarcarUsuarioComoDesconectado()
         {
             await _sessionStorage.DeleteAsync("UserSession");
