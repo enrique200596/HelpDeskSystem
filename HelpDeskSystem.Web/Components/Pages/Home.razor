@@ -236,6 +236,40 @@
             transform: translateY(-3px);
             box-shadow: var(--shadow-hover);
         }
+
+    .animate-enter {
+        animation: fadeIn 0.4s ease-out forwards;
+        opacity: 0;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Alternar retrasos para un efecto de "cascada" en las tarjetas */
+    .row > .animate-enter:nth-child(1) {
+        animation-delay: 0.05s;
+    }
+
+    .row > .animate-enter:nth-child(2) {
+        animation-delay: 0.10s;
+    }
+
+    .row > .animate-enter:nth-child(3) {
+        animation-delay: 0.15s;
+    }
+
+    .row > .animate-enter:nth-child(4) {
+        animation-delay: 0.20s;
+    }
 </style>
 
 @code {
@@ -255,7 +289,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Suscripción al evento
+        // Suscripción al evento para actualizaciones en tiempo real
         StateContainer.OnChange += RecargarTicketsEnVivo;
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -277,13 +311,12 @@
             // BLINDAJE: Envolvemos la carga de datos en un try-catch
             try
             {
-                // Simulamos el delay (opcional, puedes quitarlo si quieres)
-                await Task.Delay(500);
+                // Se ha eliminado el Task.Delay(500) para maximizar la velocidad de respuesta.
                 await CargarLista();
             }
             catch (Exception ex)
             {
-                // Si falla, inicializamos la lista vacía para que no explote la vista
+                // Si falla, inicializamos la lista vacía para evitar errores de renderizado
                 Console.WriteLine($"Error cargando tickets: {ex.Message}");
                 tickets = new List<Ticket>();
             }
@@ -391,10 +424,16 @@
 
     private string ObtenerTiempoRelativo(DateTime fecha)
     {
-        var span = DateTime.Now - fecha;
+        // CAMBIO AQUÍ: Comparar usando UtcNow
+        var span = DateTime.UtcNow - fecha;
+
+        if (span.TotalMinutes < 1) return "Justo ahora";
         if (span.TotalMinutes < 60) return $"Hace {span.Minutes} min";
         if (span.TotalHours < 24) return $"Hace {span.Hours} h";
-        return fecha.ToString("dd MMM");
+
+        // Si es de días anteriores, lo convertimos a hora local del navegador
+        // o simplemente lo mostramos en formato corto.
+        return fecha.ToLocalTime().ToString("dd MMM");
     }
 
     // Asegúrate de que al inicio del archivo diga: @implements IDisposable

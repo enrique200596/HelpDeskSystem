@@ -59,8 +59,17 @@
 
                         <div class="d-flex justify-content-end gap-2">
                             <a href="/" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="bi bi-send-fill me-1"></i> Enviar Solicitud
+                            <button type="submit" class="btn btn-primary px-4" disabled="@estaGuardando">
+                                @if (estaGuardando)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Enviando...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-send-fill me-1"></i>
+                                    <span>Enviar Solicitud</span>
+                                }
                             </button>
                         </div>
 
@@ -75,6 +84,9 @@
     private NuevoTicketModel nuevoTicketModel = new();
     private Guid usuarioActualId = Guid.Empty;
     private List<Categoria> listaCategorias = new();
+
+    // MEJORA: Variable para evitar múltiples envíos y controlar la UI
+    private bool estaGuardando = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -92,21 +104,36 @@
 
     private async Task Guardar()
     {
-        if (usuarioActualId == Guid.Empty) return;
+        // Validación de seguridad: si ya se está guardando o no hay ID, ignoramos clics extra
+        if (usuarioActualId == Guid.Empty || estaGuardando) return;
 
-        var nuevoTicket = new Ticket
+        estaGuardando = true; // Bloqueamos el proceso
+
+        try
         {
-            Titulo = nuevoTicketModel.Titulo,
-            Descripcion = nuevoTicketModel.Descripcion,
-            CategoriaId = nuevoTicketModel.CategoriaId,
-            EsUrgente = nuevoTicketModel.EsUrgente,
-            UsuarioId = usuarioActualId,
-            FechaCreacion = DateTime.Now,
-            Estado = HelpDeskSystem.Domain.Enums.EstadoTicket.Abierto
-        };
+            var nuevoTicket = new Ticket
+            {
+                Titulo = nuevoTicketModel.Titulo,
+                Descripcion = nuevoTicketModel.Descripcion,
+                CategoriaId = nuevoTicketModel.CategoriaId,
+                EsUrgente = nuevoTicketModel.EsUrgente,
+                UsuarioId = usuarioActualId,
+                FechaCreacion = DateTime.UtcNow, // Mantenemos el estándar UTC
+                Estado = HelpDeskSystem.Domain.Enums.EstadoTicket.Abierto
+            };
 
-        await ServicioTickets.GuardarTicketAsync(nuevoTicket);
-        Navegacion.NavigateTo("/");
+            await ServicioTickets.GuardarTicketAsync(nuevoTicket);
+
+            // Navegamos al éxito
+            Navegacion.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            // Si hay un error de red o base de datos, liberamos el botón para reintentar
+            Console.WriteLine($"Error al guardar: {ex.Message}");
+            estaGuardando = false;
+            StateHasChanged();
+        }
     }
 
     public class NuevoTicketModel

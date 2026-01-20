@@ -161,21 +161,24 @@
 @code {
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string ReturnUrl { get; set; } = "";
-
     [SupplyParameterFromQuery(Name = "error")]
     public string MensajeError { get; set; } = "";
-
     private bool mostrarPassword = false;
     private bool estaCargando = false;
-
     private void TogglePassword() => mostrarPassword = !mostrarPassword;
 
-    // Solo visual, el post real lo hace el navegador
-    private void IniciarCarga()
+    private async Task IniciarCarga()
     {
+        if (estaCargando) return;
+
         estaCargando = true;
-        // Pequeño hack: Si el form es inválido, el navegador cancela el submit pero el botón se queda cargando.
-        // En Blazor server puro usaríamos EditForm, pero aquí respetamos tu controlador MVC actual.
-        // Para mejorar esto, un Task.Delay podría resetearlo si no navega, pero por ahora está bien como feedback visual inmediato.
+
+        // Como el formulario hace un POST tradicional, el navegador debería
+        // recargar la página o navegar. Si después de 10 segundos no ha
+        // pasado nada, liberamos el botón para que el usuario reintente.
+        await Task.Delay(10000);
+
+        estaCargando = false;
+        StateHasChanged();
     }
 }
