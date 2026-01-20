@@ -17,7 +17,7 @@ namespace HelpDeskSystem.Web.Services
         public async Task<List<Usuario>> ObtenerAsesoresAsync()
         {
             using var context = _dbFactory.CreateDbContext();
-            // Simplificado: El filtro global ya se encarga de 'IsActive == true'
+            // El filtro global en AppDbContext ya se encarga de 'IsActive == true'
             return await context.Usuarios
                 .Where(u => u.Rol == RolUsuario.Asesor)
                 .AsNoTracking()
@@ -27,21 +27,75 @@ namespace HelpDeskSystem.Web.Services
         public async Task<List<Usuario>> ObtenerTodosLosUsuariosAsync()
         {
             using var context = _dbFactory.CreateDbContext();
-            // IMPORTANTE: En una lista de gestión para el Administrador, 
-            // queremos ver TODOS (activos e inactivos) para poder reactivarlos.
+            // IgnoreQueryFilters() permite al Administrador ver y reactivar usuarios inactivos
             return await context.Usuarios
-                .IgnoreQueryFilters() // Saltamos el filtro global para ver inactivos
+                .IgnoreQueryFilters()
                 .OrderBy(u => u.Nombre)
                 .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<bool> CrearUsuarioAsync(Usuario usuario, string password)
+        {
+            using var context = _dbFactory.CreateDbContext();
+
+            // Verificamos si el correo ya existe, incluso entre inactivos, para evitar duplicados
+            if (await context.Usuarios.IgnoreQueryFilters().AnyAsync(u => u.Email == usuario.Email))
+                return false;
+
+            // Hasheo de contraseña profesional
+            usuario.Password = BCrypt.Net.BCrypt.HashPassword(password);
+
+            if (usuario.Id == Guid.Empty)
+                usuario.Id = Guid.NewGuid();
+
+            context.Usuarios.Add(usuario);
+            await context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<Usuario?> ObtenerUsuarioConCategoriasAsync(Guid userId)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            // Usamos IgnoreQueryFilters por si se necesita gestionar un usuario actualmente inactivo
+            return await context.Usuarios
+                .IgnoreQueryFilters()
+                .Include(u => u.Categorias)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task ActualizarCategoriasUsuarioAsync(Guid userId, List<int> idsCategoriasSeleccionadas)
+        {
+            using var context = _dbFactory.CreateDbContext();
+
+            var usuario = await context.Usuarios
+                .IgnoreQueryFilters()
+                .Include(u => u.Categorias)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (usuario != null)
+            {
+                usuario.Categorias.Clear();
+
+                var nuevasCategorias = await context.Categorias
+                    .Where(c => idsCategoriasSeleccionadas.Contains(c.Id))
+                    .ToListAsync();
+
+                foreach (var cat in nuevasCategorias)
+                {
+                    usuario.Categorias.Add(cat);
+                }
+
+                await context.SaveChangesAsync();
+            }
         }
 
         public async Task<bool> ActualizarUsuarioAsync(Usuario usuarioModificado)
         {
             using var context = _dbFactory.CreateDbContext();
 
-            // Usamos IgnoreQueryFilters() porque si el usuario está inactivo, 
-            // un FindAsync normal no lo encontraría para editarlo.
+            // IgnoreQueryFilters() es vital para encontrar y reactivar usuarios con IsActive = false
             var usuarioDb = await context.Usuarios
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(u => u.Id == usuarioModificado.Id);
@@ -57,16 +111,27 @@ namespace HelpDeskSystem.Web.Services
             return true;
         }
 
+        public async Task<bool> CambiarPasswordAsync(Guid userId, string nuevaPasswordPlana)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            var usuarioDb = await context.Usuarios
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (usuarioDb == null) return false;
+
+            usuarioDb.Password = BCrypt.Net.BCrypt.HashPassword(nuevaPasswordPlana);
+            await context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<Usuario?> ObtenerPorEmailAsync(string email)
         {
             using var context = _dbFactory.CreateDbContext();
-            // Para el Login, el filtro global es perfecto: 
-            // si un usuario está inactivo, no podrá entrar porque no lo encontrará.
+            // Para el Login NO usamos IgnoreQueryFilters: si el usuario está inactivo, el sistema no lo encuentra
             return await context.Usuarios
                 .Include(u => u.Categorias)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
-
-        // ... Los métodos de creación y cambio de password se mantienen similares ...
     }
 }

@@ -7,7 +7,6 @@ namespace HelpDeskSystem.Web.Services
 {
     public class ReportService : IReportService
     {
-        // CAMBIO: Usar Factory
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
         public ReportService(IDbContextFactory<AppDbContext> dbFactory)
@@ -15,15 +14,15 @@ namespace HelpDeskSystem.Web.Services
             _dbFactory = dbFactory;
         }
 
-        // Método helper estático o privado para reutilizar lógica de filtros
-        // Nota: Recibe IQueryable, funciona siempre que se consuma dentro del mismo contexto
         private IQueryable<Ticket> AplicarFiltro(IQueryable<Ticket> query, Guid? asesorId, DateTime? desde, DateTime? hasta)
         {
             if (asesorId.HasValue) query = query.Where(t => t.AsesorId == asesorId.Value);
-            if (desde.HasValue) query = query.Where(t => t.FechaCreacion >= desde.Value);
+
+            // Aseguramos que los filtros de fecha traten las entradas como UTC
+            if (desde.HasValue) query = query.Where(t => t.FechaCreacion >= desde.Value.ToUniversalTime());
             if (hasta.HasValue)
             {
-                var finDelDia = hasta.Value.Date.AddDays(1).AddTicks(-1);
+                var finDelDia = hasta.Value.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
                 query = query.Where(t => t.FechaCreacion <= finDelDia);
             }
             return query;
@@ -36,30 +35,36 @@ namespace HelpDeskSystem.Web.Services
 
             query = AplicarFiltro(query, asesorId, desde, hasta);
 
-            var ticketsCerrados = await query
+            // OPTIMIZACIÓN 10/10: Calculamos la diferencia de tiempo en el servidor de BD
+            // Usamos una proyección para obtener solo los minutos totales de resolución
+            var minutosResolucion = await query
                 .Where(t => t.Estado == EstadoTicket.Resuelto && t.FechaCierre != null)
-                .Select(t => new { t.FechaCreacion, t.FechaCierre }) // Proyección para eficiencia
+                .Select(t => EF.Functions.DateDiffMinute(t.FechaCreacion, t.FechaCierre!.Value))
                 .ToListAsync();
 
-            if (!ticketsCerrados.Any()) return "0.0 horas";
+            if (!minutosResolucion.Any()) return "0.0 horas";
 
-            double totalHoras = ticketsCerrados.Sum(t => (t.FechaCierre!.Value - t.FechaCreacion).TotalHours);
-            double promedio = totalHoras / ticketsCerrados.Count;
+            double promedioHoras = minutosResolucion.Average() / 60.0;
 
-            return $"{promedio:F1} horas";
+            return $"{promedioHoras:F1} horas";
         }
 
         public async Task<List<ReporteDato>> ObtenerTicketsPorCategoria(Guid? asesorId = null, DateTime? desde = null, DateTime? hasta = null)
         {
             using var context = _dbFactory.CreateDbContext();
-            var query = context.Tickets.Include(t => t.Categoria).AsNoTracking().AsQueryable();
+            var query = context.Tickets.AsNoTracking().AsQueryable();
 
             query = AplicarFiltro(query, asesorId, desde, hasta);
             query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
 
+            // Agrupamos directamente en la base de datos por el nombre de la categoría
             var datos = await query
-                .GroupBy(t => t.Categoria != null ? t.Categoria.Nombre : "Sin Categoría")
-                .Select(g => new ReporteDato { Etiqueta = g.Key, Valor = g.Count() })
+                .GroupBy(t => t.Categoria.Nombre)
+                .Select(g => new ReporteDato
+                {
+                    Etiqueta = g.Key ?? "Sin Categoría",
+                    Valor = g.Count()
+                })
                 .ToListAsync();
 
             int total = datos.Sum(d => d.Valor);
@@ -75,8 +80,7 @@ namespace HelpDeskSystem.Web.Services
                 .Include(t => t.Usuario)
                 .Include(t => t.Asesor)
                 .Include(t => t.Categoria)
-                .AsNoTracking()
-                .AsQueryable();
+                .AsNoTracking();
 
             query = AplicarFiltro(query, asesorId, desde, hasta);
             query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
