@@ -10,21 +10,16 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="HelpDeskSystem.Web.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-
-    @* CDN de Iconos Bootstrap (Requerido para que se vean los iconos en tu Dashboard) *@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
 
-    @* --- CORRECCIÓN CRÍTICA 1: Desactivar prerender en HeadOutlet --- *@
+    @* IMPORTANTE: prerender: false *@
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 <body>
-    @* --- CORRECCIÓN CRÍTICA 2: Desactivar prerender en Routes --- *@
-    @* Esto evita que la autenticación intente ejecutarse antes de que exista la conexión JS *@
+    @* IMPORTANTE: prerender: false *@
     <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 
     <script src="_framework/blazor.web.js"></script>
-
-    @* Scripts necesarios para Bootstrap y tus notificaciones *@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/notificaciones.js"></script>
 </body>

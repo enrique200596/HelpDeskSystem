@@ -136,20 +136,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // --- CORRECCIÓN CRÍTICA: Try-Catch para evitar crash en todas las vistas ---
         try
         {
             if (AuthState != null)
             {
+                // Esperamos la autenticación con seguridad
                 var state = await AuthState;
                 user = state.User;
             }
         }
-        catch (Exception ex)
+        catch
         {
-            // Si la autenticación falla por la migración a .NET 9,
-            // esto evita que salga la barra amarilla.
-            Console.WriteLine($"Error cargando usuario en menú: {ex.Message}");
+            // Si falla la autenticación (ej. error de cookies), no rompemos el menú
             user = null;
         }
     }
@@ -158,7 +156,6 @@
     {
         try
         {
-            // Validación extra contra nulos
             return user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
         }
         catch
