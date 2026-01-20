@@ -1,14 +1,16 @@
 ﻿using HelpDeskSystem.Domain.Entities;
 using HelpDeskSystem.Domain.Enums;
+using HelpDeskSystem.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion; // Necesario para ValueConverter
 
 namespace HelpDeskSystem.Data
 {
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-        public AppDbContext() { }
 
+        public AppDbContext() { }
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Mensaje> Mensajes { get; set; }
@@ -16,50 +18,24 @@ namespace HelpDeskSystem.Data
         public DbSet<Manual> Manuales { get; set; }
         public DbSet<ManualLog> ManualLogs { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            // SE ELIMINÓ LA CADENA DE CONEXIÓN HARDCODED
-            // Ahora la aplicación utilizará la configuración inyectada desde Program.cs (appsettings.json).
-            // Si necesitas ejecutar migraciones manualmente desde consola sin iniciar la app, 
-            // usa el parámetro --connection o configura los User Secrets.
-        }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // 1. Configuración de Ticket
+            base.OnModelCreating(modelBuilder);
+
+            // 1. Configuración de Relaciones
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Usuario)
                 .WithMany()
                 .HasForeignKey(t => t.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 2. SEMILLA DE CATEGORÍAS (Estructurales del sistema)
-            // Se mantienen para que el sistema no esté vacío de opciones al iniciar.
-            var catFinanzas = new Categoria { Id = 1, Nombre = "Sistema Financiero" };
-            var catGenesis = new Categoria { Id = 2, Nombre = "Sistema Genesis" };
-            var catReportes = new Categoria { Id = 3, Nombre = "Reportes" };
+            modelBuilder.Entity<ManualLog>()
+                .HasOne(log => log.Usuario)
+                .WithMany()
+                .HasForeignKey(log => log.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Categoria>().HasData(catFinanzas, catGenesis, catReportes);
-
-            // 3. USUARIO ADMINISTRADOR (Único usuario inicial)
-            // Necesario para poder hacer Login y crear a los demás usuarios desde la App.
-            var idAdmin = Guid.Parse("11111111-1111-1111-1111-111111111111");
-
-            modelBuilder.Entity<Usuario>().HasData(
-                new Usuario
-                {
-                    Id = idAdmin,
-                    Nombre = "Administrador Jefe",
-                    Email = "admin@helpdesk.com",
-                    Rol = RolUsuario.Administrador,
-                    // Password es "admin" encriptado con BCrypt
-                    Password = BCrypt.Net.BCrypt.HashPassword("$50pt3Uteps4"),
-                    IsActive = true
-                }
-            );
-
-            // 4. RELACIÓN MUCHOS A MUCHOS (ASESORES <-> CATEGORÍAS)
-            // Definimos la estructura de la tabla intermedia sin insertar datos falsos.
+            // 2. Relación Muchos a Muchos (Asesores <-> Categorías)
             modelBuilder.Entity<Usuario>()
                 .HasMany(u => u.Categorias)
                 .WithMany(c => c.Asesores)
@@ -69,12 +45,42 @@ namespace HelpDeskSystem.Data
                     j => j.HasOne<Usuario>().WithMany().HasForeignKey("AsesoresId")
                 );
 
-            // 5. Configuración de ManualLog
-            modelBuilder.Entity<ManualLog>()
-                .HasOne(log => log.Usuario)
-                .WithMany()
-                .HasForeignKey(log => log.UsuarioId)
-                .OnDelete(DeleteBehavior.Restrict); // Protege la auditoría
+            // 3. Semilla de Categorías
+            modelBuilder.Entity<Categoria>().HasData(
+                new Categoria { Id = 1, Nombre = "Sistema Financiero" },
+                new Categoria { Id = 2, Nombre = "Sistema Genesis" },
+                new Categoria { Id = 3, Nombre = "Reportes" }
+            );
+
+            // 4. Filtros Globales Automáticos
+            modelBuilder.Entity<Ticket>().HasQueryFilter(t => !t.IsDeleted);
+            modelBuilder.Entity<Manual>().HasQueryFilter(m => !m.IsDeleted);
+            modelBuilder.Entity<Usuario>().HasQueryFilter(u => u.IsActive);
+            modelBuilder.Entity<Categoria>().HasQueryFilter(c => c.IsActive);
+
+            // 5. SOLUCIÓN AL ERROR CS1660: Conversión Global a UTC con ValueConverter explícito
+            var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
+                v => v,
+                v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+            var nullableDateTimeConverter = new ValueConverter<DateTime?, DateTime?>(
+                v => v,
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType == typeof(DateTime))
+                    {
+                        property.SetValueConverter(dateTimeConverter);
+                    }
+                    else if (property.ClrType == typeof(DateTime?))
+                    {
+                        property.SetValueConverter(nullableDateTimeConverter);
+                    }
+                }
+            }
         }
     }
 }

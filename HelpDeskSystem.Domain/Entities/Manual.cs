@@ -1,10 +1,11 @@
-﻿using System;
+﻿using HelpDeskSystem.Domain.Interfaces;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HelpDeskSystem.Domain.Entities
 {
-    public class Manual
+    public class Manual : ISoftDelete, IActiveable
     {
         [Key]
         public int Id { get; set; }
@@ -33,7 +34,7 @@ namespace HelpDeskSystem.Domain.Entities
 
         // ---------------------
 
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
         public DateTime? UltimaActualizacion { get; set; }
 
         public Guid AutorId { get; set; }

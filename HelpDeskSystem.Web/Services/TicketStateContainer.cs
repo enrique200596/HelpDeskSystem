@@ -1,14 +1,15 @@
-﻿// HelpDeskSystem.Web/Services/TicketStateContainer.cs
+﻿using HelpDeskSystem.Domain.Enums;
+
 namespace HelpDeskSystem.Web.Services
 {
     public class TicketStateContainer
     {
-        // Firma: ID, Título, Remitente, ID Dueño Ticket, ID Asesor Ticket
-        public event Action<int?, string?, string?, Guid?, Guid?>? OnChange;
+        // Nueva firma: ID Ticket, Título, Tipo Evento, Nombre Ejecutor, ID Dueño, ID Asesor
+        public event Action<int?, string?, TipoNotificacion, string?, Guid?, Guid?>? OnChange;
 
-        public void NotifyStateChanged(int? ticketId = null, string? titulo = null, string? remitente = null, Guid? ownerId = null, Guid? asesorId = null)
+        public void NotifyStateChanged(int? ticketId, string? titulo, TipoNotificacion tipo, string? nombreEjecutor, Guid? ownerId, Guid? asesorId)
         {
-            OnChange?.Invoke(ticketId, titulo, remitente, ownerId, asesorId);
+            OnChange?.Invoke(ticketId, titulo, tipo, nombreEjecutor, ownerId, asesorId);
         }
     }
 }

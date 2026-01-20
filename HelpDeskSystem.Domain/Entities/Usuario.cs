@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HelpDeskSystem.Domain.Enums;
+using HelpDeskSystem.Domain.Interfaces;
 
 namespace HelpDeskSystem.Domain.Entities
 {
-    public class Usuario
+    public class Usuario : IActiveable
     {
         public Guid Id { get; set; }
         public string Nombre { get; set; } = string.Empty;

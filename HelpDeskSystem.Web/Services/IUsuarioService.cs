@@ -9,9 +9,9 @@ namespace HelpDeskSystem.Web.Services
         Task<Usuario?> ObtenerUsuarioConCategoriasAsync(Guid userId);
         Task ActualizarCategoriasUsuarioAsync(Guid userId, List<int> idsCategoriasSeleccionadas);
 
-        // --- NUEVOS MÉTODOS PARA GESTIÓN ---
+        // --- MÉTODOS PARA GESTIÓN ---
         Task<List<Usuario>> ObtenerTodosLosUsuariosAsync();
-        Task<bool> ActualizarUsuarioAsync(Usuario usuario);
+        Task<bool> ActualizarUsuarioAsync(Usuario usuarioModificado);
         Task<bool> CambiarPasswordAsync(Guid userId, string nuevaPasswordPlana);
         Task<Usuario?> ObtenerPorEmailAsync(string email);
     }
