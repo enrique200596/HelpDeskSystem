@@ -178,5 +178,9 @@
 
     private string ObtenerIniciales(string? nombre) => string.IsNullOrEmpty(nombre) ? "U" : nombre.Substring(0, 1).ToUpper();
 
-    public void Dispose() { NavManager.LocationChanged -= AlCambiarUrl; StateContainer.OnChange -= ManejarCambioGlobal; }
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= AlCambiarUrl;
+        StateContainer.OnChange -= ManejarCambioGlobal;
+    }
 }
