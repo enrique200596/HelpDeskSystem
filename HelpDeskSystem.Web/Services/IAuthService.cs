@@ -4,7 +4,10 @@ namespace HelpDeskSystem.Web.Services
 {
     public interface IAuthService
     {
-        // Cambiamos el retorno a una tupla (Usuario?, string)
+        /// <summary>
+        /// Procesa el inicio de sesión de un usuario.
+        /// Retorna una tupla con el Usuario (si tiene éxito) y un mensaje de error amigable.
+        /// </summary>
         Task<(Usuario? Usuario, string MensajeError)> LoginAsync(string email, string password);
     }
 }
