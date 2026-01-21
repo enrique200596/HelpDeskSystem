@@ -76,13 +76,18 @@
             </AuthorizeView>
         </header>
 
-        <main class="flex-grow-1 overflow-auto p-0 scroll-smooth">
-            @Body
-            <div class="container-fluid px-4 py-3">
-                <footer class="text-center text-muted small mt-4 pb-4 opacity-50">
-                    &copy; @DateTime.Now.Year HelpDesk UTEPSA - Todos los derechos reservados
-                </footer>
+        @* CONTENEDOR CON SCROLL INTELIGENTE *@
+        <main class="flex-grow-1 overflow-auto d-flex flex-column" style="background-color: var(--bg-app);">
+
+            @* Este div absorbe el espacio sobrante si la página tiene poco contenido *@
+            <div class="flex-grow-1 p-0">
+                @Body
             </div>
+
+            @* El footer ahora se pegará siempre al final (mt-auto) *@
+            <footer class="text-center text-muted small py-3 opacity-50 border-top mt-auto bg-white bg-opacity-25">
+                &copy; @DateTime.Now.Year HelpDesk UTEPSA - Todos los derechos reservados
+            </footer>
         </main>
     </div>
 </div>

@@ -31,6 +31,21 @@ html, body {
     background-color: var(--bg-app);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased; /* Texto más nítido */
+    height: 100vh !important;
+    min-height: 100vh !important;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Evita que el navegador genere su propio scroll */
+}
+
+/* El elemento raíz donde Blazor inyecta el contenido */
+#app {
+    height: 100%;
+}
+
+/* Ajuste para el MainLayout */
+.bg-app {
+    min-height: 100vh;
 }
 
 /* =========================================
