@@ -59,6 +59,9 @@
                 }
 
                 <form action="/account/login" method="post">
+                    @* ADICIÓN CRÍTICA: Esto genera el token que el AccountController exige *@
+                    <AntiforgeryToken />
+
                     <input type="hidden" name="returnUrl" value="@ReturnUrl" />
 
                     @* Input: Email *@

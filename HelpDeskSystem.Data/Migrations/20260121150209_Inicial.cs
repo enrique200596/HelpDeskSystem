@@ -143,7 +143,7 @@ namespace HelpDeskSystem.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ManualId = table.Column<int>(type: "int", nullable: false),
-                    Accion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Accion = table.Column<int>(type: "int", nullable: false),
                     Detalle = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FechaEvento = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UsuarioId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
@@ -203,11 +203,6 @@ namespace HelpDeskSystem.Data.Migrations
                     { 2, true, "Sistema Genesis" },
                     { 3, true, "Reportes" }
                 });
-
-            migrationBuilder.InsertData(
-                table: "Usuarios",
-                columns: new[] { "Id", "Email", "FotoPerfilUrl", "IsActive", "Nombre", "Password", "Rol" },
-                values: new object[] { new Guid("11111111-1111-1111-1111-111111111111"), "admin@helpdesk.com", "", true, "Administrador Jefe", "$2a$11$1HNOG2ZR2uupKVADY9XI4eyIw36CkVYl0xGXfdxqoaB1MMO4cmY.m", 1 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Manuales_AutorId",

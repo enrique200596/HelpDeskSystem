@@ -17,7 +17,7 @@ namespace HelpDeskSystem.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -119,10 +119,8 @@ namespace HelpDeskSystem.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Accion")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("Accion")
+                        .HasColumnType("int");
 
                     b.Property<string>("Detalle")
                         .HasColumnType("nvarchar(max)");
@@ -266,18 +264,6 @@ namespace HelpDeskSystem.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Usuarios");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            Email = "admin@helpdesk.com",
-                            FotoPerfilUrl = "",
-                            IsActive = true,
-                            Nombre = "Administrador Jefe",
-                            Password = "$2a$11$1HNOG2ZR2uupKVADY9XI4eyIw36CkVYl0xGXfdxqoaB1MMO4cmY.m",
-                            Rol = 1
-                        });
                 });
 
             modelBuilder.Entity("UsuarioCategoria", b =>
