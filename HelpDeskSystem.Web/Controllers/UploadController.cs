@@ -47,7 +47,7 @@ namespace HelpDeskSystem.Web.Controllers
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!ExtensionesPermitidas.Contains(extension))
             {
-                _logger.LogSecurity("Intento de subir extensión no permitida: {Ext} por usuario {User}", extension, userName);
+                _logger.LogWarning("Intento de subir extensión no permitida: {Ext} por usuario {User}", extension, userName);
                 return BadRequest("Formato de imagen no permitido.");
             }
 

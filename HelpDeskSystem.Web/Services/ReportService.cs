@@ -58,14 +58,10 @@ namespace HelpDeskSystem.Web.Services
             query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
 
             // Agrupamos directamente en la base de datos por el nombre de la categoría
-            var datos = await query
-                .GroupBy(t => t.Categoria.Nombre)
-                .Select(g => new ReporteDato
-                {
-                    Etiqueta = g.Key ?? "Sin Categoría",
-                    Valor = g.Count()
-                })
-                .ToListAsync();
+            var datos = await query.GroupBy(t => t.Categoria != null ? t.Categoria.Nombre : "Sin Categoría").Select(g => new ReporteDato {
+                Etiqueta = g.Key,
+                Valor = g.Count()
+            }).ToListAsync();
 
             int total = datos.Sum(d => d.Valor);
             foreach (var d in datos) d.Porcentaje = total > 0 ? (d.Valor * 100) / total : 0;

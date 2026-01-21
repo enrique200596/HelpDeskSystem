@@ -1,4 +1,5 @@
 ﻿@using HelpDeskSystem.Domain.Entities
+@using HelpDeskSystem.Domain.Enums @* ADICIÓN: Necesario para los Enums *@
 @using HelpDeskSystem.Web.Services
 @inject IManualService ManualService
 
@@ -60,22 +61,23 @@
                                                 </div>
                                             </td>
                                             <td>
+                                                @* CORRECCIÓN: Comparación contra Enum TipoAccionManual *@
                                                 @switch (log.Accion)
                                                 {
-                                                    case "Creación":
+                                                    case TipoAccionManual.Creacion:
                                                         <span class="badge bg-success">Creación</span>
                                                         break;
-                                                    case "Edición":
-
+                                                    case TipoAccionManual.Edicion:
                                                         <span class="badge bg-primary">Edición</span>
                                                         break;
-                                                    case "Eliminación Lógica":
-
+                                                    case TipoAccionManual.EliminacionLogica:
                                                         <span class="badge bg-warning text-dark">Desactivado</span>
                                                         break;
+                                                    case TipoAccionManual.Reactivacion:
+                                                        <span class="badge bg-info">Reactivado</span>
+                                                        break;
                                                     default:
-
-                                                        <span class="badge bg-secondary">@log.Accion</span>
+                                                        <span class="badge bg-secondary">@log.Accion.ToString()</span>
                                                         break;
                                                 }
                                             </td>
@@ -106,9 +108,8 @@
         Mostrar = true;
         TituloManual = titulo;
         cargando = true;
-        StateHasChanged(); // Forzar renderizado para mostrar spinner
+        StateHasChanged();
 
-        // Cargar datos
         logs = await ManualService.ObtenerHistorialAsync(manualId);
 
         cargando = false;

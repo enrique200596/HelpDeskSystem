@@ -492,7 +492,7 @@
         mensajes = await ServicioChat.ObtenerMensajesPorTicketId(Id);
     }
 
-    private async void ActualizarChatEnVivo(int? ticketIdNotificado, string? t, string? r, Guid? o, Guid? a)
+    private async void ActualizarChatEnVivo(int? ticketIdNotificado, string? t, TipoNotificacion tipo, string? r, Guid? o, Guid? a)
     {
         try
         {

@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @using HelpDeskSystem.Web.Services
+@using HelpDeskSystem.Domain.Enums @* <--- ESTA ES LA LÍNEA QUE SOLUCIONA EL ERROR *@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @inject NavigationManager NavManager
@@ -72,7 +73,6 @@
 
         @* CONTENEDOR CON SCROLL *@
         <main class="flex-grow-1 overflow-auto p-0 scroll-smooth">
-            @* Aquí se renderiza Home, Dashboard, etc. *@
             @Body
 
             <div class="container-fluid px-4 py-3">
@@ -111,11 +111,9 @@
 @code {
     private string nombrePagina = "";
 
-    // --- LÓGICA DE NOTIFICACIONES (PRESERVADA) ---
-    // --- LÓGICA DE NOTIFICACIONES CORREGIDA (BLINDADA) ---
-    private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, string? remitente, Guid? ownerId, Guid? asesorId)
+    private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, TipoNotificacion tipo, string? remitente, Guid? ownerId, Guid? asesorId)
     {
-        try // <--- ESTO ES LO QUE FALTA PARA EVITAR EL CRASH
+        try
         {
             await InvokeAsync(async () =>
             {
@@ -141,20 +139,16 @@
                 if (!string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente))
                     mensajeNotificacion = $"{remitente}: {tituloTicket}";
 
-                // Protegemos la llamada a JS también
                 try
                 {
                     await JS.InvokeVoidAsync("verificarYNotificar", mensajeNotificacion, "info", estaViendoElTicket);
                 }
-                catch { /* Ignorar error de JS si el componente se está desmontando */ }
+                catch { }
 
                 StateHasChanged();
             });
         }
-        catch
-        {
-            // Si algo falla aquí arriba, lo ignoramos para que NO salga la barra amarilla
-        }
+        catch { }
     }
 
     protected override void OnInitialized()
@@ -166,7 +160,6 @@
 
     private void AlCambiarUrl(object? sender, LocationChangedEventArgs e) { ActualizarNombrePagina(); StateHasChanged(); }
 
-    // Simplificado para el ejemplo, puedes expandir tu lógica de nombres aquí
     private void ActualizarNombrePagina()
     {
         var uri = NavManager.Uri.ToLower();
