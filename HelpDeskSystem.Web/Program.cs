@@ -42,8 +42,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddCascadingAuthenticationState(); // Requerido para Blazor 8+
-builder.Services.AddControllers();
+builder.Services.AddCascadingAuthenticationState();
+
+// CORRECCIÓN: Registramos servicios de Vistas para soportar filtros de seguridad
+builder.Services.AddControllersWithViews();
+// ADICIÓN: Registramos el servicio que valida los tokens de seguridad
+builder.Services.AddAntiforgery();
 
 // Registro del Proveedor de Estado de Autenticación Personalizado
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();

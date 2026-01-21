@@ -275,7 +275,8 @@
         {
             await InvokeAsync(async () =>
             {
-                await CargarLista(); // <--- NOMBRE CORREGIDO AQUÍ
+                // CORRECCIÓN: El método que realmente carga los datos se llama CargarLista
+                await CargarLista();
                 StateHasChanged();
             });
         }
