@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using System.Threading
+@using System.Globalization
 @inject ITicketService ServicioTickets
 @inject IUsuarioService ServicioUsuarios
 @inject IChatService ServicioChat
@@ -18,270 +19,154 @@
 
 <PageTitle>Ticket #@Id | HelpDesk</PageTitle>
 
-<style>
-    /* --- PALETA INSTITUCIONAL --- */
-    :root {
-        --utepsa-red: #C8102E;
-        --utepsa-dark: #111111;
-        --chat-me-bg: #C8102E;
-        --chat-other-bg: #ffffff;
-    }
+<div class="container-fluid py-4 px-md-5 bg-app min-vh-100">
 
-    .bg-utepsa-red {
-        background-color: var(--utepsa-red) !important;
-        color: white;
-    }
-
-    .text-utepsa-red {
-        color: var(--utepsa-red) !important;
-    }
-
-    /* Botón Principal Personalizado */
-    .btn-utepsa {
-        background-color: var(--utepsa-red);
-        color: white;
-        border: none;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-
-        .btn-utepsa:hover {
-            background-color: #a30d25;
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-    /* Fondo del Chat */
-    .bg-chat {
-        background-color: #f2f4f8;
-        background-image: radial-gradient(#dfe3e8 1px, transparent 1px);
-        background-size: 20px 20px;
-    }
-
-    /* Burbujas de Chat */
-    .bubble {
-        padding: 12px 16px;
-        border-radius: 12px;
-        position: relative;
-        font-size: 0.95rem;
-        line-height: 1.5;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    .bubble-me {
-        background-color: var(--utepsa-red); /* ROJO INSTITUCIONAL */
-        color: white;
-        border-bottom-right-radius: 2px;
-    }
-
-    .bubble-other {
-        background-color: white;
-        color: #333;
-        border-bottom-left-radius: 2px;
-        border: 1px solid #e0e0e0;
-    }
-
-    /* Enlaces y Modales */
-    .hover-link:hover {
-        text-decoration: underline !important;
-        color: var(--utepsa-red) !important;
-    }
-
-    .modal-backdrop-custom {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.9);
-        z-index: 2000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .modal-image-content {
-        max-width: 90%;
-        max-height: 90vh;
-        border-radius: 8px;
-    }
-
-    .btn-close-modal {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        color: white;
-        background: none;
-        border: none;
-        font-size: 2rem;
-    }
-
-    /* Input Moderno */
-    .input-modern-container {
-        background: white;
-        border-radius: 30px;
-        border: 1px solid #dee2e6;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-    }
-</style>
-
-<div class="container-fluid py-4 px-md-5 bg-light min-vh-100">
-
-    @* --- BOTÓN VOLVER --- *@
-    <div class="mb-3">
-        <a href="/" class="text-decoration-none text-muted fw-bold small hover-link">
-            <i class="bi bi-arrow-left me-1"></i> Volver al Tablero
+    @* --- BOTÓN VOLVER: Alineación con Icono --- *@
+    <div class="mb-4">
+        <a href="/" class="text-decoration-none text-secondary fw-bold small hover-red d-inline-flex align-items-center transition-all">
+            <i class="bi bi-arrow-left-circle-fill me-2 fs-5"></i> Volver al Tablero
         </a>
     </div>
 
     @if (miTicket == null)
     {
         <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
-            <div class="spinner-border text-utepsa-red" role="status"></div>
+            <div class="spinner-grow text-utepsa-red" role="status"></div>
         </div>
     }
     else
     {
-        <div class="row g-4">
+        <div class="row g-4 animate-enter">
 
-            @* COLUMNA IZQUIERDA: INFORMACIÓN Y CONTEXTO *@
+            @* COLUMNA DERECHA: INFORMACIÓN Y CONTEXTO (Alineación Estricta) *@
             <div class="col-lg-4 order-lg-2">
 
                 @* 1. TARJETA DE ESTADO *@
-                <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="badge bg-light text-dark border">#@miTicket.Id</span>
-                            <span class="badge @ObtenerClaseBadge(miTicket.Estado)">@miTicket.Estado</span>
+                <div class="card-pro mb-3 shadow-sm border-0">
+                    <div class="card-pro-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="badge bg-subtle text-secondary border px-2 py-1">ID: #@miTicket.Id</span>
+                            <span class="badge-pill @ObtenerClaseBadge(miTicket.Estado)">
+                                <i class="bi bi-circle-fill me-1" style="font-size: 0.4rem;"></i> @miTicket.Estado
+                            </span>
                         </div>
 
-                        <h5 class="fw-bold text-dark mb-1">@miTicket.Titulo</h5>
-                        <div class="text-muted small mb-3">
-                            <i class="bi bi-calendar3 me-1"></i> @miTicket.FechaCreacion.ToString("f")
+                        <h4 class="fw-bold text-primary mb-2" style="letter-spacing: -0.5px;">@miTicket.Titulo</h4>
+                        <div class="text-secondary small mb-4 d-flex align-items-center">
+                            <i class="bi bi-clock-history me-2 text-utepsa-red"></i>
+                            @miTicket.FechaCreacion.ToString("f", CultureInfo.CurrentCulture)
                         </div>
 
                         @if (miTicket.EsUrgente)
                         {
-                            <div class="alert alert-danger d-flex align-items-center p-2 mb-3 small border-danger">
-                                <i class="bi bi-fire me-2 fs-5"></i>
-                                <div><strong>PRIORIDAD ALTA</strong><br />Atención inmediata requerida.</div>
+                            <div class="alert alert-danger d-flex align-items-start p-3 mb-4 border-0 shadow-sm" style="border-radius: var(--radius-md);">
+                                <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                                <div>
+                                    <strong class="d-block mb-1">PRIORIDAD CRÍTICA</strong>
+                                    <span class="small opacity-75">Este caso requiere atención inmediata según los protocolos de UTEPSA.</span>
+                                </div>
                             </div>
                         }
 
-                        <hr class="text-muted opacity-25" />
+                        <hr class="border-secondary opacity-10 mb-4" />
 
-                        @* ZONA DE ACCIONES *@
+                        @* ZONA DE ACCIONES DINÁMICAS *@
                         <div class="d-grid gap-2">
-                            @if (rolUsuarioActual == "Administrador")
+                            @if (rolUsuarioActual == "Administrador" && miTicket.Estado != EstadoTicket.Resuelto)
                             {
-                                @if (miTicket.Estado != EstadoTicket.Resuelto)
-                                {
-                                    <div class="input-group">
-                                        <select class="form-select border-secondary" @bind="idAsesorSeleccionado">
-                                            <option value="@Guid.Empty">-- Asignar a... --</option>
-                                            @foreach (var asesor in listaAsesores)
-                                            {
-                                                <option value="@asesor.Id">@asesor.Nombre</option>
-                                            }
-                                        </select>
-                                        <button class="btn btn-dark" @onclick="AsignarAsesor">Guardar</button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-success text-center mb-0 py-2 fw-bold"><i class="bi bi-check-circle-fill"></i> Caso Cerrado</div>
-                                }
+                                <div class="input-group shadow-sm" style="border-radius: var(--radius-md); overflow: hidden;">
+                                    <select class="form-select border-0 bg-subtle text-primary small" @bind="idAsesorSeleccionado">
+                                        <option value="@Guid.Empty">-- Asignar Asesor --</option>
+                                        @foreach (var asesor in listaAsesores)
+                                        {
+                                            <option value="@asesor.Id">@asesor.Nombre</option>
+                                        }
+                                    </select>
+                                    <button class="btn btn-dark px-3 fw-bold" @onclick="AsignarAsesor">OK</button>
+                                </div>
                             }
                             else if (rolUsuarioActual == "Asesor" && miTicket.AsesorId == null && miTicket.Estado != EstadoTicket.Resuelto)
                             {
-                                @* Usamos btn-utepsa (rojo) para la acción principal *@
-                                <button class="btn btn-utepsa py-2 shadow-sm" @onclick="AutoAsignar">
-                                    <i class="bi bi-hand-index-thumb-fill me-2"></i> Tomar este Caso
+                                <button class="btn btn-utepsa py-3 shadow-red-glow" @onclick="AutoAsignar">
+                                    <i class="bi bi-person-check-fill me-2"></i> Atender este Caso
                                 </button>
                             }
                             else if (miTicket.AsesorId == usuarioActualId && miTicket.Estado != EstadoTicket.Resuelto)
                             {
-                                <button class="btn btn-success fw-bold py-2 shadow-sm" @onclick="MarcarComoResuelto">
-                                    <i class="bi bi-check2-circle me-2"></i> Finalizar Caso
+                                <button class="btn btn-success fw-bold py-3 shadow-sm border-0" @onclick="MarcarComoResuelto" style="background-color: #198754;">
+                                    <i class="bi bi-check-lg me-2"></i> Finalizar y Cerrar
                                 </button>
                             }
                         </div>
                     </div>
                 </div>
 
-                @* 2. DETALLES (Estilo UTEPSA) *@
-                <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-body">
-                        <h6 class="fw-bold text-muted text-uppercase small ls-1 mb-3">Detalles</h6>
+                @* 2. DETALLES (Alineación de Iconos) *@
+                <div class="card-pro mb-3 shadow-sm border-0">
+                    <div class="card-pro-body p-4">
+                        <h6 class="text-uppercase text-secondary fw-bold mb-4" style="font-size: 0.7rem; letter-spacing: 1.5px;">Detalles del Ticket</h6>
 
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-dark text-white rounded-circle p-2 me-3" style="width: 40px; height: 40px; display:grid; place-items:center;">
-                                <i class="bi bi-person-fill fs-5"></i>
+                        <div class="d-flex align-items-center mb-4 transition-all hover-red">
+                            <div class="bg-subtle text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 42px; height: 42px; flex-shrink: 0;">
+                                <i class="bi bi-person-circle fs-5"></i>
                             </div>
-                            <div>
-                                <small class="text-muted d-block">Solicitante</small>
-                                <span class="fw-bold text-dark">@(miTicket.Usuario?.Nombre ?? "Anónimo")</span>
+                            <div class="lh-sm">
+                                <small class="text-secondary d-block fw-bold" style="font-size: 0.65rem; text-transform: uppercase;">Solicitante</small>
+                                <span class="fw-bold text-primary">@(miTicket.Usuario?.Nombre ?? "Anónimo")</span>
                             </div>
                         </div>
 
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-light text-dark border rounded-circle p-2 me-3" style="width: 40px; height: 40px; display:grid; place-items:center;">
-                                <i class="bi bi-tag-fill fs-5 text-secondary"></i>
+                        <div class="d-flex align-items-center mb-4 transition-all">
+                            <div class="bg-subtle text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 42px; height: 42px; flex-shrink: 0;">
+                                <i class="bi bi-grid-fill fs-5 text-utepsa-red"></i>
                             </div>
-                            <div>
-                                <small class="text-muted d-block">Categoría</small>
-                                <span class="fw-bold text-dark">@(miTicket.Categoria?.Nombre ?? "General")</span>
+                            <div class="lh-sm">
+                                <small class="text-secondary d-block fw-bold" style="font-size: 0.65rem; text-transform: uppercase;">Categoría</small>
+                                <span class="fw-bold text-primary">@(miTicket.Categoria?.Nombre ?? "General")</span>
                             </div>
                         </div>
 
                         @if (miTicket.Asesor != null)
                         {
-                            <div class="d-flex align-items-center">
-                                @* Icono rojo para el asesor *@
-                                <div class="bg-utepsa-red rounded-circle p-2 me-3" style="width: 40px; height: 40px; display:grid; place-items:center;">
-                                    <i class="bi bi-headset fs-5 text-white"></i>
+                            <div class="d-flex align-items-center transition-all">
+                                <div class="bg-utepsa-red text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 42px; height: 42px; flex-shrink: 0;">
+                                    <i class="bi bi-headset fs-5"></i>
                                 </div>
-                                <div>
-                                    <small class="text-muted d-block">Atendido por</small>
-                                    <span class="fw-bold text-dark">@miTicket.Asesor.Nombre</span>
+                                <div class="lh-sm">
+                                    <small class="text-secondary d-block fw-bold" style="font-size: 0.65rem; text-transform: uppercase;">Atendido por</small>
+                                    <span class="fw-bold text-primary">@miTicket.Asesor.Nombre</span>
                                 </div>
                             </div>
                         }
                     </div>
                 </div>
 
-                @* 3. DESCRIPCIÓN COLAPSABLE *@
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3 cursor-pointer" data-bs-toggle="collapse" data-bs-target="#collapseDesc">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 fw-bold text-secondary"><i class="bi bi-file-text me-2"></i>Descripción Original</h6>
-                            <i class="bi bi-chevron-down text-muted"></i>
-                        </div>
+                @* 3. DESCRIPCIÓN (UX: Colapsable) *@
+                <div class="card-pro shadow-sm border-0">
+                    <div class="card-pro-header border-bottom py-3 cursor-pointer d-flex justify-content-between align-items-center bg-subtle" data-bs-toggle="collapse" data-bs-target="#collapseDesc">
+                        <h6 class="mb-0 fw-bold text-primary small"><i class="bi bi-card-text me-2"></i>Descripción Original</h6>
+                        <i class="bi bi-chevron-expand text-secondary"></i>
                     </div>
                     <div id="collapseDesc" class="collapse show">
-                        <div class="card-body bg-light border-top">
+                        <div class="card-pro-body bg-surface p-4">
                             @if (modoEdicion)
                             {
                                 <EditForm Model="miTicket" OnValidSubmit="GuardarCambios">
-                                    <DataAnnotationsValidator />
-                                    <InputText @bind-Value="miTicket.Titulo" class="form-control mb-2 fw-bold" />
-                                    <InputTextArea @bind-Value="miTicket.Descripcion" class="form-control mb-2" rows="5" />
+                                    <InputTextArea @bind-Value="miTicket.Descripcion" class="form-control-pro w-100 mb-3" rows="6" />
                                     <div class="d-flex gap-2 justify-content-end">
-                                        <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
-                                        <button type="submit" class="btn btn-sm btn-success">Guardar</button>
+                                        <button type="button" class="btn btn-light btn-sm fw-bold px-3" @onclick="CancelarEdicion">Cancelar</button>
+                                        <button type="submit" class="btn btn-dark btn-sm fw-bold px-3">Guardar</button>
                                     </div>
                                 </EditForm>
                             }
                             else
                             {
-                                <p class="mb-0 text-break text-dark" style="white-space: pre-wrap;">@miTicket.Descripcion</p>
-
+                                <p class="mb-0 text-primary small" style="white-space: pre-wrap; line-height: 1.6;">@miTicket.Descripcion</p>
                                 @if (!miTicket.FueEditado && miTicket.UsuarioId == usuarioActualId && miTicket.Estado == EstadoTicket.Abierto)
                                 {
-                                    <div class="text-end mt-2">
-                                        <button class="btn btn-link btn-sm p-0 text-muted" @onclick="() => modoEdicion = true">
-                                            <i class="bi bi-pencil-square"></i> Editar
+                                    <div class="text-end mt-3 border-top pt-2">
+                                        <button class="btn btn-link btn-sm p-0 text-secondary text-decoration-none hover-red" @onclick="() => modoEdicion = true">
+                                            <i class="bi bi-pencil-square me-1"></i> Corregir descripción
                                         </button>
                                     </div>
                                 }
@@ -289,28 +174,27 @@
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            @* COLUMNA CENTRAL: CHAT *@
+            @* COLUMNA IZQUIERDA: COMUNICACIÓN (Messaging Rules) *@
             <div class="col-lg-8 order-lg-1">
-                <div class="card shadow-sm border-0 h-100 d-flex flex-column">
+                <div class="card-pro shadow-pro border-0 h-100 d-flex flex-column bg-surface">
 
-                    @* HEADER CHAT *@
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-chat-square-text-fill text-utepsa-red me-2 fs-5"></i>
-                            <h5 class="mb-0 fw-bold">Comunicación en Vivo</h5>
+                    @* HEADER CHAT: Alineación *@
+                    <div class="card-pro-header border-bottom py-3 px-4 d-flex align-items-center bg-subtle">
+                        <div class="bg-utepsa-red rounded-circle me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;">
+                            <i class="bi bi-chat-fill text-white small"></i>
                         </div>
+                        <h6 class="mb-0 fw-bold text-primary">Canal de Comunicación Directo</h6>
                     </div>
 
-                    @* BODY CHAT *@
-                    <div id="chatBox" class="card-body bg-chat p-4 d-flex flex-column" style="height: 600px; overflow-y: auto;">
+                    @* BODY CHAT: WhatsApp Style *@
+                    <div id="chatBox" class="card-pro-body bg-chat p-4 d-flex flex-column custom-scrollbar" style="height: 600px; overflow-y: auto;">
                         @if (mensajes.Count == 0)
                         {
-                            <div class="text-center my-auto opacity-50">
-                                <i class="bi bi-chat-dots fs-1"></i>
-                                <p class="mt-2">El espacio de comunicación está abierto.</p>
+                            <div class="text-center my-auto opacity-25">
+                                <i class="bi bi-chat-left-dots fs-1 d-block mb-3"></i>
+                                <span class="fw-bold small text-uppercase ls-1">Sin mensajes previos</span>
                             </div>
                         }
                         else
@@ -318,37 +202,33 @@
                             @foreach (var msg in mensajes)
                             {
                                 bool soyYo = msg.UsuarioId == usuarioActualId;
-                                <div class="d-flex w-100 mb-3 @(soyYo ? "justify-content-end" : "justify-content-start")">
-                                    <div style="max-width: 75%;">
+                                <div class="d-flex w-100 mb-4 @(soyYo ? "justify-content-end" : "justify-content-start")">
+                                    <div style="max-width: 80%;">
                                         <div class="d-flex align-items-end gap-2 @(soyYo ? "flex-row-reverse" : "")">
 
-                                            @* AVATAR: Rojo para mí, Gris para otros *@
-                                            <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center text-white small fw-bold shadow-sm flex-shrink-0"
-                                                 style="width: 32px; height: 32px; background-color: @(soyYo ? "var(--utepsa-red)" : "#6c757d");">
+                                            <div class="avatar-chat shadow-sm flex-shrink-0 @(soyYo ? "bg-utepsa-red text-white" : "bg-dark text-white")"
+                                                 style="width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-size: 0.75rem; fw-bold;">
                                                 @(msg.Usuario?.Nombre?.Substring(0, 1) ?? "?")
                                             </div>
 
-                                            @* BURBUJA: Usa las clases bubble-me (roja) o bubble-other (blanca) *@
-                                            <div class="bubble @(soyYo ? "bubble-me" : "bubble-other")">
+                                            <div class="bubble @(soyYo ? "bubble-me" : "bubble-other shadow-sm")">
                                                 @if (!soyYo)
                                                 {
-                                                    <div class="fw-bold small mb-1 @(soyYo ? "text-white-50" : "text-utepsa-red")">@msg.Usuario?.Nombre</div>
+                                                    <div class="fw-bold mb-1 text-utepsa-red" style="font-size: 0.7rem;">@msg.Usuario?.Nombre</div>
                                                 }
+                                                <div class="text-break" style="font-size: 0.9rem;">@msg.Contenido</div>
 
-                                                <div class="text-break">@msg.Contenido</div>
-
-                                                @* CORRECCIÓN: Solo renderizar si existe una URL válida *@
                                                 @if (!string.IsNullOrWhiteSpace(msg.AdjuntoUrl))
                                                 {
-                                                    <div class="mt-2">
-                                                        <a href="@msg.AdjuntoUrl" target="_blank" class="btn btn-sm btn-light border w-100 text-truncate text-dark shadow-sm">
-                                                            <i class="bi bi-paperclip me-1"></i> Ver Adjunto
+                                                    <div class="mt-2 pt-2 border-top border-light border-opacity-10">
+                                                        <a href="@msg.AdjuntoUrl" target="_blank" class="btn btn-sm btn-white border-0 w-100 text-truncate text-dark small py-1 shadow-sm">
+                                                            <i class="bi bi-file-earmark-arrow-down me-1 text-utepsa-red"></i> Adjunto
                                                         </a>
                                                     </div>
                                                 }
 
-                                                <div class="text-end mt-1 opacity-50" style="font-size: 0.65rem;">
-                                                    @msg.FechaHora.ToString("HH:mm") @(soyYo ? "✓" : "")
+                                                <div class="text-end mt-1 @(soyYo ? "text-white-50" : "text-muted")" style="font-size: 0.6rem;">
+                                                    @msg.FechaHora.ToString("HH:mm") @(soyYo ? "✓✓" : "")
                                                 </div>
                                             </div>
                                         </div>
@@ -358,28 +238,27 @@
                         }
                     </div>
 
-                    @* FOOTER CHAT (INPUT) *@
-                    <div class="card-footer bg-white p-3 border-top">
+                    @* FOOTER CHAT: Input Moderno y Centrado *@
+                    <div class="card-pro-footer p-4 border-top bg-subtle">
                         @if (miTicket.Estado == EstadoTicket.Resuelto)
                         {
-                            <div class="alert alert-secondary text-center mb-0 border-0 bg-light text-muted">
-                                <i class="bi bi-lock-fill me-2"></i> La conversación ha finalizado.
+                            <div class="bg-surface rounded-pill border p-3 text-center shadow-sm">
+                                <i class="bi bi-shield-lock-fill text-secondary me-2"></i>
+                                <span class="small fw-bold text-secondary text-uppercase ls-1">El caso ha sido resuelto y el chat está cerrado</span>
                             </div>
 
                             @if (miTicket.UsuarioId == usuarioActualId && miTicket.SatisfaccionUsuario == null)
                             {
-                                <div class="text-center mt-3 animate-fade-in">
-                                    <h6 class="fw-bold text-dark">¿Cómo calificarías la atención?</h6>
-                                    <div class="d-flex justify-content-center gap-2 mt-2">
-                                        @* CORRECCIÓN: Se añade variable 'estaCalificando' para evitar clics múltiples *@
+                                <div class="text-center mt-4 animate-enter">
+                                    <h6 class="fw-bold text-primary mb-3 small">¿Cómo calificarías la resolución de este problema?</h6>
+                                    <div class="d-flex justify-content-center gap-3">
                                         @for (int i = 1; i <= 5; i++)
                                         {
                                             int r = i;
-                                            <button class="btn btn-outline-warning rounded-circle shadow-sm"
-                                                    style="width: 45px; height: 45px;"
-                                                    @onclick="() => Calificar(r)"
-                                                    disabled="@estaCalificando">
-                                                <i class="bi bi-star-fill"></i>
+                                            <button class="btn btn-light rounded-circle shadow-sm border p-0 hover-scale"
+                                                    style="width: 50px; height: 50px;"
+                                                    @onclick="() => Calificar(r)" disabled="@estaCalificando">
+                                                <i class="bi bi-star-fill @(i <= 3 ? "text-warning" : "text-success") fs-4"></i>
                                             </button>
                                         }
                                     </div>
@@ -388,47 +267,37 @@
                         }
                         else if (miTicket.AsesorId == null && rolUsuarioActual == "Usuario")
                         {
-                            <div class="alert alert-warning text-center mb-0 border-0 shadow-sm">
-                                <div class="d-flex align-items-center justify-content-center gap-2">
-                                    <div class="spinner-grow spinner-grow-sm text-warning" role="status"></div>
-                                    <span>Esperando a un asesor disponible...</span>
-                                </div>
+                            <div class="bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-pill p-3 text-center shadow-sm">
+                                <div class="spinner-grow spinner-grow-sm text-warning me-2" role="status"></div>
+                                <span class="small fw-bold text-warning-emphasis text-uppercase ls-1">Buscando un asesor especializado para tu caso...</span>
                             </div>
                         }
                         else
                         {
                             <EditForm Model="nuevoMensaje" OnValidSubmit="EnviarMensaje">
-                                @* Contenedor Flex centrado *@
-                                <div class="input-modern-container d-flex align-items-center p-1">
-
-                                    @* BOTÓN CLIP: Centrado absoluto con grid place-items *@
-                                    <label class="btn btn-light rounded-circle border-0 text-secondary m-1 flex-shrink-0"
-                                           style="width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer;"
-                                           title="Adjuntar Archivo">
-                                        <i class="bi bi-paperclip fs-5 d-flex"></i> @* d-flex en el i elimina espacio fantasma *@
+                                <div class="input-modern-container d-flex align-items-center p-2 shadow-sm bg-surface border-0">
+                                    <label class="btn btn-subtle rounded-circle border-0 text-secondary d-grid place-items-center"
+                                           style="width: 44px; height: 44px; cursor: pointer;" title="Adjuntar Evidencia">
+                                        <i class="bi bi-paperclip fs-5"></i>
                                         <InputFile OnChange="ManejarSeleccionArchivo" style="display: none;" />
                                     </label>
 
-                                    <div class="flex-grow-1 px-2 position-relative d-flex align-items-center">
-                                        @if (archivoSeleccionado != null) { /* ... */ }
-
-                                        @* Input Text alineado *@
+                                    <div class="flex-grow-1 mx-2">
                                         <InputText id="txtMensaje" @bind-Value="nuevoMensaje.Contenido"
-                                                   class="form-control border-0 shadow-none bg-transparent py-2"
-                                                   placeholder="Escribe tu mensaje aquí..." autocomplete="off" />
+                                                   class="form-control border-0 shadow-none bg-transparent py-2 text-primary"
+                                                   placeholder="Escribe tu respuesta técnica aquí..." autocomplete="off" />
                                     </div>
 
-                                    @* BOTÓN ENVIAR: Centrado igual que el clip *@
-                                    <button class="btn btn-utepsa rounded-circle shadow-sm m-1 flex-shrink-0"
-                                            style="width: 42px; height: 42px; display: grid; place-items: center;"
-                                            type="submit" disabled="@enviandoMensaje">
+                                    <button class="btn btn-utepsa rounded-circle d-grid place-items-center shadow-red-glow"
+                                            style="width: 44px; height: 44px;" type="submit" disabled="@enviandoMensaje">
                                         @if (enviandoMensaje)
                                         {
                                             <span class="spinner-border spinner-border-sm"></span>
                                         }
                                         else
                                         {
-                                            <i class="bi bi-send-fill d-flex ps-1"></i> @* ps-1 para compensar visualmente el ícono de 'avión' *@
+
+                                            <i class="bi bi-send-fill ps-1"></i>
                                         }
                                     </button>
                                 </div>
@@ -440,42 +309,87 @@
         </div>
     }
 
-    @* MODAL IMAGEN *@
+    @* MODAL IMAGEN: Centrado absoluto *@
     @if (!string.IsNullOrEmpty(imagenModalUrl))
     {
-        <div class="modal-backdrop-custom" @onclick="CerrarModal">
-            <button class="btn-close-modal">&times;</button>
-            <img src="@imagenModalUrl" class="modal-image-content" @onclick:stopPropagation="true" />
+        <div class="modal-backdrop-custom animate-enter" @onclick="CerrarModal">
+            <button class="btn-close-modal"><i class="bi bi-x-lg"></i></button>
+            <img src="@imagenModalUrl" class="modal-image-content shadow-lg border border-white border-opacity-10" />
         </div>
     }
 </div>
 
+<style>
+    /* Estilos Locales Detalle */
+    .bg-app {
+        background-color: var(--bg-app) !important;
+    }
+
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .hover-scale {
+        transition: transform 0.2s;
+    }
+
+        .hover-scale:hover {
+            transform: scale(1.15);
+        }
+
+    /* Bubble Styles */
+    .bubble {
+        padding: 14px 18px;
+        border-radius: var(--radius-md);
+        position: relative;
+        line-height: 1.5;
+        transition: background-color 0.3s ease;
+    }
+
+    .bubble-me {
+        background-color: var(--utepsa-red);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .bubble-other {
+        background-color: var(--bg-subtle);
+        color: var(--text-primary);
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--border-color);
+    }
+</style>
+
 @code {
     [Parameter] public int Id { get; set; }
-
-    // --- ESTADO Y MODELOS ---
     private Ticket? miTicket;
     private List<Usuario> listaAsesores = new();
     private Guid idAsesorSeleccionado;
     private bool modoEdicion = false;
     private bool enviandoMensaje = false;
-
-    // --- CHAT ---
     private List<Mensaje> mensajes = new();
     private Mensaje nuevoMensaje = new Mensaje();
     private IBrowserFile? archivoSeleccionado;
     private string? imagenModalUrl = null;
-
-    // --- USUARIO ACTUAL ---
     private Guid usuarioActualId = Guid.Empty;
     private string rolUsuarioActual = "";
-
     private bool estaCalificando = false;
 
     protected override async Task OnInitializedAsync()
     {
         StateContainer.OnChange += ActualizarChatEnVivo;
-
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user?.Identity?.IsAuthenticated == true)
@@ -484,11 +398,8 @@
             if (Guid.TryParse(idClaim?.Value, out var parsed)) usuarioActualId = parsed;
             rolUsuarioActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
         }
-
         await CargarDatosCompletos();
-
         if (rolUsuarioActual == "Administrador") listaAsesores = await ServicioUsuarios.ObtenerAsesoresAsync();
-
         await ScrollAlFondo();
     }
 
@@ -499,54 +410,40 @@
         mensajes = await ServicioChat.ObtenerMensajesPorTicketId(Id);
     }
 
-    private async void ActualizarChatEnVivo(int? ticketIdNotificado, string? t, TipoNotificacion tipo, string? r, Guid? o, Guid? a)
+    private async void ActualizarChatEnVivo(int? tId, string? t, TipoNotificacion tp, string? r, Guid? o, Guid? a)
     {
         try
         {
             await InvokeAsync(async () =>
             {
-                if (ticketIdNotificado.HasValue && ticketIdNotificado.Value != Id) return;
+                if (tId.HasValue && tId.Value != Id) return;
                 await CargarDatosCompletos();
                 StateHasChanged();
                 await ScrollAlFondo();
             });
         }
-        catch
-        {
-            // Ignoramos el error si el usuario ya salió de la página
-        }
+        catch { }
     }
 
     private async Task EnviarMensaje()
     {
         if (enviandoMensaje || (string.IsNullOrWhiteSpace(nuevoMensaje.Contenido) && archivoSeleccionado == null)) return;
-
         enviandoMensaje = true;
         try
         {
-            if (archivoSeleccionado != null)
-            {
-                nuevoMensaje.AdjuntoUrl = await ServicioChat.SubirArchivoAsync(archivoSeleccionado);
-            }
-
+            if (archivoSeleccionado != null) nuevoMensaje.AdjuntoUrl = await ServicioChat.SubirArchivoAsync(archivoSeleccionado);
             nuevoMensaje.TicketId = Id;
             nuevoMensaje.FechaHora = DateTime.Now;
             nuevoMensaje.UsuarioId = usuarioActualId;
-
             await ServicioChat.EnviarMensaje(nuevoMensaje);
-
             nuevoMensaje = new Mensaje();
             archivoSeleccionado = null;
-
-            // Forzamos el scroll después de que Blazor termine de renderizar el nuevo mensaje
             await InvokeAsync(StateHasChanged);
             await ScrollAlFondo();
         }
-        finally
-        {
-            enviandoMensaje = false;
-        }
+        finally { enviandoMensaje = false; }
     }
+
     private async Task AsignarAsesor()
     {
         if (idAsesorSeleccionado != Guid.Empty && miTicket != null)
@@ -589,37 +486,28 @@
     {
         if (estaCalificando) return;
         estaCalificando = true;
-
         try
         {
             await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId);
             await CargarDatosCompletos();
         }
-        finally
-        {
-            estaCalificando = false;
-        }
+        finally { estaCalificando = false; }
     }
-    // --- UTILIDADES ---
+
     private void ManejarSeleccionArchivo(InputFileChangeEventArgs e) => archivoSeleccionado = e.File;
-    private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
     private async Task ScrollAlFondo()
     {
-        // Aumentamos ligeramente el delay para asegurar el renderizado del DOM en Server-side
         await Task.Delay(150);
         await JS.InvokeVoidAsync("utilidadesChat.bajarScroll", "chatBox");
     }
-    public void Dispose()
-    {
-        StateContainer.OnChange -= ActualizarChatEnVivo;
-    }
+    public void Dispose() => StateContainer.OnChange -= ActualizarChatEnVivo;
 
     private string ObtenerClaseBadge(EstadoTicket estado) => estado switch
     {
-        EstadoTicket.Abierto => "bg-secondary",
-        EstadoTicket.Asignado => "bg-primary",
-        EstadoTicket.Resuelto => "bg-success",
-        _ => "bg-dark"
+        EstadoTicket.Abierto => "status-urgent",
+        EstadoTicket.Asignado => "status-process",
+        EstadoTicket.Resuelto => "status-solved",
+        _ => "status-open"
     };
 }

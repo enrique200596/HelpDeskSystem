@@ -7,108 +7,150 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<PageTitle>Base de Conocimiento | HelpDesk UTEPSA</PageTitle>
+
+<div class="container-fluid px-4 py-4">
+
+    @* --- ENCABEZADO Y ACCIÓN PRINCIPAL --- *@
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 animate-enter">
         <div>
-            <h2>📚 Base de Conocimiento</h2>
-            <p class="text-muted">Guías y procedimientos paso a paso</p>
+            <h6 class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1.2px; opacity: 0.8;">Recursos Técnicos</h6>
+            <h2 class="fw-bold text-primary mb-0" style="letter-spacing: -0.5px;">Base de Conocimiento</h2>
         </div>
 
         <AuthorizeView Roles="Administrador,Asesor">
             <Authorized>
-                <button class="btn btn-primary" @onclick="CrearNuevo">
-                    <i class="bi bi-plus-lg"></i> Crear Nuevo Manual
+                <button class="btn btn-utepsa shadow-red-glow d-flex align-items-center gap-2 py-2 px-4" @onclick="CrearNuevo">
+                    <i class="bi bi-plus-circle-fill fs-5"></i>
+                    <span>Nuevo Manual</span>
                 </button>
             </Authorized>
         </AuthorizeView>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="input-group">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control border-start-0"
-                       placeholder="Buscar por título o etiqueta..."
-                       @bind="busqueda" @bind:event="oninput" />
-                @if (!string.IsNullOrEmpty(busqueda))
-                {
-                    <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                }
+    @* --- BARRA DE BÚSQUEDA Y FILTROS --- *@
+    <div class="card-pro mb-5 animate-enter shadow-sm border-0 bg-surface" style="animation-delay: 0.1s;">
+        <div class="card-body p-3">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="position-relative">
+                        <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control-pro w-100 ps-5"
+                               placeholder="Buscar por título de guía o palabras clave..."
+                               @bind="busqueda" @bind:event="oninput" />
+
+                        @if (!string.IsNullOrEmpty(busqueda))
+                        {
+                            <button class="btn position-absolute end-0 top-50 translate-middle-y me-2 text-secondary border-0" @onclick="LimpiarBusqueda">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-lg-6 d-none d-lg-flex justify-content-end">
+                    <span class="text-secondary small fw-medium">Explora guías paso a paso para resolver incidentes comunes.</span>
+                </div>
             </div>
         </div>
     </div>
 
-    @if (manuales == null) { /* ... */ }
-    else if (!ManualesFiltrados.Any()) { /* ... */ }
-    else
+    @if (manuales == null)
     {
         <div class="row g-4">
+            @for (int i = 0; i < 6; i++)
+            {
+                <div class="col-md-6 col-xl-4"><div class="card-pro p-5 placeholder-glow"><span class="placeholder col-12 rounded"></span></div></div>
+            }
+        </div>
+    }
+    else if (!ManualesFiltrados.Any())
+    {
+        <div class="text-center py-5 animate-enter">
+            <i class="bi bi-journal-x fs-1 text-secondary opacity-25 d-block mb-3"></i>
+            <h4 class="text-primary fw-bold">No se encontraron guías</h4>
+            <p class="text-secondary small">Intenta con otros términos de búsqueda.</p>
+        </div>
+    }
+    else
+    {
+        @* --- CUADRÍCULA DE MANUALES (Simetría Pro) --- *@
+        <div class="row g-4 animate-enter" style="animation-delay: 0.2s;">
             @foreach (var m in ManualesFiltrados)
             {
-                <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 shadow-sm hover-card @(m.IsDeleted ? "border-danger bg-light" : "")">
-                        <div class="card-body d-flex flex-column">
+                <div class="col-md-6 col-xl-4">
+                    <div class="card-pro h-100 shadow-sm border-0 bg-surface d-flex flex-column card-manual-hover">
 
-                            <div class="mb-2">
-                                <h5 class="card-title text-brand fw-bold d-inline">
-                                    <i class="bi bi-file-earmark-text me-2"></i>@m.Titulo
-                                </h5>
+                        @* Estado de Borrador/Eliminado *@
+                        @if (m.IsDeleted || !m.IsActive)
+                        {
+                            <div class="position-absolute top-0 end-0 m-3 z-2">
                                 @if (m.IsDeleted)
                                 {
-                                    <span class="badge bg-danger ms-1">Eliminado</span>
+                                    <span class="badge bg-danger rounded-pill shadow-sm">ELIMINADO</span>
                                 }
-                                @if (!m.IsActive)
+                                else if (!m.IsActive)
                                 {
-                                    <span class="badge bg-warning text-dark ms-1">Borrador</span>
+
+                                    <span class="badge bg-warning text-dark rounded-pill shadow-sm">BORRADOR</span>
                                 }
                             </div>
+                        }
 
-                            <p class="card-text text-muted small mb-2">
-                                Por: <strong>@(m.Autor?.Nombre ?? "Admin")</strong> | @m.FechaCreacion.ToShortDateString()
-                            </p>
+                        <div class="card-pro-body p-4 d-flex flex-column h-100">
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <div class="bg-subtle rounded-3 p-3 d-flex align-items-center justify-content-center text-utepsa-red shadow-sm" style="width: 54px; height: 54px; flex-shrink: 0;">
+                                    <i class="bi bi-file-earmark-richtext-fill fs-2"></i>
+                                </div>
+                                <div class="overflow-hidden">
+                                    <h5 class="fw-bold text-primary mb-1 text-truncate" title="@m.Titulo">@m.Titulo</h5>
+                                    <small class="text-secondary d-block">
+                                        Por <span class="fw-bold text-dark">@(m.Autor?.Nombre ?? "Admin")</span>
+                                        <i class="bi bi-dot"></i> @m.FechaCreacion.ToString("dd MMM yyyy")
+                                    </small>
+                                </div>
+                            </div>
 
-                            <div class="mb-3">
+                            @* Etiquetas Interactivas *@
+                            <div class="mb-4 flex-wrap d-flex gap-1">
                                 @if (!string.IsNullOrEmpty(m.Etiquetas))
                                 {
-                                    var tags = m.Etiquetas.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (var tag in tags)
+                                    @foreach (var tag in m.Etiquetas.Split(',', StringSplitOptions.RemoveEmptyEntries))
                                     {
-                                        <span class="badge rounded-pill badge-utepsa-tag me-1 cursor-pointer"
-                                              @onclick="() => FiltrarPorEtiqueta(tag.Trim())"
-                                              title="Filtrar por @tag">
-                                            <i class="bi bi-tag-fill me-1"></i> @tag.Trim()
+                                        <span class="badge bg-light text-secondary border fw-normal px-2 py-1 transition-all hover-tag"
+                                              @onclick="() => FiltrarPorEtiqueta(tag.Trim())" style="cursor: pointer; font-size: 0.7rem;">
+                                            <i class="bi bi-tag-fill me-1 text-utepsa-red"></i>@tag.Trim()
                                         </span>
                                     }
                                 }
                             </div>
 
-                            <div class="mt-auto d-flex flex-column gap-2">
-                                <a href="/manuales/ver/@m.Id" class="btn btn-primary w-100">
-                                    Leer Guía
-                                </a>
+                            @* Acciones de la Tarjeta *@
+                            <div class="mt-auto pt-3 border-top border-light border-opacity-50">
+                                <div class="d-flex gap-2">
+                                    <a href="/manuales/ver/@m.Id" class="btn btn-dark flex-grow-1 fw-bold small py-2 rounded-3">
+                                        LEER GUÍA COMPLETA
+                                    </a>
 
-                                <AuthorizeView Roles="Administrador,Asesor">
-                                    <Authorized>
-                                        <div class="d-flex gap-2">
-                                            <a href="/manuales/editar/@m.Id" class="btn btn-outline-secondary flex-grow-1" title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <button class="btn btn-outline-danger" title="Eliminar" @onclick="() => Eliminar(m.Id)">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-
-                                            <AuthorizeView Roles="Administrador" Context="adminContext">
-                                                <Authorized>
-                                                    <button class="btn btn-dark text-white" title="Ver Historial" @onclick="() => VerHistorial(m.Id, m.Titulo)">
-                                                        <i class="bi bi-clock-history"></i>
-                                                    </button>
-                                                </Authorized>
-                                            </AuthorizeView>
-                                        </div>
-                                    </Authorized>
-                                </AuthorizeView>
+                                    <AuthorizeView Roles="Administrador,Asesor">
+                                        <Authorized>
+                                            <div class="dropdown">
+                                                <button class="btn btn-subtle border rounded-3 py-2 px-3" type="button" data-bs-toggle="dropdown">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-pro border-0">
+                                                    <li><a class="dropdown-item py-2" href="/manuales/editar/@m.Id"><i class="bi bi-pencil me-2"></i> Editar</a></li>
+                                                    <AuthorizeView Roles="Administrador" Context="adminContext">
+                                                        <li><button class="dropdown-item py-2" @onclick="() => VerHistorial(m.Id, m.Titulo)"><i class="bi bi-clock-history me-2"></i> Historial</button></li>
+                                                    </AuthorizeView>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><button class="dropdown-item py-2 text-danger" @onclick="() => Eliminar(m.Id)"><i class="bi bi-trash me-2"></i> Eliminar</button></li>
+                                                </ul>
+                                            </div>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -121,23 +163,53 @@
 </div>
 
 <style>
-    .hover-card {
-        transition: transform 0.2s;
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
     }
 
-        .hover-card:hover {
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .card-manual-hover {
+        transition: all 0.3s ease;
+        border: 1px solid transparent !important;
+    }
+
+        .card-manual-hover:hover {
             transform: translateY(-5px);
+            box-shadow: var(--shadow-hover) !important;
+            border-color: var(--utepsa-red) !important;
         }
 
-    .cursor-pointer {
-        cursor: pointer;
+    .hover-tag:hover {
+        background-color: var(--utepsa-red) !important;
+        color: white !important;
     }
+
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .btn-subtle {
+        background-color: var(--bg-subtle);
+        color: var(--text-primary);
+    }
+
+        .btn-subtle:hover {
+            background-color: #e2e8f0;
+        }
 </style>
 
 @code {
-    // ... (El código C# se mantiene IGUAL que la versión anterior que te pasé) ...
-    // Solo copia y pega el bloque @code completo de la respuesta anterior si lo necesitas,
-    // pero la lógica no cambia, solo el HTML/CSS.
     private List<Manual>? manuales;
     private string busqueda = "";
     private HistorialManualModal modalHistorial = default!;
@@ -155,7 +227,6 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var rol = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-
         manuales = await ManualService.ObtenerTodosAsync(rol);
     }
 
@@ -166,7 +237,7 @@
 
     private async Task Eliminar(int id)
     {
-        bool confirmado = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar este manual?");
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "¿Confirmas la eliminación definitiva de este recurso?");
         if (confirmado)
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -174,9 +245,8 @@
             var userIdStr = user.FindFirst(c => c.Type.Contains("nameidentifier"))?.Value;
             Guid.TryParse(userIdStr, out Guid usuarioId);
             if (usuarioId == Guid.Empty) usuarioId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-            bool esAdmin = user.IsInRole("Administrador");
 
-            await ManualService.EliminarManualAsync(id, usuarioId, esAdmin);
+            await ManualService.EliminarManualAsync(id, usuarioId, user.IsInRole("Administrador"));
             var rol = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             manuales = await ManualService.ObtenerTodosAsync(rol);
         }

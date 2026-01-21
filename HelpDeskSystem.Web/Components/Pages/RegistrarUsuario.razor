@@ -1,5 +1,6 @@
 ﻿@page "/registrar-usuario"
 @attribute [Authorize(Roles = "Administrador")]
+@layout HelpDeskSystem.Web.Components.Layout.LoginLayout
 @using HelpDeskSystem.Domain.Entities
 @using HelpDeskSystem.Domain.Enums
 @using HelpDeskSystem.Web.Services
@@ -8,59 +9,165 @@
 @inject NavigationManager Navegacion
 @inject IJSRuntime JS
 
-<PageTitle>Registrar Nuevo Usuario</PageTitle>
+<PageTitle>Registro de Personal | HelpDesk UTEPSA</PageTitle>
 
-<div class="container mt-4">
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-dark text-white">
-            <h4 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Registrar Usuario</h4>
+<div class="container-fluid p-0 w-100 vh-100 overflow-hidden">
+    <div class="row g-0 h-100">
+
+        @* === COLUMNA IZQUIERDA: IDENTIDAD (Simétrica al Login) === *@
+        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center text-white position-relative overflow-hidden"
+             style="background: linear-gradient(135deg, var(--utepsa-dark) 0%, #000000 100%);">
+
+            @* Patrón sutil *@
+            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10"
+                 style="background-image: radial-gradient(circle at 2px 2px, #ffffff 1px, transparent 0); background-size: 32px 32px;">
+            </div>
+
+            <div class="position-relative z-2 text-center px-5 animate-enter">
+                <div class="mb-4 p-4 rounded-circle bg-white bg-opacity-10 d-inline-flex shadow-lg" style="backdrop-filter: blur(4px);">
+                    <i class="bi bi-person-plus-fill" style="font-size: 4rem;"></i>
+                </div>
+                <h2 class="display-5 fw-bold mb-3 ls-1" style="letter-spacing: -1px;">Gestión de Accesos</h2>
+                <p class="opacity-75 text-balance mx-auto fw-light" style="max-width: 450px;">
+                    Panel administrativo para la habilitación de nuevos integrantes en la red de soporte técnico UTEPSA.
+                </p>
+            </div>
         </div>
-        <div class="card-body p-4">
-            @if (!string.IsNullOrEmpty(mensajeError))
-            {
-                <div class="alert alert-danger">@mensajeError</div>
-            }
 
-            <EditForm Model="modelo" OnValidSubmit="GuardarUsuario">
-                <DataAnnotationsValidator />
+        @* === COLUMNA DERECHA: FORMULARIO (Alineación Pro) === *@
+        <div class="col-lg-6 d-flex flex-column justify-content-center bg-surface position-relative overflow-auto custom-scrollbar">
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Nombre Completo</label>
-                        <InputText @bind-Value="modelo.Nombre" class="form-control" />
-                        <ValidationMessage For="@(() => modelo.Nombre)" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Correo Electrónico</label>
-                        <InputText @bind-Value="modelo.Email" class="form-control" />
-                        <ValidationMessage For="@(() => modelo.Email)" />
-                    </div>
+            <div class="w-100 mx-auto px-4 px-md-5 py-5" style="max-width: 550px;">
+
+                <div class="mb-4">
+                    <h2 class="fw-bold text-primary mb-1" style="letter-spacing: -1px;">Registrar Integrante</h2>
+                    <p class="text-secondary small fw-medium">Define el perfil y las credenciales del nuevo usuario.</p>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Contraseña</label>
-                        <InputText @bind-Value="modelo.PasswordPlano" type="password" class="form-control" />
-                        <ValidationMessage For="@(() => modelo.PasswordPlano)" />
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger d-flex align-items-center mb-4 border-0 shadow-sm rounded-3 animate-enter" style="background-color: #fef2f2; color: #991b1b;">
+                        <i class="bi bi-exclamation-octagon-fill me-3 fs-5"></i>
+                        <div class="small fw-bold">@mensajeError</div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Rol del Usuario</label>
-                        <InputSelect @bind-Value="modelo.Rol" class="form-select">
-                            <option value="@RolUsuario.Usuario">Usuario (Cliente)</option>
-                            <option value="@RolUsuario.Asesor">Asesor</option>
-                            <option value="@RolUsuario.Administrador">Administrador</option>
-                        </InputSelect>
-                    </div>
-                </div>
+                }
 
-                <div class="d-flex justify-content-end gap-2 mt-3">
-                    <a href="/" class="btn btn-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-success">Guardar Usuario</button>
-                </div>
-            </EditForm>
+                <EditForm Model="modelo" OnValidSubmit="GuardarUsuario" class="animate-enter">
+                    <DataAnnotationsValidator />
+
+                    <div class="row g-4">
+                        @* Nombre Completo *@
+                        <div class="col-12">
+                            <label class="form-label text-uppercase fw-bold text-secondary ls-1" style="font-size: 0.65rem;">Nombre Completo</label>
+                            <div class="input-group-modern">
+                                <span class="input-group-icon"><i class="bi bi-person-badge-fill"></i></span>
+                                <InputText @bind-Value="modelo.Nombre" class="form-control-pro w-100 ps-5" placeholder="Ej: Juan Perez Garcia" />
+                            </div>
+                            <ValidationMessage For="@(() => modelo.Nombre)" class="text-danger small mt-1 fw-bold" />
+                        </div>
+
+                        @* Email *@
+                        <div class="col-12">
+                            <label class="form-label text-uppercase fw-bold text-secondary ls-1" style="font-size: 0.65rem;">Correo Electrónico</label>
+                            <div class="input-group-modern">
+                                <span class="input-group-icon"><i class="bi bi-envelope-at-fill"></i></span>
+                                <InputText @bind-Value="modelo.Email" class="form-control-pro w-100 ps-5" placeholder="usuario@utepsa.edu" />
+                            </div>
+                            <ValidationMessage For="@(() => modelo.Email)" class="text-danger small mt-1 fw-bold" />
+                        </div>
+
+                        @* Contraseña *@
+                        <div class="col-md-6">
+                            <label class="form-label text-uppercase fw-bold text-secondary ls-1" style="font-size: 0.65rem;">Contraseña Base</label>
+                            <div class="input-group-modern">
+                                <span class="input-group-icon"><i class="bi bi-shield-lock-fill"></i></span>
+                                <InputText @bind-Value="modelo.PasswordPlano" type="password" class="form-control-pro w-100 ps-5" placeholder="••••" />
+                            </div>
+                            <ValidationMessage For="@(() => modelo.PasswordPlano)" class="text-danger small mt-1 fw-bold" />
+                        </div>
+
+                        @* Rol *@
+                        <div class="col-md-6">
+                            <label class="form-label text-uppercase fw-bold text-secondary ls-1" style="font-size: 0.65rem;">Rol Asignado</label>
+                            <div class="input-group-modern">
+                                <span class="input-group-icon"><i class="bi bi-person-gear"></i></span>
+                                <InputSelect @bind-Value="modelo.Rol" class="form-control-pro w-100 ps-5 appearance-none">
+                                    <option value="@RolUsuario.Usuario">Cliente</option>
+                                    <option value="@RolUsuario.Asesor">Asesor Técnico</option>
+                                    <option value="@RolUsuario.Administrador">Administrador</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                        @* Acciones *@
+                        <div class="col-12 mt-5">
+                            <div class="d-flex flex-column flex-md-row gap-3">
+                                <button type="submit" class="btn btn-utepsa flex-grow-1 py-3 shadow-red-glow d-flex justify-content-center align-items-center gap-2 order-md-2">
+                                    <i class="bi bi-check-circle-fill fs-5"></i>
+                                    <span class="fw-bold">CREAR USUARIO</span>
+                                </button>
+                                <a href="/" class="btn btn-utepsa-ghost py-3 px-4 border text-secondary fw-bold order-md-1">
+                                    CANCELAR
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </EditForm>
+
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .input-group-modern {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-group-icon {
+        position: absolute;
+        left: 1.2rem;
+        z-index: 5;
+        color: var(--text-light);
+        font-size: 1.1rem;
+    }
+
+    .form-control-pro:focus + .input-group-icon {
+        color: var(--utepsa-red);
+    }
+
+    .appearance-none {
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .animate-enter {
+        animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+
+    @@keyframes slideUpFade {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 
 @code {
     private RegistroModel modelo = new();
@@ -74,19 +181,19 @@
             Email = modelo.Email,
             Rol = modelo.Rol,
             IsActive = true,
-            FotoPerfilUrl = "" // Opcional por ahora
+            FotoPerfilUrl = ""
         };
 
         var exito = await ServicioUsuarios.CrearUsuarioAsync(nuevoUsuario, modelo.PasswordPlano);
 
         if (exito)
         {
-            await JS.InvokeVoidAsync("mostrarNotificacion", "Usuario creado correctamente", "success");
+            await JS.InvokeVoidAsync("verificarYNotificar", "Usuario creado con éxito", "success", false);
             Navegacion.NavigateTo("/");
         }
         else
         {
-            mensajeError = "El correo electrónico ya está registrado.";
+            mensajeError = "El correo electrónico ya se encuentra registrado en el sistema.";
         }
     }
 

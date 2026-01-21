@@ -6,96 +6,104 @@
 @inject ITicketService ServicioTickets
 @inject IJSRuntime JS
 
-<PageTitle>Asignar Especialidades</PageTitle>
+<PageTitle>Especialidades Técnicas | HelpDesk UTEPSA</PageTitle>
 
-<div class="container py-5">
-    @* CABECERA MODERNA *@
-    <div class="d-flex align-items-center justify-content-between mb-4">
+<div class="container-fluid px-4 py-4">
+
+    @* --- ENCABEZADO PRO --- *@
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3 animate-enter">
         <div>
-            <h2 class="fw-bold text-dark mb-0">Especialidades</h2>
-            <p class="text-muted mb-0">Gestiona qué categorías puede atender cada asesor.</p>
+            <h6 class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1.2px; opacity: 0.8;">Configuración de Personal</h6>
+            <h2 class="fw-bold text-primary mb-0" style="letter-spacing: -0.5px;">Matriz de Competencias Técnicas</h2>
         </div>
-        <div class="bg-light rounded-pill px-3 py-2 d-flex align-items-center text-muted small">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <span>Los cambios se aplican inmediatamente al guardar.</span>
+        <div class="d-flex align-items-center bg-subtle border rounded-pill px-3 py-2 text-secondary small">
+            <i class="bi bi-shield-fill-check text-utepsa-red me-2"></i>
+            <span class="fw-medium">Configura el alcance de atención por cada asesor.</span>
         </div>
     </div>
 
     <div class="row g-4">
-        @* 1. PANEL IZQUIERDO: SELECCIÓN DE ASESOR *@
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body p-4">
-                    <label class="form-label fw-bold text-uppercase small text-muted ls-1">1. Seleccionar Asesor</label>
+        @* === 1. PANEL IZQUIERDO: SELECCIÓN DE ASESOR (Filtro) === *@
+        <div class="col-xl-4 col-lg-5 animate-enter" style="animation-delay: 0.1s;">
+            <div class="card-pro shadow-sm border-0 sticky-top" style="top: 20px;">
+                <div class="card-pro-header border-bottom py-3 bg-subtle">
+                    <label class="form-label text-secondary fw-bold small text-uppercase ls-1 mb-0">1. Identificar Asesor Técnico</label>
+                </div>
 
-                    <div class="input-group mb-3">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                        <select class="form-select border-start-0 py-3 ps-0 shadow-none" @onchange="CargarCategoriasUsuario" style="cursor: pointer;">
-                            <option value="">-- Buscar en la lista --</option>
+                <div class="card-pro-body p-4">
+                    <div class="position-relative mb-4">
+                        <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary">
+                            <i class="bi bi-person-search"></i>
+                        </span>
+                        <select class="form-control-pro w-100 ps-5 appearance-none shadow-none" @onchange="CargarCategoriasUsuario" style="cursor: pointer;">
+                            <option value="">-- Buscar integrante --</option>
                             @foreach (var asesor in listaAsesores)
                             {
                                 <option value="@asesor.Id">@asesor.Nombre</option>
                             }
                         </select>
+                        <i class="bi bi-chevron-down position-absolute end-0 top-50 translate-middle-y me-3 text-secondary pointer-events-none"></i>
                     </div>
 
                     @if (usuarioSeleccionado != null)
                     {
-                        <div class="text-center mt-4 animate-fade-in">
-                            <div class="avatar-circle mb-3 mx-auto bg-primary bg-opacity-10 text-primary fw-bold fs-3 d-flex align-items-center justify-content-center">
+                        <div class="text-center mt-2 p-4 rounded-3 bg-surface border animate-enter">
+                            <div class="rounded-circle mb-3 mx-auto bg-utepsa-red text-white fw-bold d-flex align-items-center justify-content-center shadow"
+                                 style="width: 70px; height: 70px; font-size: 1.8rem; border: 4px solid var(--bg-subtle);">
                                 @usuarioSeleccionado.Nombre.Substring(0, 1).ToUpper()
                             </div>
-                            <h5 class="fw-bold">@usuarioSeleccionado.Nombre</h5>
-                            <span class="badge bg-secondary bg-opacity-10 text-dark rounded-pill px-3">@usuarioSeleccionado.Email</span>
+                            <h5 class="fw-bold text-primary mb-1">@usuarioSeleccionado.Nombre</h5>
+                            <span class="badge bg-subtle text-secondary border px-3 rounded-pill fw-medium">@usuarioSeleccionado.Email</span>
 
-                            <hr class="my-4 opacity-10" />
-
-                            <div class="d-flex justify-content-between text-start small">
-                                <span class="text-muted">Asignadas:</span>
-                                <span class="fw-bold text-primary">@idsCategoriasSeleccionadas.Count categorías</span>
+                            <div class="mt-4 pt-4 border-top d-flex justify-content-between align-items-center">
+                                <span class="text-secondary small fw-bold text-uppercase ls-1">Alcance Actual:</span>
+                                <span class="badge bg-primary text-white rounded-pill px-3 py-2">
+                                    <i class="bi bi-layers-fill me-1"></i> @idsCategoriasSeleccionadas.Count Categorías
+                                </span>
                             </div>
                         </div>
                     }
                     else
                     {
-                        <div class="text-center text-muted py-5 opacity-50">
-                            <i class="bi bi-person-badge fs-1"></i>
-                            <p class="mt-2 small">Selecciona un asesor para comenzar</p>
+                        <div class="text-center text-secondary py-5 opacity-50 bg-subtle rounded-3 border border-dashed">
+                            <i class="bi bi-person-badge fs-1 d-block mb-2"></i>
+                            <p class="small fw-bold mb-0">Selecciona un asesor para editar su matriz</p>
                         </div>
                     }
                 </div>
             </div>
         </div>
 
-        @* 2. PANEL DERECHO: GRID DE CATEGORÍAS *@
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <label class="form-label fw-bold text-uppercase small text-muted ls-1 mb-0">2. Asignar Competencias</label>
-                        @if (usuarioSeleccionado != null)
-                        {
-                            <button class="btn btn-primary btn-sm px-4 rounded-pill shadow-sm transition-btn" @onclick="GuardarCambios" disabled="@guardando">
-                                @if (guardando)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                    <span>Guardando...</span>
-                                }
-                                else
-                                {
-                                    <span><i class="bi bi-check-lg me-1"></i> Guardar Cambios</span>
-                                }
-                            </button>
-                        }
-                    </div>
+        @* === 2. PANEL DERECHO: MATRIZ DE CATEGORÍAS (Checkboxes Pro) === *@
+        <div class="col-xl-8 col-lg-7 animate-enter" style="animation-delay: 0.2s;">
+            <div class="card-pro shadow-pro border-0 h-100 bg-surface">
+                <div class="card-pro-header border-bottom py-3 px-4 d-flex justify-content-between align-items-center bg-subtle">
+                    <label class="form-label fw-bold text-uppercase small text-muted ls-1 mb-0">2. Matriz de Categorías Disponibles</label>
 
+                    @if (usuarioSeleccionado != null)
+                    {
+                        <button class="btn btn-utepsa btn-sm px-4 shadow-red-glow py-2 fw-bold" @onclick="GuardarCambios" disabled="@guardando">
+                            @if (guardando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>SINCRONIZANDO...</span>
+                            }
+                            else
+                            {
+                                <span><i class="bi bi-cloud-check-fill me-2"></i>GUARDAR CAMBIOS</span>
+                            }
+                        </button>
+                    }
+                </div>
+
+                <div class="card-pro-body p-4">
                     @if (usuarioSeleccionado != null)
                     {
                         @if (todasLasCategorias.Count == 0)
                         {
-                            <div class="alert alert-warning border-0 d-flex align-items-center">
-                                <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
-                                <div>No hay categorías activas. Ve a Gestión de Categorías para crear nuevas.</div>
+                            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center p-4">
+                                <i class="bi bi-exclamation-triangle-fill me-3 fs-3"></i>
+                                <div class="fw-medium">No se detectaron categorías activas en el sistema. Diríjase a Gestión de Categorías primero.</div>
                             </div>
                         }
                         else
@@ -104,28 +112,25 @@
                                 @foreach (var cat in todasLasCategorias)
                                 {
                                     bool estaAsignada = idsCategoriasSeleccionadas.Contains(cat.Id);
-                                    <div class="col-sm-6 col-lg-4">
-                                        @* Quitamos lógica de clases aquí, dejamos solo 'active' si corresponde *@
-                                        <div class="specialty-card h-100 p-3 rounded-3 d-flex align-items-center justify-content-between @(estaAsignada ? "active" : "")"
-                                             @onclick="() => ToggleCategoria(cat.Id)">
+                                    <div class="col-sm-6 col-xl-4">
+                                        <div class="specialty-card h-100 p-3 rounded-3 d-flex align-items-center justify-content-between transition-all @(estaAsignada ? "active shadow-sm" : "border bg-subtle")"
+                                             @onclick="() => ToggleCategoria(cat.Id)" style="cursor: pointer; user-select: none;">
 
-                                            <div class="d-flex align-items-center gap-3">
-                                                @* Quitamos bg-light/bg-primary, el CSS lo maneja *@
-                                                <div class="icon-box">
+                                            <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                                <div class="icon-box-mini rounded-circle d-flex align-items-center justify-content-center @(estaAsignada ? "bg-white text-utepsa-red" : "bg-white border text-secondary")"
+                                                     style="width: 34px; height: 34px; flex-shrink: 0;">
                                                     <i class="bi bi-tag-fill"></i>
                                                 </div>
-                                                @* Quitamos text-dark *@
-                                                <span class="fw-bold user-select-none">@cat.Nombre</span>
+                                                <span class="fw-bold text-truncate @(estaAsignada ? "text-white" : "text-primary")" style="font-size: 0.85rem;">@cat.Nombre</span>
                                             </div>
 
                                             @if (estaAsignada)
                                             {
-                                                @* Quitamos text-primary, ahora será blanco por CSS *@
-                                                <i class="bi bi-check-circle-fill fs-5 animate-pop"></i>
+                                                <i class="bi bi-check-circle-fill fs-5 text-white animate-pop"></i>
                                             }
                                             else
                                             {
-                                                <div class="circle-placeholder"></div>
+                                                <div class="circle-placeholder border" style="width: 20px; height: 20px; border-radius: 50%;"></div>
                                             }
                                         </div>
                                     </div>
@@ -135,9 +140,10 @@
                     }
                     else
                     {
-                        <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted opacity-25">
-                            <i class="bi bi-grid-3x3-gap-fill" style="font-size: 4rem;"></i>
-                            <p class="mt-3 fw-bold">Esperando selección...</p>
+                        <div class="h-100 d-flex flex-column align-items-center justify-content-center text-secondary opacity-25 py-5">
+                            <i class="bi bi-grid-3x3-gap-fill" style="font-size: 5rem;"></i>
+                            <h4 class="mt-4 fw-bold text-uppercase ls-1">Panel de Control de Matriz</h4>
+                            <p class="small">Selecciona un asesor del menú lateral para habilitar esta zona.</p>
                         </div>
                     }
                 </div>
@@ -146,7 +152,74 @@
     </div>
 </div>
 
-@* MANTENEMOS TU LÓGICA C# ORIGINAL (SOLO COPIA EL BLOQUE @CODE DE TU ARCHIVO ORIGINAL O DE ABAJO) *@
+<style>
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .appearance-none {
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .pointer-events-none {
+        pointer-events: none;
+    }
+
+    /* Specialty Card Customization */
+    .specialty-card {
+        border: 2px solid transparent;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+        .specialty-card.active {
+            background-color: var(--utepsa-red) !important;
+            border-color: var(--utepsa-red);
+        }
+
+        .specialty-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .specialty-card:not(.active):hover {
+            border-color: var(--utepsa-red);
+            background-color: var(--bg-surface) !important;
+        }
+
+    /* Pop Animation */
+    .animate-pop {
+        animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @@keyframes pop {
+        0% {
+            transform: scale(0.5);
+            opacity: 0;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+</style>
+
 @code {
     private List<Usuario> listaAsesores = new();
     private List<Categoria> todasLasCategorias = new();
@@ -180,13 +253,9 @@
     private void ToggleCategoria(int categoriaId)
     {
         if (idsCategoriasSeleccionadas.Contains(categoriaId))
-        {
             idsCategoriasSeleccionadas.Remove(categoriaId);
-        }
         else
-        {
             idsCategoriasSeleccionadas.Add(categoriaId);
-        }
     }
 
     private async Task GuardarCambios()
@@ -196,11 +265,11 @@
         try
         {
             await ServicioUsuarios.ActualizarCategoriasUsuarioAsync(usuarioSeleccionado.Id, idsCategoriasSeleccionadas);
-            await JS.InvokeVoidAsync("mostrarNotificacion", "Asignaciones guardadas correctamente.", "success");
+            await JS.InvokeVoidAsync("verificarYNotificar", "Matriz sincronizada", "success", false);
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("mostrarNotificacion", "Error al guardar: " + ex.Message, "error");
+            await JS.InvokeVoidAsync("verificarYNotificar", "Error: " + ex.Message, "error", false);
         }
         finally
         {

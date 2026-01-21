@@ -7,6 +7,7 @@
 @using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
 @inject ITicketService ServicioTickets
 @inject AuthenticationStateProvider AuthStateProvider
 @inject TicketStateContainer StateContainer
@@ -16,15 +17,15 @@
 
 <div class="container-fluid px-4 pb-5">
 
-    @* --- ENCABEZADO Y ACCIONES --- *@
-    <div class="d-flex justify-content-between align-items-end my-4 animate-enter">
+    @* --- ENCABEZADO Y ACCIONES: Alineación Centrada --- *@
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center my-4 gap-3 animate-enter">
         <div>
-            <h6 class="text-uppercase text-muted fw-bold ls-1 mb-1">Tablero Principal</h6>
-            <h2 class="fw-bold text-dark mb-0">
+            <h6 class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1.2px; opacity: 0.8;">Gestión de Casos</h6>
+            <h2 class="fw-bold text-primary mb-0" style="letter-spacing: -0.5px;">
                 Hola, @nombreUsuario
                 @if (tickets != null)
                 {
-                    <span class="badge bg-light text-dark border ms-2 align-middle fs-6" style="font-weight: 500;">
+                    <span class="badge bg-subtle text-primary border ms-2 align-middle" style="font-size: 0.85rem; font-weight: 600;">
                         @TicketsFiltrados.Count() tickets
                     </span>
                 }
@@ -33,25 +34,25 @@
 
         @if (esRolUsuario)
         {
-            <a href="nuevo-ticket" class="btn btn-utepsa shadow-sm d-flex align-items-center gap-2">
-                <i class="bi bi-plus-lg"></i>
+            <a href="nuevo-ticket" class="btn btn-utepsa shadow-red-glow d-flex align-items-center justify-content-center gap-2 py-2 px-4">
+                <i class="bi bi-plus-circle-fill fs-5"></i>
                 <span>Nuevo Ticket</span>
             </a>
         }
     </div>
 
-    @* --- BARRA DE FILTROS --- *@
-    <div class="card-pro mb-4 animate-enter" style="animation-delay: 0.1s;">
+    @* --- BARRA DE FILTROS: Alineación Milimétrica --- *@
+    <div class="card-pro mb-4 animate-enter bg-surface shadow-sm" style="animation-delay: 0.1s;">
         <div class="card-body p-3">
             <div class="row g-3 align-items-center">
-                @* Buscador *@
-                <div class="col-md-5 col-lg-4">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0 ps-3 text-muted">
+                @* Buscador Moderno *@
+                <div class="col-lg-5 col-xl-4">
+                    <div class="position-relative">
+                        <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary">
                             <i class="bi bi-search"></i>
                         </span>
-                        <input type="text" class="form-control form-control-pro border-start-0 ps-2"
-                               placeholder="Buscar por título o #ID..."
+                        <input type="text" class="form-control-pro w-100 ps-5"
+                               placeholder="Buscar por título o ID de caso..."
                                @bind="filtroTexto"
                                @bind:event="oninput"
                                @onkeyup="ResetearPagina" />
@@ -59,24 +60,24 @@
                 </div>
 
                 @* Filtros de Estado (Pills) *@
-                <div class="col-md-7 col-lg-8">
-                    <div class="d-flex gap-2 flex-wrap justify-content-md-end">
-                        <button class="btn btn-sm rounded-pill px-3 fw-bold @(filtroEstado == "Todos" ? "btn-dark" : "btn-light border")"
+                <div class="col-lg-7 col-xl-8">
+                    <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
+                        <button class="btn btn-sm rounded-pill px-3 fw-bold transition-all @(filtroEstado == "Todos" ? "btn-dark shadow-sm" : "btn-light border text-secondary")"
                                 @onclick='() => SetFiltro("Todos")'>
                             Todos
                         </button>
 
-                        <button class="btn btn-sm rounded-pill px-3 fw-bold @(filtroEstado == "Abierto" ? "btn-dark" : "btn-light border")"
+                        <button class="btn btn-sm rounded-pill px-3 fw-bold transition-all @(filtroEstado == "Abierto" ? "btn-dark shadow-sm" : "btn-light border text-secondary")"
                                 @onclick='() => SetFiltro("Abierto")'>
                             Abiertos
                         </button>
 
-                        <button class="btn btn-sm rounded-pill px-3 fw-bold @(filtroEstado == "Asignado" ? "btn-dark" : "btn-light border")"
+                        <button class="btn btn-sm rounded-pill px-3 fw-bold transition-all @(filtroEstado == "Asignado" ? "btn-dark shadow-sm" : "btn-light border text-secondary")"
                                 @onclick='() => SetFiltro("Asignado")'>
                             En Proceso
                         </button>
 
-                        <button class="btn btn-sm rounded-pill px-3 fw-bold @(filtroEstado == "Resuelto" ? "btn-dark" : "btn-light border")"
+                        <button class="btn btn-sm rounded-pill px-3 fw-bold transition-all @(filtroEstado == "Resuelto" ? "btn-dark shadow-sm" : "btn-light border text-secondary")"
                                 @onclick='() => SetFiltro("Resuelto")'>
                             Resueltos
                         </button>
@@ -93,15 +94,15 @@
             @for (int i = 0; i < 8; i++)
             {
                 <div class="col-12 col-md-6 col-lg-4 col-xl-3">
-                    <div class="card-pro h-100 border-0" aria-hidden="true">
-                        <div class="card-body">
-                            <h5 class="card-title placeholder-glow mb-3">
-                                <span class="placeholder col-6 rounded"></span>
-                            </h5>
-                            <p class="card-text placeholder-glow mb-4">
-                                <span class="placeholder col-7 rounded"></span>
-                                <span class="placeholder col-4 rounded"></span>
-                            </p>
+                    <div class="card-pro h-100 border-0 p-4 bg-surface shadow-sm" aria-hidden="true">
+                        <div class="placeholder-glow">
+                            <span class="placeholder col-4 rounded mb-3"></span>
+                            <span class="placeholder col-12 rounded mb-2"></span>
+                            <span class="placeholder col-8 rounded mb-4"></span>
+                            <div class="d-flex justify-content-between">
+                                <span class="placeholder col-5 rounded-pill"></span>
+                                <span class="placeholder col-2 rounded-circle"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -111,57 +112,60 @@
     else if (!TicketsPaginados.Any())
     {
         <div class="text-center py-5 animate-enter">
-            <div class="mb-3 opacity-25">
+            <div class="mb-4 text-secondary opacity-25">
                 <i class="bi bi-inbox-fill" style="font-size: 5rem;"></i>
             </div>
-            <h4 class="text-muted fw-bold">No se encontraron tickets</h4>
-            <button class="btn btn-outline-dark mt-2" @onclick="LimpiarFiltros">Limpiar Filtros</button>
+            <h4 class="text-primary fw-bold">No se encontraron registros</h4>
+            <p class="text-secondary small mb-4">Intenta ajustar los filtros de búsqueda para encontrar lo que necesitas.</p>
+            <button class="btn btn-utepsa-ghost border rounded-pill px-4" @onclick="LimpiarFiltros">Restablecer filtros</button>
         </div>
     }
     else
     {
-        <div class="row g-4 mb-4">
+        <div class="row g-4 mb-5">
             @foreach (var ticket in TicketsPaginados)
             {
                 <div class="col-12 col-md-6 col-lg-4 col-xl-3 animate-enter">
-                    <div class="card-pro h-100 position-relative d-flex flex-column card-hover-effect">
-                        <div class="position-absolute top-0 start-0 bottom-0 rounded-start-3"
+                    <div class="card-pro h-100 position-relative d-flex flex-column bg-surface shadow-sm border-0 transition-all card-hover-custom">
+                        @* Indicador Lateral de Estado *@
+                        <div class="position-absolute top-0 start-0 bottom-0 rounded-start-lg"
                              style="width: 5px; background-color: @ObtenerColorBorde(ticket);"></div>
 
-                        <div class="card-body ps-4 d-flex flex-column h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small fw-bold text-uppercase">#@ticket.Id</span>
-                                <small class="text-muted" style="font-size: 0.75rem;">
-                                    <i class="bi bi-clock me-1"></i>@ObtenerTiempoRelativo(ticket.FechaCreacion)
-                                </small>
+                        <div class="card-body ps-4 p-4 d-flex flex-column h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-secondary fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">#@ticket.Id</span>
+                                <div class="d-flex align-items-center text-secondary" style="font-size: 0.75rem;">
+                                    <i class="bi bi-clock-history me-1 text-utepsa-red"></i>
+                                    @ObtenerTiempoRelativo(ticket.FechaCreacion)
+                                </div>
                             </div>
 
-                            <h6 class="fw-bold mb-2 text-truncate-2 flex-grow-0" style="min-height: 2.6em;">
-                                <a href="/ticket/@ticket.Id" class="text-dark text-decoration-none stretched-link title-hover">
+                            <h6 class="fw-bold mb-3 text-truncate-2 flex-grow-0" style="min-height: 2.8em; line-height: 1.4;">
+                                <a href="/ticket/@ticket.Id" class="text-primary text-decoration-none stretched-link title-hover transition-all">
                                     @if (ticket.EsUrgente && ticket.Estado != EstadoTicket.Resuelto)
                                     {
-                                        <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>
+                                        <i class="bi bi-lightning-fill text-danger me-1" title="Urgente"></i>
                                     }
                                     @ticket.Titulo
                                 </a>
                             </h6>
 
                             <div class="mb-4">
-                                <span class="badge bg-light text-secondary border fw-normal">
-                                    <i class="bi bi-tag me-1"></i>@(ticket.Categoria?.Nombre ?? "General")
+                                <span class="badge bg-subtle text-secondary border-0 fw-semibold px-2 py-1" style="font-size: 0.7rem;">
+                                    <i class="bi bi-layers-fill me-1 text-primary"></i>@(ticket.Categoria?.Nombre ?? "General")
                                 </span>
                             </div>
 
-                            <div class="mt-auto pt-3 border-top border-light d-flex align-items-center justify-content-between">
+                            <div class="mt-auto pt-3 border-top border-light border-opacity-50 d-flex align-items-center justify-content-between">
                                 <span class="badge-pill @ObtenerClaseBadge(ticket.Estado)">
-                                    <i class="bi @ObtenerIconoEstado(ticket.Estado)"></i>
+                                    <i class="bi @ObtenerIconoEstado(ticket.Estado) me-1"></i>
                                     @(ticket.Estado == EstadoTicket.Asignado ? "En Proceso" : ticket.Estado.ToString())
                                 </span>
 
                                 @if (ticket.Asesor != null)
                                 {
-                                    <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center"
-                                         style="width: 30px; height: 30px; font-size: 0.75rem;" title="Asesor: @ticket.Asesor.Nombre">
+                                    <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center shadow-sm"
+                                         style="width: 32px; height: 32px; font-size: 0.75rem; border: 2px solid var(--bg-surface);" title="Atendido por: @ticket.Asesor.Nombre">
                                         @ticket.Asesor.Nombre.Substring(0, 1).ToUpper()
                                     </div>
                                 }
@@ -174,12 +178,14 @@
 
         @if (TotalPaginas > 1)
         {
-            <div class="d-flex justify-content-center align-items-center gap-2 mt-2 pb-5">
-                <button class="btn btn-white border shadow-sm" @onclick="PaginaAnterior" disabled="@(paginaActual == 1)">
+            <div class="d-flex justify-content-center align-items-center gap-3 mt-4 pb-5">
+                <button class="btn btn-surface border shadow-sm rounded-circle p-2 d-flex align-items-center justify-content-center @(paginaActual == 1 ? "opacity-50" : "hover-red")"
+                        style="width: 40px; height: 40px;" @onclick="PaginaAnterior" disabled="@(paginaActual == 1)">
                     <i class="bi bi-chevron-left"></i>
                 </button>
-                <span class="text-muted small fw-bold">Página @paginaActual de @TotalPaginas</span>
-                <button class="btn btn-white border shadow-sm" @onclick="PaginaSiguiente" disabled="@(paginaActual == TotalPaginas)">
+                <span class="text-primary small fw-bold">Página @paginaActual de @TotalPaginas</span>
+                <button class="btn btn-surface border shadow-sm rounded-circle p-2 d-flex align-items-center justify-content-center @(paginaActual == TotalPaginas ? "opacity-50" : "hover-red")"
+                        style="width: 40px; height: 40px;" @onclick="PaginaSiguiente" disabled="@(paginaActual == TotalPaginas)">
                     <i class="bi bi-chevron-right"></i>
                 </button>
             </div>
@@ -188,8 +194,20 @@
 </div>
 
 <style>
-    .ls-1 {
-        letter-spacing: 0.5px;
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
     }
 
     .text-truncate-2 {
@@ -199,30 +217,17 @@
         overflow: hidden;
     }
 
+    .card-hover-custom:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-hover) !important;
+    }
+
     .title-hover:hover {
-        color: #dc2626 !important;
+        color: var(--utepsa-red) !important;
     }
 
-    .card-hover-effect:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-    }
-
-    .animate-enter {
-        animation: fadeIn 0.4s ease-out forwards;
-        opacity: 0;
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .transition-all {
+        transition: all 0.25s ease;
     }
 </style>
 
@@ -232,7 +237,6 @@
     private string rolActual = "";
     private string nombreUsuario = "";
     private bool esRolUsuario = false;
-
     private string filtroTexto = "";
     private string filtroEstado = "Todos";
     private int paginaActual = 1;
@@ -241,19 +245,14 @@
     protected override async Task OnInitializedAsync()
     {
         StateContainer.OnChange += RecargarTicketsEnVivo;
-
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        if (user.Identity != null && user.Identity.IsAuthenticated)
+        if (user.Identity?.IsAuthenticated == true)
         {
             nombreUsuario = user.Identity.Name ?? "Usuario";
             var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId))
-            {
-                usuarioId = parsedId;
-            }
+            if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId)) usuarioId = parsedId;
 
             rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Sin Rol";
             esRolUsuario = user.IsInRole("Usuario");
@@ -268,14 +267,12 @@
         tickets = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
     }
 
-    // CORRECCIÓN CS0103: Se llama a CargarLista() en lugar de CargarTickets()
     private async void RecargarTicketsEnVivo(int? ticketId, string? titulo, TipoNotificacion tipo, string? remitente, Guid? ownerId, Guid? asesorId)
     {
         try
         {
             await InvokeAsync(async () =>
             {
-                // CORRECCIÓN: El método que realmente carga los datos se llama CargarLista
                 await CargarLista();
                 StateHasChanged();
             });
@@ -308,10 +305,10 @@
 
     private string ObtenerColorBorde(Ticket t)
     {
-        if (t.Estado == EstadoTicket.Resuelto) return "#16a34a";
-        if (t.EsUrgente) return "#dc2626";
-        if (t.Estado == EstadoTicket.Asignado) return "#ca8a04";
-        return "#64748b";
+        if (t.Estado == EstadoTicket.Resuelto) return "#198754"; // Éxito
+        if (t.EsUrgente) return "#C8102E"; // Institucional Red
+        if (t.Estado == EstadoTicket.Asignado) return "#f59e0b"; // Ámbar
+        return "#94a3b8"; // Slate
     }
 
     private string ObtenerClaseBadge(EstadoTicket estado) => estado switch
@@ -324,7 +321,7 @@
 
     private string ObtenerIconoEstado(EstadoTicket estado) => estado switch
     {
-        EstadoTicket.Abierto => "bi-inbox",
+        EstadoTicket.Abierto => "bi-clock",
         EstadoTicket.Asignado => "bi-gear-wide-connected",
         EstadoTicket.Resuelto => "bi-check-circle-fill",
         _ => "bi-circle"
@@ -336,11 +333,8 @@
         if (span.TotalMinutes < 1) return "Justo ahora";
         if (span.TotalMinutes < 60) return $"Hace {span.Minutes} min";
         if (span.TotalHours < 24) return $"Hace {span.Hours} h";
-        return fecha.ToLocalTime().ToString("dd MMM");
+        return fecha.ToLocalTime().ToString("dd MMM", CultureInfo.CurrentCulture);
     }
 
-    public void Dispose()
-    {
-        StateContainer.OnChange -= RecargarTicketsEnVivo;
-    }
+    public void Dispose() => StateContainer.OnChange -= RecargarTicketsEnVivo;
 }

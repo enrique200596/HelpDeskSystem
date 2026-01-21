@@ -12,12 +12,11 @@
 <div class="d-flex w-100 h-100 overflow-hidden bg-app font-main">
 
     @* === SIDEBAR === *@
-    @* CORRECCIÓN: Se añade lógica para mostrar/ocultar en móvil mediante la clase 'show-mobile' *@
     <aside class="sidebar-container @(mostrarMenuMovil ? "show-mobile" : "")">
         <NavMenu />
     </aside>
 
-    @* Overlay para cerrar el menú al tocar fuera en móviles *@
+    @* Overlay para móviles *@
     @if (mostrarMenuMovil)
     {
         <div class="sidebar-overlay d-lg-none" @onclick="ToggleMenu"></div>
@@ -26,67 +25,73 @@
     @* === CONTENIDO PRINCIPAL === *@
     <div class="flex-grow-1 d-flex flex-column h-100 overflow-hidden position-relative">
 
-        @* HEADER *@
-        <header class="bg-white border-bottom shadow-sm d-flex align-items-center justify-content-between px-4 py-2" style="height: 64px; flex-shrink: 0; z-index: 1000;">
+        @* HEADER OPTIMIZADO: Alineación matemática de elementos *@
+        <header class="bg-surface border-bottom shadow-sm d-flex align-items-center justify-content-between px-4"
+                style="height: 64px; flex-shrink: 0; z-index: 1000;">
 
             <div class="d-flex align-items-center overflow-hidden">
-                @* CORRECCIÓN: El botón ahora dispara la función ToggleMenu en lugar de un alert *@
-                <button class="btn btn-link text-dark d-lg-none me-2 p-0" @onclick="ToggleMenu">
+                <button class="btn btn-link text-primary d-lg-none me-2 p-0" @onclick="ToggleMenu">
                     <i class="bi bi-list fs-4"></i>
                 </button>
 
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0 align-items-center bg-transparent p-0">
                         <li class="breadcrumb-item">
-                            <a href="/" class="text-decoration-none text-muted small d-flex align-items-center hover-red">
+                            <a href="/" class="text-decoration-none text-secondary small d-flex align-items-center hover-red">
                                 <i class="bi bi-house-door-fill me-1"></i> Inicio
                             </a>
                         </li>
                         @if (!string.IsNullOrEmpty(nombrePagina) && nombrePagina != "Tablero Principal")
                         {
-                            <li class="breadcrumb-item active text-dark fw-bold small d-flex align-items-center" aria-current="page">
-                                <span class="badge bg-light text-dark border ms-1">@nombrePagina</span>
+                            <li class="breadcrumb-item active text-primary fw-bold small d-flex align-items-center" aria-current="page">
+                                <span class="badge bg-subtle text-primary border ms-1" style="font-weight: 600;">@nombrePagina</span>
                             </li>
                         }
                     </ol>
                 </nav>
             </div>
 
-            @* Perfil de Usuario *@
-            <AuthorizeView>
-                <Authorized>
-                    <div class="d-flex align-items-center gap-3 ps-3 border-start">
-                        <div class="text-end lh-1 d-none d-md-block">
-                            <div class="fw-bold text-dark" style="font-size: 0.9rem;">@context.User.Identity?.Name</div>
-                            <small class="text-muted" style="font-size: 0.75rem;">
-                                @(context.User.FindFirst(ClaimTypes.Role)?.Value?.ToUpper() ?? "USUARIO")
-                            </small>
-                        </div>
+            @* Lado Derecho: Toggle de Tema + Perfil *@
+            <div class="d-flex align-items-center gap-3">
 
-                        <div class="position-relative">
-                            <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center shadow-sm fw-bold"
-                                 style="width: 40px; height: 40px; font-size: 1.1rem; cursor: pointer; border: 2px solid #fff;">
-                                @ObtenerIniciales(context.User.Identity?.Name)
+                @* Botón de Cambio de Tema (UX: Fácil acceso) *@
+                <button class="btn btn-link text-secondary p-0 border-0" @onclick="ToggleDarkMode" title="Cambiar Tema">
+                    <i class="bi @(isDarkMode ? "bi-sun-fill text-warning" : "bi-moon-stars-fill") fs-5"></i>
+                </button>
+
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="d-flex align-items-center gap-3 ps-3 border-start" style="height: 32px;">
+                            <div class="text-end lh-1 d-none d-md-block">
+                                <div class="fw-bold text-primary" style="font-size: 0.85rem;">@context.User.Identity?.Name</div>
+                                <small class="text-secondary" style="font-size: 0.7rem; font-weight: 500; letter-spacing: 0.5px;">
+                                    @(context.User.FindFirst(ClaimTypes.Role)?.Value?.ToUpper() ?? "USUARIO")
+                                </small>
                             </div>
-                            <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
-                                  style="width: 12px; height: 12px;"></span>
+
+                            <div class="position-relative">
+                                <div class="rounded-circle bg-utepsa-red text-white d-flex align-items-center justify-content-center shadow-sm fw-bold"
+                                     style="width: 38px; height: 38px; font-size: 1rem; border: 2px solid var(--bg-surface);">
+                                    @ObtenerIniciales(context.User.Identity?.Name)
+                                </div>
+                                <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
+                                      style="width: 10px; height: 10px;"></span>
+                            </div>
                         </div>
-                    </div>
-                </Authorized>
-            </AuthorizeView>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
         </header>
 
-        @* CONTENEDOR CON SCROLL INTELIGENTE *@
-        <main class="flex-grow-1 overflow-auto d-flex flex-column" style="background-color: var(--bg-app);">
+        @* CONTENEDOR PRINCIPAL *@
+        <main class="flex-grow-1 overflow-auto d-flex flex-column">
 
-            @* Este div absorbe el espacio sobrante si la página tiene poco contenido *@
             <div class="flex-grow-1 p-0">
                 @Body
             </div>
 
-            @* El footer ahora se pegará siempre al final (mt-auto) *@
-            <footer class="text-center text-muted small py-3 opacity-50 border-top mt-auto bg-white bg-opacity-25">
-                &copy; @DateTime.Now.Year HelpDesk UTEPSA - Todos los derechos reservados
+            <footer class="text-center text-secondary small py-3 border-top mt-auto bg-surface">
+                <span class="opacity-75">&copy; @DateTime.Now.Year <strong>HelpDesk UTEPSA</strong> - Gestión Tecnológica</span>
             </footer>
         </main>
     </div>
@@ -97,11 +102,33 @@
         width: 260px;
         flex-shrink: 0;
         z-index: 1040;
-        transition: transform 0.3s ease;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         background: var(--utepsa-dark);
     }
 
-    /* Estilos para móviles */
+    /* Ajustes de alineación para el breadcrumb */
+    .breadcrumb-item + .breadcrumb-item::before {
+        color: var(--text-light);
+        padding: 0 0.5rem;
+    }
+
+    /* Fondo dinámico para el header */
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
     @@media (max-width: 991.98px) {
         .sidebar-container {
             position: fixed;
@@ -125,30 +152,21 @@
             z-index: 1035;
         }
     }
-
-    /* Estilos base */
-    .font-main {
-        font-family: 'Segoe UI', system-ui, sans-serif;
-    }
-
-    .bg-app {
-        background-color: #f3f4f6;
-    }
-
-    .scroll-smooth {
-        scroll-behavior: smooth;
-    }
-
-    .hover-red:hover {
-        color: var(--utepsa-red) !important;
-    }
 </style>
 
 @code {
     private string nombrePagina = "";
-    private bool mostrarMenuMovil = false; // Nueva variable de estado
+    private bool mostrarMenuMovil = false;
+    private bool isDarkMode = false; // Estado del tema
 
     private void ToggleMenu() => mostrarMenuMovil = !mostrarMenuMovil;
+
+    // Lógica de intercambio de temas (Claro/Oscuro)
+    private async Task ToggleDarkMode()
+    {
+        isDarkMode = !isDarkMode;
+        await JS.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", isDarkMode ? "dark" : "light");
+    }
 
     protected override void OnInitialized()
     {
@@ -159,7 +177,7 @@
 
     private void AlCambiarUrl(object? sender, LocationChangedEventArgs e)
     {
-        mostrarMenuMovil = false; // Cerrar menú al navegar
+        mostrarMenuMovil = false;
         ActualizarNombrePagina();
         StateHasChanged();
     }
@@ -174,7 +192,6 @@
         else nombrePagina = "Tablero Principal";
     }
 
-    // El resto de tus métodos (ManejarCambioGlobal, ObtenerIniciales, Dispose) se mantienen igual...
     private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, TipoNotificacion tipo, string? remitente, Guid? ownerId, Guid? asesorId)
     {
         try

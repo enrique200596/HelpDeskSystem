@@ -3,122 +3,126 @@
 @attribute [AllowAnonymous]
 @inject NavigationManager Navegacion
 
-<PageTitle>Acceso | HelpDesk UTEPSA</PageTitle>
+<PageTitle>Acceso Institucional | HelpDesk UTEPSA</PageTitle>
 
 <div class="container-fluid p-0 w-100 vh-100 overflow-hidden">
     <div class="row g-0 h-100">
 
-        @* === COLUMNA IZQUIERDA: BRANDING (Visible solo en PC) === *@
+        @* === COLUMNA IZQUIERDA: BRANDING (Impacto Institucional) === *@
         <div class="col-lg-7 d-none d-lg-flex flex-column justify-content-center align-items-center text-white position-relative overflow-hidden"
              style="background: linear-gradient(135deg, var(--utepsa-red) 0%, #8a0b20 100%);">
 
-            @* Patrón de fondo sutil (Círculos decorativos) *@
+            @* Patrón Geométrico de Fondo (Simetría) *@
             <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10"
-                 style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 30px 30px;">
+                 style="background-image: radial-gradient(circle at 2px 2px, #ffffff 1px, transparent 0); background-size: 40px 40px;">
             </div>
 
             <div class="position-relative z-2 text-center px-5 animate-enter">
-                <div class="mb-4 p-4 rounded-circle bg-white bg-opacity-10 d-inline-flex">
-                    <i class="bi bi-shield-check-fill" style="font-size: 5rem;"></i>
+                <div class="mb-4 p-4 rounded-circle bg-white bg-opacity-10 d-inline-flex shadow-lg" style="backdrop-filter: blur(4px);">
+                    <i class="bi bi-shield-lock-fill" style="font-size: 4.5rem;"></i>
                 </div>
-                <h1 class="display-4 fw-bold mb-3 ls-1">HelpDesk UTEPSA</h1>
-                <p class="lead fs-4 opacity-75 text-balance" style="max-width: 600px;">
-                    Plataforma integral para la gestión de servicios y soporte tecnológico universitario.
+                <h1 class="display-3 fw-bold mb-3 ls-1" style="letter-spacing: -1.5px;">HelpDesk <span class="fw-light opacity-75">UTEPSA</span></h1>
+                <p class="lead fs-4 opacity-75 text-balance mx-auto" style="max-width: 550px; font-weight: 300;">
+                    Gestión eficiente de servicios tecnológicos para la comunidad universitaria de Santa Cruz.
                 </p>
             </div>
 
-            @* Footer decorativo *@
-            <div class="position-absolute bottom-0 w-100 text-center pb-4 opacity-50 small">
-                &copy; @DateTime.Now.Year Universidad Tecnológica Privada de Santa Cruz
+            @* Créditos al pie *@
+            <div class="position-absolute bottom-0 w-100 text-center pb-4 opacity-50" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                &copy; @DateTime.Now.Year UNIVERSIDAD TECNOLÓGICA PRIVADA DE SANTA CRUZ
             </div>
         </div>
 
-        @* === COLUMNA DERECHA: FORMULARIO === *@
-        <div class="col-lg-5 d-flex flex-column justify-content-center bg-white shadow-pro position-relative">
+        @* === COLUMNA DERECHA: FORMULARIO (Alineación y Simetría) === *@
+        <div class="col-lg-5 d-flex flex-column justify-content-center bg-surface shadow-pro position-relative">
 
-            <div class="w-100 mx-auto px-4" style="max-width: 480px;">
+            <div class="w-100 mx-auto px-4 px-md-5" style="max-width: 460px;">
 
-                @* Encabezado Móvil (Solo visible en pantallas chicas) *@
-                <div class="text-center mb-5 d-lg-none">
-                    <i class="bi bi-shield-check-fill text-utepsa-red fs-1"></i>
-                    <h3 class="fw-bold mt-2">HelpDesk UTEPSA</h3>
+                @* Branding Móvil *@
+                <div class="text-center mb-5 d-lg-none animate-enter">
+                    <i class="bi bi-shield-lock-fill text-utepsa-red" style="font-size: 3.5rem;"></i>
+                    <h2 class="fw-bold mt-2 text-primary">HelpDesk UTEPSA</h2>
                 </div>
 
-                @* Encabezado Formulario *@
-                <div class="mb-5">
-                    <h2 class="fw-bold text-dark mb-2">Bienvenido de nuevo</h2>
-                    <p class="text-muted">Ingresa tus credenciales institucionales para continuar.</p>
+                @* Encabezado de Bienvenida *@
+                <div class="mb-5 animate-enter">
+                    <h2 class="fw-bold text-primary mb-2" style="letter-spacing: -0.5px;">Bienvenido al Portal</h2>
+                    <p class="text-secondary small fw-medium">Ingresa tus credenciales para acceder a la plataforma.</p>
                 </div>
 
+                @* Mensajes de Error *@
                 @if (!string.IsNullOrEmpty(MensajeError))
                 {
-                    <div class="alert alert-danger d-flex align-items-center mb-4 border-0 shadow-sm rounded-3 animate-enter" role="alert">
+                    <div class="alert alert-danger d-flex align-items-center mb-4 border-0 shadow-sm rounded-3 animate-enter" role="alert" style="background-color: #fef2f2; color: #991b1b;">
                         <i class="bi bi-exclamation-circle-fill me-3 fs-5"></i>
-                        <div>@MensajeError</div>
+                        <div class="small fw-bold">@MensajeError</div>
                     </div>
                 }
 
-                <form action="/account/login" method="post">
-                    @* ADICIÓN CRÍTICA: Esto genera el token que el AccountController exige *@
+                <form action="/account/login" method="post" class="animate-enter" style="animation-delay: 0.1s;">
                     <AntiforgeryToken />
-
                     <input type="hidden" name="returnUrl" value="@ReturnUrl" />
 
-                    @* Input: Email *@
+                    @* Campo: Email *@
                     <div class="mb-4">
-                        <label class="form-label text-uppercase small text-muted fw-bold ls-1">Correo Institucional</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-transparent border-end-0 ps-3 text-muted">
-                                <i class="bi bi-envelope"></i>
+                        <label class="form-label text-uppercase fw-bold text-secondary ls-1" style="font-size: 0.65rem;">Correo Institucional</label>
+                        <div class="input-group-modern">
+                            <span class="input-group-icon">
+                                <i class="bi bi-envelope-at-fill"></i>
                             </span>
                             <input type="text" name="email"
-                                   class="form-control form-control-pro border-start-0 ps-2 bg-white"
-                                   placeholder="ejemplo@utepsa.edu"
+                                   class="form-control-pro w-100 ps-5"
+                                   placeholder="tu-correo@utepsa.edu"
                                    autocomplete="username" required />
                         </div>
                     </div>
 
-                    @* Input: Password con Toggle *@
+                    @* Campo: Contraseña *@
                     <div class="mb-2">
-                        <div class="d-flex justify-content-between">
-                            <label class="form-label text-uppercase small text-muted fw-bold ls-1">Contraseña</label>
-                        </div>
-                        <div class="input-group">
-                            <span class="input-group-text bg-transparent border-end-0 ps-3 text-muted">
-                                <i class="bi bi-key"></i>
+                        <label class="form-label text-uppercase fw-bold text-secondary ls-1" style="font-size: 0.65rem;">Contraseña</label>
+                        <div class="input-group-modern position-relative">
+                            <span class="input-group-icon">
+                                <i class="bi bi-lock-fill"></i>
                             </span>
                             <input type="@(mostrarPassword ? "text" : "password")"
                                    name="password"
-                                   class="form-control form-control-pro border-start-0 border-end-0 ps-2 bg-white"
-                                   placeholder="••••••••"
+                                   class="form-control-pro w-100 ps-5 pe-5"
+                                   placeholder="••••••••••••"
                                    autocomplete="current-password" required />
 
-                            <button type="button" class="btn border border-start-0 bg-transparent text-muted"
-                                    @onclick="TogglePassword" tabindex="-1">
-                                <i class="bi @(mostrarPassword ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
+                            <button type="button" class="btn-toggle-pass" @onclick="TogglePassword" tabindex="-1">
+                                <i class="bi @(mostrarPassword ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
                         </div>
                     </div>
 
                     <div class="d-flex justify-content-end mb-4">
-                        <a href="#" class="text-decoration-none small text-muted hover-red">¿Olvidaste tu contraseña?</a>
+                        <a href="#" class="text-decoration-none small text-secondary hover-red fw-bold">¿Olvidaste tu contraseña?</a>
                     </div>
 
-                    @* Botón Submit con Estado de Carga *@
-                    <button type="submit" class="btn btn-utepsa w-100 py-3 shadow-sm d-flex justify-content-center align-items-center gap-2"
-                            @onclick="IniciarCarga">
+                    @* Acción Principal *@
+                    <button type="submit" class="btn btn-utepsa w-100 py-3 shadow-red-glow d-flex justify-content-center align-items-center gap-2"
+                            @onclick="IniciarCarga" disabled="@estaCargando">
                         @if (estaCargando)
                         {
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span>VERIFICANDO...</span>
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            <span class="fw-bold">VALIDANDO...</span>
                         }
                         else
                         {
-                            <span>INGRESAR AL SISTEMA</span>
-                            <i class="bi bi-arrow-right"></i>
+                            <span class="fw-bold">INGRESAR AHORA</span>
+                            <i class="bi bi-arrow-right-short fs-4"></i>
                         }
                     </button>
                 </form>
+
+                @* Registro / Enlace Externo *@
+                <div class="text-center mt-5">
+                    <p class="text-secondary small">
+                        ¿No tienes acceso?
+                        <a href="registrar" class="text-utepsa-red text-decoration-none fw-bold hover-underline">Solicitar registro</a>
+                    </p>
+                </div>
 
             </div>
         </div>
@@ -126,47 +130,75 @@
 </div>
 
 <style>
+    /* Estilos Locales de Login */
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
     .ls-1 {
         letter-spacing: 1px;
     }
 
-    .opacity-10 {
-        opacity: 0.1;
+    /* Inputs Modernos con Iconos Integrados */
+    .input-group-modern {
+        position: relative;
+        display: flex;
+        align-items: center;
     }
 
-    .bg-app {
-        background-color: var(--bg-app);
-    }
-    /* Ajuste para que el input group se vea unido y limpio */
-    .input-group-text {
-        border-color: #dee2e6;
-        border-radius: var(--radius-md) 0 0 var(--radius-md);
-    }
-
-    .input-group .form-control {
-        border-radius: 0;
-        border-color: #dee2e6;
+    .input-group-icon {
+        position: absolute;
+        left: 1.2rem;
+        z-index: 5;
+        color: var(--text-light);
+        font-size: 1.1rem;
+        transition: color 0.3s ease;
     }
 
-    .input-group .btn {
-        border-color: #dee2e6;
-        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    .form-control-pro:focus + .input-group-icon {
+        color: var(--utepsa-red);
     }
 
-    .input-group:focus-within .input-group-text,
-    .input-group:focus-within .form-control,
-    .input-group:focus-within .btn {
-        border-color: var(--utepsa-red);
-        z-index: 3;
+    .btn-toggle-pass {
+        position: absolute;
+        right: 1rem;
+        background: transparent;
+        border: none;
+        color: var(--text-light);
+        z-index: 5;
+        padding: 0.5rem;
+    }
+
+        .btn-toggle-pass:hover {
+            color: var(--text-primary);
+        }
+
+    .hover-underline:hover {
+        text-decoration: underline !important;
+    }
+
+    /* Animación de entrada suave */
+    .animate-enter {
+        animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+
+    @@keyframes slideUpFade {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 
 @code {
-    [SupplyParameterFromQuery(Name = "returnUrl")]
-    public string ReturnUrl { get; set; } = "";
-
-    [SupplyParameterFromQuery(Name = "error")]
-    public string MensajeError { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string ReturnUrl { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "error")] public string MensajeError { get; set; } = "";
 
     private bool mostrarPassword = false;
     private bool estaCargando = false;
@@ -175,12 +207,6 @@
 
     private void IniciarCarga()
     {
-        if (estaCargando) return;
-
-        // CORRECCIÓN: Activamos el spinner inmediatamente.
-        // Al ser un formulario con 'method="post"' y 'action',
-        // el navegador navegará fuera de este componente Blazor.
-        // No se requiere Delay ya que la página se descargará al recibir la respuesta del servidor.
-        estaCargando = true;
+        if (!estaCargando) estaCargando = true;
     }
 }

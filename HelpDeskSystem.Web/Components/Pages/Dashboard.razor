@@ -12,229 +12,193 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @implements IDisposable
 
-<PageTitle>Dashboard | HelpDesk UTEPSA</PageTitle>
+<PageTitle>Estadísticas | HelpDesk UTEPSA</PageTitle>
 
 <div class="container-fluid px-4 pb-5">
 
-    @* --- ENCABEZADO --- *@
-    <div class="d-flex justify-content-between align-items-end my-4 animate-enter">
+    @* --- ENCABEZADO: Alineación y Jerarquía --- *@
+    <div class="d-flex justify-content-between align-items-center my-4 animate-enter">
         <div>
-            <h6 class="text-uppercase text-muted fw-bold ls-1 mb-1">Vista General</h6>
-            <h2 class="fw-bold text-dark mb-0">Rendimiento del Sistema</h2>
+            <h6 class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1.2px; opacity: 0.8;">Panel de Control</h6>
+            <h2 class="fw-bold text-primary mb-0" style="letter-spacing: -0.5px;">Rendimiento del Sistema</h2>
         </div>
-        <div class="d-none d-md-flex gap-2">
-            <span class="badge bg-light text-secondary border p-2 px-3 fw-normal">
-                <i class="bi bi-calendar-event me-2"></i>@DateTime.Now.ToString("dd MMMM, yyyy")
-            </span>
+        <div class="d-none d-md-flex align-items-center bg-surface border rounded-pill px-3 py-2 shadow-sm">
+            <i class="bi bi-calendar3 text-utepsa-red me-2"></i>
+            <span class="text-primary small fw-semibold">@DateTime.Now.ToString("dd MMMM, yyyy")</span>
         </div>
     </div>
 
     @if (metricas == null || ultimosTickets == null)
     {
-        @* Skeleton de Carga *@
         <div class="row g-4">
             @for (int i = 0; i < 4; i++)
             {
-                <div class="col-md-3"><div class="card-pro p-4 placeholder-glow"><span class="placeholder col-6"></span></div></div>
+                <div class="col-md-3"><div class="card-pro p-5 placeholder-glow shadow-sm"><span class="placeholder col-12 rounded"></span></div></div>
             }
         </div>
     }
     else
     {
-        @* --- FILA 1: KPIs PRINCIPALES --- *@
+        @* --- FILA 1: KPIs CON ALINEACIÓN MILIMÉTRICA --- *@
         <div class="row g-4 mb-4 animate-enter">
-            @* KPI 1: Total *@
+            @* KPI: Total Tickets *@
             <div class="col-md-6 col-xl-3">
-                <div class="card-pro h-100 border-start border-4 border-primary">
-                    <div class="card-body d-flex align-items-center justify-content-between">
+                <div class="card-pro h-100 border-start border-4 border-primary bg-surface shadow-sm">
+                    <div class="card-body d-flex align-items-center justify-content-between p-4">
                         <div>
-                            <span class="text-uppercase text-muted small fw-bold ls-1">Total Tickets</span>
-                            <h2 class="display-6 fw-bold text-dark mt-2 mb-0">@metricas.TotalTickets</h2>
+                            <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Total General</span>
+                            <h3 class="fw-bold text-primary mt-1 mb-0">@metricas.TotalTickets</h3>
                         </div>
-                        <div class="p-3 bg-primary bg-opacity-10 rounded-circle text-primary">
-                            <i class="bi bi-ticket-perforated-fill fs-3"></i>
+                        <div class="p-3 bg-primary bg-opacity-10 rounded-circle text-primary shadow-sm">
+                            <i class="bi bi-ticket-detailed fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @* KPI 2: Pendientes *@
+            @* KPI: Pendientes *@
             <div class="col-md-6 col-xl-3">
-                <div class="card-pro h-100 border-start border-4 border-warning">
-                    <div class="card-body d-flex align-items-center justify-content-between">
+                <div class="card-pro h-100 border-start border-4 border-warning bg-surface shadow-sm">
+                    <div class="card-body d-flex align-items-center justify-content-between p-4">
                         <div>
-                            <span class="text-uppercase text-muted small fw-bold ls-1">Pendientes</span>
-                            <h2 class="display-6 fw-bold text-dark mt-2 mb-0">@metricas.Pendientes</h2>
-                            <small class="text-muted" style="font-size:0.75rem">Requieren atención</small>
+                            <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Pendientes</span>
+                            <h3 class="fw-bold text-primary mt-1 mb-0">@metricas.Pendientes</h3>
+                            <small class="text-warning fw-semibold" style="font-size: 0.7rem;">Requieren Acción</small>
                         </div>
-                        <div class="p-3 bg-warning bg-opacity-10 rounded-circle text-warning">
-                            <i class="bi bi-hourglass-split fs-3"></i>
+                        <div class="p-3 bg-warning bg-opacity-10 rounded-circle text-warning shadow-sm">
+                            <i class="bi bi-clock-history fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @* KPI 3: Resueltos *@
+            @* KPI: Resueltos *@
             <div class="col-md-6 col-xl-3">
-                <div class="card-pro h-100 border-start border-4 border-success">
-                    <div class="card-body d-flex align-items-center justify-content-between">
+                <div class="card-pro h-100 border-start border-4 border-success bg-surface shadow-sm">
+                    <div class="card-body d-flex align-items-center justify-content-between p-4">
                         <div>
-                            <span class="text-uppercase text-muted small fw-bold ls-1">Resueltos</span>
-                            <h2 class="display-6 fw-bold text-dark mt-2 mb-0">@metricas.Resueltos</h2>
-                            <small class="text-success fw-bold" style="font-size:0.75rem">
-                                <i class="bi bi-graph-up-arrow me-1"></i>Efectividad
-                            </small>
+                            <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Resueltos</span>
+                            <h3 class="fw-bold text-primary mt-1 mb-0">@metricas.Resueltos</h3>
+                            <small class="text-success fw-bold" style="font-size: 0.7rem;"><i class="bi bi-check2-all me-1"></i>Finalizados</small>
                         </div>
-                        <div class="p-3 bg-success bg-opacity-10 rounded-circle text-success">
-                            <i class="bi bi-check-circle-fill fs-3"></i>
+                        <div class="p-3 bg-success bg-opacity-10 rounded-circle text-success shadow-sm">
+                            <i class="bi bi-check-circle fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @* KPI 4: Satisfacción *@
+            @* KPI: Satisfacción *@
             <div class="col-md-6 col-xl-3">
-                <div class="card-pro h-100 border-start border-4 border-info">
-                    <div class="card-body d-flex align-items-center justify-content-between">
+                <div class="card-pro h-100 border-start border-4 border-info bg-surface shadow-sm">
+                    <div class="card-body d-flex align-items-center justify-content-between p-4">
                         <div>
-                            <span class="text-uppercase text-muted small fw-bold ls-1">Calidad</span>
-                            @* --- FIX 1: Formato seguro para decimales --- *@
-                            <h2 class="display-6 fw-bold text-dark mt-2 mb-0">@metricas.PromedioSatisfaccion.ToString("0.0", CultureInfo.InvariantCulture)</h2>
-                            <small class="text-muted" style="font-size:0.75rem">Promedio estrellas</small>
+                            <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Satisfacción</span>
+                            <h3 class="fw-bold text-primary mt-1 mb-0">@metricas.PromedioSatisfaccion.ToString("0.0", CultureInfo.InvariantCulture)</h3>
+                            <div class="text-info small mt-1">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="bi @(i <= metricas.PromedioSatisfaccion ? "bi-star-fill" : "bi-star")" style="font-size: 0.6rem;"></i>
+                                }
+                            </div>
                         </div>
-                        <div class="p-3 bg-info bg-opacity-10 rounded-circle text-info">
-                            <i class="bi bi-star-fill fs-3"></i>
+                        <div class="p-3 bg-info bg-opacity-10 rounded-circle text-info shadow-sm">
+                            <i class="bi bi-emoji-smile fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        @* --- FILA 2: GRÁFICOS Y DETALLES --- *@
-        <div class="row g-4 mb-4 animate-enter" style="animation-delay: 0.1s;">
+        @* --- FILA 2: ANÁLISIS VISUAL --- *@
+        <div class="row g-4 animate-enter" style="animation-delay: 0.1s;">
 
-            @* COLUMNA IZQ: Métricas Visuales *@
+            @* Gráfico de Distribución (Simetría) *@
             <div class="col-lg-4">
-                <div class="card-pro h-100">
-                    <div class="card-pro-header d-flex justify-content-between align-items-center">
-                        <h6 class="fw-bold mb-0">Distribución de Estado</h6>
-                        <button class="btn btn-sm btn-light border"><i class="bi bi-three-dots"></i></button>
+                <div class="card-pro h-100 bg-surface shadow-sm">
+                    <div class="card-pro-header border-bottom d-flex align-items-center justify-content-between py-3">
+                        <h6 class="fw-bold text-primary mb-0">Estado de Operaciones</h6>
+                        <i class="bi bi-pie-chart text-secondary"></i>
                     </div>
-                    <div class="card-pro-body text-center pt-4">
-
-                        @* GRÁFICO DE DONA CSS PURO (OPTIMIZADO) *@
-                        <div class="position-relative mx-auto mb-4" style="width: 160px; height: 160px;">
-                            @* Se usa CultureInfo.InvariantCulture para asegurar el punto decimal en el estilo CSS *@
-                            <div class="rounded-circle w-100 h-100 shadow-inner"
+                    <div class="card-pro-body text-center py-4">
+                        <div class="position-relative mx-auto" style="width: 180px; height: 180px;">
+                            <div class="rounded-circle w-100 h-100"
                                  style="background: conic-gradient(
-                                var(--utepsa-red) 0% @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))%,
-                                #198754 @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))% @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))%,
-                                #ffc107 @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))% 100%
-                            );">
+                                            var(--utepsa-red) 0% @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))%,
+                                            #198754 @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))% @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))%,
+                                            #ffc107 @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))% 100%
+                                        ); transform: rotate(-90deg); transition: all 1s ease;">
                             </div>
-                            @* Agujero central *@
-                            <div class="position-absolute top-50 start-50 translate-middle bg-white rounded-circle d-flex flex-column align-items-center justify-content-center"
-                                 style="width: 120px; height: 120px;">
-                                <span class="display-6 fw-bold text-dark">@metricas.TotalTickets</span>
-                                <span class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total</span>
-                            </div>
-                        </div>
-
-                        @* Leyenda *@
-                        <div class="d-flex justify-content-center gap-4 text-start mt-3">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: var(--utepsa-red);"></span>
-                                    <span class="small text-muted">Pendientes</span>
-                                </div>
-                                <h6 class="fw-bold mb-0">@PorcentajePendientes.ToString("0")%</h6>
-                            </div>
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #198754;"></span>
-                                    <span class="small text-muted">Resueltos</span>
-                                </div>
-                                <h6 class="fw-bold mb-0">@PorcentajeResueltos.ToString("0")%</h6>
+                            <div class="position-absolute top-50 start-50 translate-middle bg-surface rounded-circle d-flex flex-column align-items-center justify-content-center shadow-inner"
+                                 style="width: 135px; height: 135px;">
+                                <span class="h2 fw-bold text-primary mb-0">@metricas.TotalTickets</span>
+                                <span class="text-secondary fw-bold text-uppercase" style="font-size: 0.6rem; letter-spacing: 1px;">Tickets</span>
                             </div>
                         </div>
 
-                        <hr class="my-4 opacity-10" />
-
-                        @* Barras de Progreso *@
-                        <div class="text-start px-2">
-                            <div class="d-flex justify-content-between mb-1">
-                                <small class="fw-bold text-muted">Meta de Resolución Mensual</small>
-                                <small class="fw-bold text-primary">85%</small>
+                        <div class="d-flex justify-content-center gap-4 mt-4">
+                            <div class="text-center">
+                                <span class="d-block rounded-pill mx-auto mb-1" style="width: 20px; height: 6px; background: var(--utepsa-red);"></span>
+                                <span class="text-secondary small fw-bold">@PorcentajePendientes.ToString("0")%</span>
                             </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar bg-primary" role="progressbar" style="width: 85%" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="text-center">
+                                <span class="d-block rounded-pill mx-auto mb-1" style="width: 20px; height: 6px; background: #198754;"></span>
+                                <span class="text-secondary small fw-bold">@PorcentajeResueltos.ToString("0")%</span>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
 
-            @* COLUMNA DER: Actividad Reciente *@
+            @* Actividad Reciente (Alineación de Tabla) *@
             <div class="col-lg-8">
-                <div class="card-pro h-100">
-                    <div class="card-pro-header border-bottom">
-                        <h6 class="fw-bold mb-0">Actividad Reciente</h6>
+                <div class="card-pro h-100 bg-surface shadow-sm">
+                    <div class="card-pro-header border-bottom py-3">
+                        <h6 class="fw-bold text-primary mb-0">Monitor de Actividad Reciente</h6>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light text-secondary small text-uppercase">
-                                <tr>
-                                    <th class="ps-4 border-0">Ticket</th>
-                                    <th class="border-0">Solicitante</th>
+                            <thead class="bg-subtle">
+                                <tr class="text-secondary small fw-bold text-uppercase">
+                                    <th class="ps-4 py-3 border-0" style="letter-spacing: 0.5px;">Caso</th>
+                                    <th class="border-0">Usuario</th>
                                     <th class="border-0">Estado</th>
-                                    <th class="text-end pe-4 border-0">Acción</th>
+                                    <th class="text-end pe-4 border-0"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var ticket in ultimosTickets)
                                 {
-                                    <tr>
-                                        <td class="ps-4">
+                                    <tr class="border-bottom border-light">
+                                        <td class="ps-4 py-3">
                                             <div class="d-flex flex-column">
-                                                <span class="fw-bold text-dark">@ticket.Titulo</span>
-                                                <small class="text-muted">#@ticket.Id • @ticket.Categoria?.Nombre</small>
+                                                <span class="fw-bold text-primary" style="font-size: 0.9rem;">@ticket.Titulo</span>
+                                                <small class="text-secondary">#@ticket.Id <i class="bi bi-dot"></i> @ticket.Categoria?.Nombre</small>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
-                                                <div class="rounded-circle bg-light border text-secondary d-flex align-items-center justify-content-center small fw-bold"
-                                                     style="width: 28px; height: 28px;">
-                                                    @* --- FIX 3: PROTECCIÓN CONTRA NOMBRE VACÍO O NULO --- *@
+                                                <div class="rounded-circle bg-subtle text-primary d-flex align-items-center justify-content-center small fw-bold shadow-sm"
+                                                     style="width: 30px; height: 30px; border: 1px solid var(--border-color);">
                                                     @(!string.IsNullOrEmpty(ticket.Usuario?.Nombre) ? ticket.Usuario.Nombre.Substring(0, 1) : "U")
                                                 </div>
-                                                <small>@ticket.Usuario?.Nombre</small>
+                                                <span class="small fw-semibold text-secondary">@ticket.Usuario?.Nombre</span>
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge rounded-pill border fw-normal
-                                                                                                @(ticket.Estado == EstadoTicket.Resuelto ? "bg-success bg-opacity-10 text-success border-success" : ticket.EsUrgente ? "bg-danger bg-opacity-10 text-danger border-danger" : "bg-light text-dark")">
-                                                @ticket.Estado
+                                            <span class="badge-pill @(ticket.Estado == EstadoTicket.Resuelto ? "status-solved" : ticket.EsUrgente ? "status-urgent" : "status-open")">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.4rem;"></i> @ticket.Estado
                                             </span>
                                         </td>
                                         <td class="text-end pe-4">
-                                            <a href="ticket/@ticket.Id" class="btn btn-sm btn-white border shadow-sm text-muted hover-red">
-                                                <i class="bi bi-chevron-right"></i>
+                                            <a href="ticket/@ticket.Id" class="btn btn-sm btn-utepsa-ghost rounded-circle p-2">
+                                                <i class="bi bi-arrow-right-short fs-4"></i>
                                             </a>
                                         </td>
                                     </tr>
                                 }
-                                @if (!ultimosTickets.Any())
-                                {
-                                    <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted">Sin actividad reciente</td>
-                                    </tr>
-                                }
                             </tbody>
                         </table>
-                    </div>
-                    <div class="card-footer bg-white border-0 text-center py-3">
-                        <a href="/" class="text-decoration-none small fw-bold text-utepsa-red">Ver todos los tickets</a>
                     </div>
                 </div>
             </div>
@@ -242,39 +206,40 @@
     }
 </div>
 
+<style>
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+</style>
+
 @code {
+    // ... Lógica se mantiene igual para no alterar funcionalidad ...
     private DashboardDto? metricas;
     private List<Ticket>? ultimosTickets;
-
     private string rolActual = "";
-    private string nombreUsuario = "";
     private Guid usuarioId = Guid.Empty;
-
-    // Variables para el gráfico
     private double PorcentajeResueltos = 0;
     private double PorcentajePendientes = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        // Suscripción al evento
         StateContainer.OnChange += ActualizarTablero;
-
-        // BLINDAJE: Envolvemos la carga de datos en un try-catch
-        try
+        try { await CargarDatos(); }
+        catch
         {
-            await CargarDatos();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error cargando dashboard: {ex.Message}");
-            // Inicializamos métricas en cero para evitar nulos en la vista
-            metricas = new DashboardDto
-            {
-                TotalTickets = 0,
-                Pendientes = 0,
-                Resueltos = 0,
-                PromedioSatisfaccion = 0
-            };
+            metricas = new DashboardDto { TotalTickets = 0, Pendientes = 0, Resueltos = 0, PromedioSatisfaccion = 0 };
             ultimosTickets = new List<Ticket>();
         }
     }
@@ -283,43 +248,28 @@
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-
-        if (user.Identity != null && user.Identity.IsAuthenticated)
+        if (user.Identity?.IsAuthenticated == true)
         {
             var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
             if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId)) usuarioId = parsedId;
             rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Usuario";
 
             metricas = await ServicioDashboard.ObtenerMetricasAsync(usuarioId, rolActual);
-            var todosLosTickets = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
-            ultimosTickets = todosLosTickets.OrderByDescending(t => t.FechaCreacion).Take(5).ToList();
+            var todos = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
+            ultimosTickets = todos.OrderByDescending(t => t.FechaCreacion).Take(5).ToList();
 
-            // CORRECCIÓN: Cálculo robusto de porcentajes
             if (metricas != null && metricas.TotalTickets > 0)
             {
                 PorcentajeResueltos = (double)metricas.Resueltos / metricas.TotalTickets * 100;
                 PorcentajePendientes = (double)metricas.Pendientes / metricas.TotalTickets * 100;
-            }
-            else
-            {
-                PorcentajeResueltos = 0;
-                PorcentajePendientes = 0;
             }
         }
     }
 
     private async void ActualizarTablero(int? id, string? t, TipoNotificacion tipo, string? r, Guid? o, Guid? a)
     {
-        try
-        {
-            await CargarDatos();
-            await InvokeAsync(StateHasChanged);
-        }
-        catch { /* Ignorar error de navegación */ }
+        try { await CargarDatos(); await InvokeAsync(StateHasChanged); } catch { }
     }
 
-    public void Dispose()
-    {
-        StateContainer.OnChange -= ActualizarTablero;
-    }
+    public void Dispose() => StateContainer.OnChange -= ActualizarTablero;
 }

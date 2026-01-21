@@ -1,45 +1,53 @@
-﻿<h3>GestionCategoria</h3>
-
-@code {
-
-}
-@page "/admin/categorias"
+﻿@page "/admin/categorias"
 @attribute [Authorize(Roles = "Administrador")]
 @using HelpDeskSystem.Domain.Entities
 @using HelpDeskSystem.Web.Services
 @inject ITicketService ServicioTickets
 @inject IJSRuntime JS
 
-<PageTitle>Gestión de Categorías</PageTitle>
+<PageTitle>Categorías | HelpDesk UTEPSA</PageTitle>
 
-<div class="container mt-4">
-    <div class="row">
-        @* COLUMNA IZQUIERDA: FORMULARIO (Crear o Editar) *@
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header @(modoEdicion ? "bg-warning" : "bg-primary") text-white">
-                    <h5 class="mb-0">
-                        <i class="bi @(modoEdicion ? "bi-pencil-square" : "bi-plus-circle") me-2"></i>
-                        @(modoEdicion ? "Editar Categoría" : "Nueva Categoría")
-                    </h5>
+<div class="container-fluid px-4 py-4">
+
+    @* --- CABECERA --- *@
+    <div class="mb-4 animate-enter">
+        <h6 class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1.2px; opacity: 0.8;">Configuración de Sistemas</h6>
+        <h2 class="fw-bold text-primary mb-0" style="letter-spacing: -0.5px;">Gestión de Clasificaciones</h2>
+    </div>
+
+    <div class="row g-4">
+        @* === COLUMNA IZQUIERDA: FORMULARIO (Simetría) === *@
+        <div class="col-xl-4 col-lg-5 animate-enter" style="animation-delay: 0.1s;">
+            <div class="card-pro shadow-sm border-0 sticky-top" style="top: 20px;">
+                <div class="card-pro-header border-bottom py-3 @(modoEdicion ? "bg-subtle border-warning" : "bg-subtle")">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-surface rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 38px; height: 38px;">
+                            <i class="bi @(modoEdicion ? "bi-pencil-fill text-warning" : "bi-tags-fill text-utepsa-red") fs-5"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold text-primary">@(modoEdicion ? "Editar Categoría" : "Nueva Categoría")</h6>
+                    </div>
                 </div>
-                <div class="card-body">
+
+                <div class="card-pro-body p-4">
                     <EditForm Model="modeloCategoria" OnValidSubmit="Guardar">
                         <DataAnnotationsValidator />
-                        <div class="mb-3">
-                            <label class="form-label">Nombre</label>
-                            <InputText @bind-Value="modeloCategoria.Nombre" class="form-control" placeholder="Ej: Redes..." />
+
+                        <div class="mb-4">
+                            <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Nombre Identificador</label>
+                            <InputText @bind-Value="modeloCategoria.Nombre" class="form-control-pro w-100" placeholder="Ej: Redes e Infraestructura" />
+                            <ValidationMessage For="@(() => modeloCategoria.Nombre)" class="text-danger small mt-1 fw-bold" />
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn @(modoEdicion ? "btn-warning" : "btn-success")">
-                                @(modoEdicion ? "Actualizar Cambios" : "Guardar Categoría")
+                        <div class="d-flex flex-column gap-2">
+                            <button type="submit" class="btn @(modoEdicion ? "btn-warning text-dark" : "btn-utepsa shadow-red-glow") py-2 fw-bold transition-all">
+                                <i class="bi @(modoEdicion ? "bi-check-circle-fill" : "bi-plus-circle-fill") me-2"></i>
+                                @(modoEdicion ? "ACTUALIZAR CAMBIOS" : "CREAR CATEGORÍA")
                             </button>
 
                             @if (modoEdicion)
                             {
-                                <button type="button" class="btn btn-secondary" @onclick="CancelarEdicion">
-                                    Cancelar
+                                <button type="button" class="btn btn-utepsa-ghost py-2 border text-secondary fw-bold" @onclick="CancelarEdicion">
+                                    CANCELAR
                                 </button>
                             }
                         </div>
@@ -48,57 +56,59 @@
             </div>
         </div>
 
-        @* COLUMNA DERECHA: LISTADO *@
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0 text-secondary">Catálogo de Categorías</h5>
+        @* === COLUMNA DERECHA: TABLA DE CATÁLOGO === *@
+        <div class="col-xl-8 col-lg-7 animate-enter" style="animation-delay: 0.2s;">
+            <div class="card-pro shadow-sm border-0 bg-surface">
+                <div class="card-pro-header border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-primary">Catálogo de Servicios Habilitados</h6>
+                    <span class="badge bg-subtle text-secondary border px-2 py-1 small">Total: @listaCategorias.Count</span>
                 </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Estado</th>
-                                <th class="text-end">Acciones</th>
+                        <thead class="bg-subtle">
+                            <tr class="text-secondary small fw-bold text-uppercase">
+                                <th class="ps-4 py-3 border-0" style="letter-spacing: 0.5px;">Descripción</th>
+                                <th class="border-0">Estado Operativo</th>
+                                <th class="text-end pe-4 border-0">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var cat in listaCategorias)
                             {
-                                <tr class="@(cat.IsActive ? "" : "bg-light text-muted")">
-                                    <td>
-                                        <span class="fw-bold">@cat.Nombre</span>
+                                <tr class="@(cat.IsActive ? "" : "opacity-50") border-bottom border-light">
+                                    <td class="ps-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-subtle rounded p-2 me-3 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                                                <i class="bi bi-folder2-open text-primary fs-5"></i>
+                                            </div>
+                                            <span class="fw-bold text-primary">@cat.Nombre</span>
+                                        </div>
                                     </td>
                                     <td>
                                         @if (cat.IsActive)
                                         {
-                                            <span class="badge bg-success">Activa</span>
+                                            <span class="badge-pill status-solved" style="font-size: 0.65rem;">
+                                                <i class="bi bi-check-circle-fill me-1"></i> ACTIVA
+                                            </span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-secondary">Inactiva</span>
+                                            <span class="badge-pill bg-light text-secondary border" style="font-size: 0.65rem;">
+                                                <i class="bi bi-eye-slash-fill me-1"></i> INACTIVA
+                                            </span>
                                         }
                                     </td>
-                                    <td class="text-end">
-                                        @* Botón Editar *@
-                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => IniciarEdicion(cat)" title="Editar nombre">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                            <button class="btn btn-white btn-sm border-end text-primary p-2" @onclick="() => IniciarEdicion(cat)" title="Editar">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
 
-                                        @* Botón Dar de Baja/Alta *@
-                                        @if (cat.IsActive)
-                                        {
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => CambiarEstado(cat)" title="Dar de baja (Ocultar)">
-                                                <i class="bi bi-eye-slash"></i>
+                                            <button class="btn btn-white btn-sm text-@(cat.IsActive ? "danger" : "success") p-2" @onclick="() => CambiarEstado(cat)" title="@(cat.IsActive ? "Dar de baja" : "Reactivar")">
+                                                <i class="bi @(cat.IsActive ? "bi-toggle-on" : "bi-toggle-off") fs-5"></i>
                                             </button>
-                                        }
-                                        else
-                                        {
-                                            <button class="btn btn-sm btn-outline-success" @onclick="() => CambiarEstado(cat)" title="Reactivar">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                        }
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -110,25 +120,51 @@
     </div>
 </div>
 
+<style>
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .btn-white {
+        background-color: var(--bg-surface);
+    }
+
+        .btn-white:hover {
+            background-color: var(--bg-subtle);
+        }
+</style>
+
 @code {
     private Categoria modeloCategoria = new();
     private List<Categoria> listaCategorias = new();
     private bool modoEdicion = false;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarCategorias();
-    }
+    protected override async Task OnInitializedAsync() => await CargarCategorias();
 
     private async Task CargarCategorias()
     {
-        // Pasamos TRUE para ver TODAS (activas e inactivas) y poder administrarlas
         listaCategorias = await ServicioTickets.ObtenerCategoriasAsync(incluirInactivas: true);
     }
 
     private void IniciarEdicion(Categoria cat)
     {
-        modeloCategoria = cat; // Vinculamos el formulario a la categoría existente
+        modeloCategoria = cat;
         modoEdicion = true;
     }
 
@@ -145,28 +181,23 @@
         if (modoEdicion)
         {
             await ServicioTickets.ActualizarCategoriaAsync(modeloCategoria);
-            await JS.InvokeVoidAsync("mostrarNotificacion", "Categoría actualizada correctamente", "success");
+            await JS.InvokeVoidAsync("verificarYNotificar", "Clasificación actualizada", "success", false);
             CancelarEdicion();
         }
         else
         {
             await ServicioTickets.GuardarCategoriaAsync(modeloCategoria);
-            await JS.InvokeVoidAsync("mostrarNotificacion", "Categoría creada correctamente", "success");
-            modeloCategoria = new Categoria(); // Limpiar
+            await JS.InvokeVoidAsync("verificarYNotificar", "Nueva clasificación creada", "success", false);
+            modeloCategoria = new Categoria();
         }
-
         await CargarCategorias();
     }
 
     private async Task CambiarEstado(Categoria cat)
     {
-        // Invertimos el estado
         cat.IsActive = !cat.IsActive;
         await ServicioTickets.ActualizarCategoriaAsync(cat);
-
-        string mensaje = cat.IsActive ? "Categoría reactivada" : "Categoría dada de baja";
-        string tipo = cat.IsActive ? "success" : "warning"; // Warning para baja
-
-        await JS.InvokeVoidAsync("mostrarNotificacion", mensaje, tipo);
+        string msg = cat.IsActive ? "Clasificación reactivada" : "Clasificación desactivada";
+        await JS.InvokeVoidAsync("verificarYNotificar", msg, cat.IsActive ? "success" : "warning", false);
     }
 }

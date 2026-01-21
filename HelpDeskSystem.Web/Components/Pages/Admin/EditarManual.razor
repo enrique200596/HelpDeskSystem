@@ -13,93 +13,211 @@
 @inject IJSRuntime JS
 @attribute [Authorize(Roles = "Administrador,Asesor")]
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>@(Id == 0 ? "Crear Nuevo Procedimiento" : "Editar Procedimiento")</h3>
-        <button class="btn btn-secondary" @onclick="Volver">Cancelar</button>
+<PageTitle>@(Id == 0 ? "Nuevo Procedimiento" : "Editar Procedimiento") | HelpDesk</PageTitle>
+
+<div class="container-fluid px-4 py-4">
+
+    @* --- CABECERA DINÁMICA --- *@
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 animate-enter">
+        <div>
+            <h6 class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1.2px; opacity: 0.8;">Editor de Contenido</h6>
+            <h2 class="fw-bold text-primary mb-0" style="letter-spacing: -1px;">
+                <i class="bi @(Id == 0 ? "bi-journal-plus" : "bi-journal-text") me-2 text-utepsa-red"></i>
+                @(Id == 0 ? "Crear Nuevo Procedimiento" : "Modificar Guía Técnica")
+            </h2>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-utepsa-ghost border fw-bold px-4" @onclick="Volver">DESCARTAR</button>
+            <button class="btn btn-utepsa shadow-red-glow fw-bold px-4" @onclick="Guardar">
+                <i class="bi bi-cloud-arrow-up-fill me-2"></i> PUBLICAR CAMBIOS
+            </button>
+        </div>
     </div>
 
     @if (cargando)
     {
-        <div class="alert alert-info">Cargando editor...</div>
+        <div class="d-flex flex-column justify-content-center align-items-center py-5">
+            <div class="spinner-border text-utepsa-red mb-3" style="width: 3rem; height: 3rem;"></div>
+            <span class="text-secondary fw-bold ls-1">PREPARANDO WORKSPACE...</span>
+        </div>
     }
     else
     {
-        <div class="card shadow p-4">
-            <div class="mb-3">
-                <label class="form-label fw-bold">Título del Procedimiento</label>
-                <input type="text" class="form-control form-control-lg" @bind="manual.Titulo" placeholder="Ej: Cómo crear un usuario..." />
-            </div>
+        <div class="row g-4">
+            @* === COLUMNA PRINCIPAL: EDITOR === *@
+            <div class="col-xl-8 col-lg-7 animate-enter">
+                <div class="card-pro shadow-sm border-0 bg-surface mb-4">
+                    <div class="card-pro-header border-bottom py-3 px-4 bg-subtle d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-primary small text-uppercase ls-1">Contenido del Manual</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle text-secondary" title="Use los estilos de encabezado para una mejor estructura"></i>
+                        </div>
+                    </div>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Etiquetas (Separadas por coma)</label>
-                    <input type="text" class="form-control" @bind="manual.Etiquetas" placeholder="Ej: Redes, Impresoras, RRHH" />
+                    @* HERRAMIENTA DE IMÁGENES INTEGRADA *@
+                    <div class="p-3 bg-light border-bottom d-flex align-items-center gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="btn btn-dark btn-sm fw-bold px-3 m-0 cursor-pointer">
+                                <i class="bi bi-image me-2"></i>SUBIR IMAGEN
+                                <InputFile OnChange="SubirImagenAlServidor" style="display:none;" accept=".jpg,.png,.jpeg" />
+                            </label>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(urlImagenReciente))
+                        {
+                            <div class="animate-enter d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">
+                                <span class="text-success small fw-bold me-3"><i class="bi bi-check-circle-fill"></i> Lista para insertar</span>
+                                <button class="btn btn-primary btn-sm rounded-pill px-3" @onclick="InsertarImagenEnEditor">
+                                    INSERTAR EN EL TEXTO
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="card-pro-body p-0 editor-container-pro">
+                        <BlazoredTextEditor @ref="@QuillHtml" Placeholder="Comienza a redactar el procedimiento paso a paso...">
+                            <ToolbarContent>
+                                <select class="ql-header">
+                                    <option selected=""></option>
+                                    <option value="1"></option>
+                                    <option value="2"></option>
+                                    <option value="3"></option>
+                                </select>
+                                <span class="ql-formats">
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <select class="ql-color"></select>
+                                    <select class="ql-background"></select>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-link"></button>
+                                    <button class="ql-clean"></button>
+                                </span>
+                            </ToolbarContent>
+                        </BlazoredTextEditor>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Roles Permitidos (Vacío = Público)</label>
-                    <select class="form-select" @bind="manual.RolesVisibles">
-                        <option value="">Todos (Público)</option>
-                        <option value="Administrador">Solo Administradores</option>
-                        <option value="Administrador,Asesor">Administradores y Asesores</option>
-                    </select>
+            </div>
+
+            @* === COLUMNA LATERAL: METADATOS (Alineación Pro) === *@
+            <div class="col-xl-4 col-lg-5 animate-enter" style="animation-delay: 0.1s;">
+                <div class="card-pro shadow-sm border-0 bg-surface sticky-top" style="top: 20px;">
+                    <div class="card-pro-header border-bottom py-3 px-4 bg-subtle">
+                        <h6 class="mb-0 fw-bold text-primary small text-uppercase ls-1">Configuración del Recurso</h6>
+                    </div>
+
+                    <div class="card-pro-body p-4">
+                        @* Título *@
+                        <div class="mb-4">
+                            <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Título de la Guía</label>
+                            <input type="text" class="form-control-pro w-100" @bind="manual.Titulo" placeholder="Ej: Configuración VPN UTEPSA" />
+                        </div>
+
+                        @* Etiquetas *@
+                        <div class="mb-4">
+                            <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Etiquetas (Separadas por coma)</label>
+                            <div class="position-relative">
+                                <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"><i class="bi bi-tags"></i></span>
+                                <input type="text" class="form-control-pro w-100 ps-5" @bind="manual.Etiquetas" placeholder="Redes, Seguridad, Alumnos" />
+                            </div>
+                        </div>
+
+                        @* Visibilidad *@
+                        <div class="mb-4">
+                            <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Alcance / Visibilidad</label>
+                            <div class="position-relative">
+                                <select class="form-control-pro w-100 appearance-none shadow-none" @bind="manual.RolesVisibles">
+                                    <option value="">Todo el público</option>
+                                    <option value="Administrador">Solo Administradores</option>
+                                    <option value="Administrador,Asesor">Admin y Asesores (Interno)</option>
+                                </select>
+                                <i class="bi bi-chevron-down position-absolute end-0 top-50 translate-middle-y me-3 text-secondary pointer-events-none"></i>
+                            </div>
+                        </div>
+
+                        @* Estado Switch *@
+                        <div class="p-3 rounded-3 border bg-subtle">
+                            <div class="form-check form-switch d-flex align-items-center gap-3 p-0 ms-4">
+                                <input class="form-check-input mt-0" type="checkbox" @bind="manual.IsActive" id="switchActivo" style="width: 40px; height: 20px; cursor: pointer;">
+                                <label class="form-check-label fw-bold text-primary small" for="switchActivo">Habilitar publicación inmediatamente</label>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-4 border-top">
+                            <div class="alert alert-secondary bg-light border-0 small mb-0 d-flex align-items-start">
+                                <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                                <span>Los cambios en el título y etiquetas se sincronizan automáticamente con el motor de búsqueda.</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" @bind="manual.IsActive" id="switchActivo">
-                <label class="form-check-label" for="switchActivo">Manual Activo (Visible)</label>
-            </div>
-
-            <div class="mb-2 p-2 bg-light border rounded d-flex align-items-center gap-2">
-                <span class="fw-bold small"><i class="bi bi-image"></i> Insertar Imagen:</span>
-                <InputFile OnChange="SubirImagenAlServidor" class="form-control form-control-sm w-auto" accept=".jpg,.png,.jpeg" />
-                @if (!string.IsNullOrEmpty(urlImagenReciente))
-                {
-                    <span class="text-success small ms-2">Imagen subida.</span>
-                    <button class="btn btn-sm btn-outline-primary" @onclick="InsertarImagenEnEditor">Insertar en Editor</button>
-                }
-            </div>
-
-            <div class="mb-4">
-                <BlazoredTextEditor @ref="@QuillHtml">
-                    <ToolbarContent>
-                        <select class="ql-header">
-                            <option selected=""></option>
-                            <option value="1"></option>
-                            <option value="2"></option>
-                            <option value="3"></option>
-                        </select>
-                        <span class="ql-formats">
-                            <button class="ql-bold"></button>
-                            <button class="ql-italic"></button>
-                            <button class="ql-underline"></button>
-                            <button class="ql-strike"></button>
-                        </span>
-                        <span class="ql-formats">
-                            <select class="ql-color"></select>
-                            <select class="ql-background"></select>
-                        </span>
-                        <span class="ql-formats">
-                            <button class="ql-list" value="ordered"></button>
-                            <button class="ql-list" value="bullet"></button>
-                        </span>
-                        <span class="ql-formats">
-                            <button class="ql-link"></button>
-                            <button class="ql-image"></button>
-                        </span>
-                    </ToolbarContent>
-                    <EditorContent>
-                    </EditorContent>
-                </BlazoredTextEditor>
-            </div>
-
-            <button class="btn btn-primary btn-lg w-100" @onclick="Guardar">
-                <i class="bi bi-save"></i> Guardar Manual
-            </button>
         </div>
     }
 </div>
+
+<style>
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .appearance-none {
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .pointer-events-none {
+        pointer-events: none;
+    }
+
+    /* Personalización del Editor Quill */
+    .editor-container-pro .ql-toolbar {
+        border: none !important;
+        background-color: var(--bg-subtle);
+        border-bottom: 1px solid var(--border-color) !important;
+        padding: 10px 15px !important;
+    }
+
+    .editor-container-pro .ql-container {
+        border: none !important;
+        min-height: 500px;
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 1.05rem;
+    }
+
+    .editor-container-pro .ql-editor {
+        padding: 30px 40px !important;
+    }
+
+        .editor-container-pro .ql-editor.ql-blank::before {
+            font-style: normal;
+            opacity: 0.5;
+            left: 40px;
+        }
+</style>
 
 @code {
     [Parameter] public int Id { get; set; }
@@ -122,7 +240,7 @@
     {
         if (!firstRender && QuillHtml != null && !string.IsNullOrEmpty(manual.ContenidoHTML))
         {
-            await Task.Delay(100);
+            await Task.Delay(150);
             try { await QuillHtml.LoadHTMLContent(manual.ContenidoHTML); } catch { }
         }
     }
@@ -162,51 +280,29 @@
 
         if (string.IsNullOrWhiteSpace(manual.Titulo) || string.IsNullOrWhiteSpace(manual.ContenidoHTML))
         {
+            await JS.InvokeVoidAsync("verificarYNotificar", "El título y contenido son obligatorios", "error", false);
             return;
         }
 
-        // --- CORRECCIÓN DEFINITIVA DE DETECCIÓN DE USUARIO ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         Guid usuarioEditorId = Guid.Empty;
 
-        // INTENTO 1: Buscar ID directo en los Claims (Lo más seguro)
         var claimId = user.FindFirst(ClaimTypes.NameIdentifier);
         if (claimId != null && Guid.TryParse(claimId.Value, out Guid parsedId))
         {
             usuarioEditorId = parsedId;
         }
 
-        // INTENTO 2: Si no hay ID, buscar por Email en la BD
         if (usuarioEditorId == Guid.Empty)
         {
-            var claimEmail = user.FindFirst(ClaimTypes.Email) ?? user.FindFirst(ClaimTypes.Name);
-            if (claimEmail != null)
-            {
-                var usuarioDb = await UsuarioService.ObtenerPorEmailAsync(claimEmail.Value);
-                if (usuarioDb != null)
-                {
-                    usuarioEditorId = usuarioDb.Id;
-                }
-            }
-        }
-
-        // INTENTO 3 (Fallback): Si todo falla, usar el Admin Semilla (para que no explote)
-        if (usuarioEditorId == Guid.Empty)
-        {
-            // ID del Admin Semilla (Evita error de FK en SQL, pero marca como Admin en historial)
             usuarioEditorId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         }
 
-        // Pasamos el ID detectado
         await ManualService.GuardarManualAsync(manual, usuarioEditorId);
-        // -----------------------------
-
+        await JS.InvokeVoidAsync("verificarYNotificar", "Manual guardado con éxito", "success", false);
         Nav.NavigateTo("/manuales");
     }
 
-    private void Volver()
-    {
-        Nav.NavigateTo("/manuales");
-    }
+    private void Volver() => Nav.NavigateTo("/manuales");
 }

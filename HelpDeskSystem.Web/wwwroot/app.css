@@ -1,223 +1,167 @@
 /* =========================================
-   1. VARIABLES & FUNDAMENTOS (ADN UTEPSA)
+   1. VARIABLES & DISEÑO SISTÉMICO (ADN UTEPSA)
    ========================================= */
 :root {
-    /* --- Paleta de Marca --- */
-    --utepsa-red: #C8102E; /* Rojo Institucional Oficial */
-    --utepsa-red-dark: #a00c24; /* Rojo Oscuro (Hover) */
-    --utepsa-dark: #0f172a; /* Azul Noche (Más moderno que el negro puro) */
-    /* --- Superficies y Fondos --- */
-    --bg-app: #f1f5f9; /* Gris azulado muy suave (Estilo Enterprise) */
-    --bg-surface: #ffffff; /* Blanco puro para tarjetas */
-    --bg-subtle: #f8fafc; /* Fondo sutil para headers internos */
-    /* --- Tipografía y Textos --- */
-    --text-primary: #1e293b; /* Gris oscuro para lectura cómoda */
-    --text-secondary: #64748b; /* Gris medio para metadatos */
-    --text-light: #94a3b8; /* Gris claro para placeholders */
+    /* --- Paleta de Marca (Modo Claro) --- */
+    --utepsa-red: #C8102E;
+    --utepsa-red-dark: #a00c24;
+    --utepsa-dark: #0f172a;
+    /* --- Superficies Dinámicas --- */
+    --bg-app: #f1f5f9;
+    --bg-surface: #ffffff;
+    --bg-subtle: #f8fafc;
+    --border-color: rgba(0, 0, 0, 0.08);
+    /* --- Tipografía Sistémica --- */
     --font-main: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    /* --- UI Moderno (Shadows & Radius) --- */
-    --radius-sm: 8px;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-light: #94a3b8;
+    /* --- Escala de Tamaños (Alineación Ideal) --- */
+    --fs-h1: 1.85rem;
+    --fs-h2: 1.5rem;
+    --fs-body: 0.95rem;
+    --fs-small: 0.8rem;
+    --fs-xsmall: 0.7rem;
+    /* --- UI Moderno --- */
     --radius-md: 12px;
-    --radius-lg: 16px; /* Bordes más redondeados (Tendencia 2025) */
-    /* Sombras Profesionales (Diffuse Shadows) */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-pro: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-red-glow: 0 10px 15px -3px rgba(200, 16, 46, 0.25); /* Resplandor rojo sutil */
+    --radius-lg: 16px;
+    --shadow-pro: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+/* --- DEFINICIÓN TEMA OSCURO (DARK MODE) --- */
+[data-theme="dark"] {
+    --bg-app: #020617; /* Negro azulado profundo */
+    --bg-surface: #1e293b; /* Gris oscuro para tarjetas */
+    --bg-subtle: #0f172a;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-light: #64748b;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow-pro: 0 4px 6px -1px rgb(0 0 0 / 0.5);
 }
 
 html, body {
     font-family: var(--font-main);
+    font-size: 16px; /* Base para rem */
     background-color: var(--bg-app);
     color: var(--text-primary);
-    -webkit-font-smoothing: antialiased; /* Texto más nítido */
-    height: 100vh !important;
-    min-height: 100vh !important;
+    -webkit-font-smoothing: antialiased;
+    height: 100vh;
     margin: 0;
-    padding: 0;
-    overflow: hidden; /* Evita que el navegador genere su propio scroll */
-}
-
-/* El elemento raíz donde Blazor inyecta el contenido */
-#app {
-    height: 100%;
-}
-
-/* Ajuste para el MainLayout */
-.bg-app {
-    min-height: 100vh;
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* =========================================
-   2. COMPONENTES "PRO" (REUTILIZABLES)
+   2. COMPONENTES CON ALINEACIÓN PRO
    ========================================= */
 
-/* --- Tarjetas Profesionales (Card Pro) --- */
-/* Reemplaza a la .card de Bootstrap visualmente */
 .card-pro {
     background: var(--bg-surface);
-    border: 1px solid rgba(255, 255, 255, 0.5); /* Borde sutil */
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-pro);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden; /* Para que la imagen no se salga del borde */
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
 
     .card-pro:hover {
         transform: translateY(-4px);
         box-shadow: var(--shadow-hover);
-        border-color: rgba(200, 16, 46, 0.1); /* Toque rojo al pasar mouse */
     }
 
-/* Header de Tarjeta Limpio */
-.card-pro-header {
-    background: transparent;
-    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
-    border-bottom: none;
-}
-
-.card-pro-body {
-    padding: 1.5rem;
-}
-
-/* --- Botones UTEPSA Modernos --- */
+/* Centrado perfecto de Iconos en Botones */
 .btn-utepsa {
     background-color: var(--utepsa-red);
-    color: white;
+    color: white !important;
     font-weight: 600;
-    padding: 0.6rem 1.5rem;
+    font-size: var(--fs-body);
+    padding: 0.7rem 1.5rem;
     border-radius: var(--radius-md);
+    display: inline-flex;
+    align-items: center; /* Alineación vertical del ícono */
+    justify-content: center;
+    gap: 0.6rem; /* Espaciado matemático entre ícono y texto */
     border: none;
-    box-shadow: 0 4px 6px -1px rgba(200, 16, 46, 0.3);
     transition: all 0.2s ease;
-    letter-spacing: 0.3px;
 }
 
     .btn-utepsa:hover {
         background-color: var(--utepsa-red-dark);
-        box-shadow: var(--shadow-red-glow);
         transform: translateY(-1px);
-        color: white;
-    }
-
-    .btn-utepsa:active {
-        transform: translateY(0);
-    }
-
-.btn-utepsa-ghost {
-    background: transparent;
-    color: var(--utepsa-red);
-    font-weight: 600;
-    border: 2px solid transparent;
-}
-
-    .btn-utepsa-ghost:hover {
-        background: rgba(200, 16, 46, 0.05);
-        color: var(--utepsa-red-dark);
     }
 
 /* =========================================
-   3. UTILIDADES DE ESTADO (BADGES)
+   3. UTILIDADES DE TEXTO Y JERARQUÍA
    ========================================= */
 
-/* Badges estilo "Píldora" (Pills) */
+h1 {
+    font-size: var(--fs-h1);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-size: var(--fs-h2);
+    font-weight: 600;
+}
+
+p {
+    font-size: var(--fs-body);
+    line-height: 1.6;
+}
+
+.text-muted-custom {
+    color: var(--text-secondary);
+    font-size: var(--fs-small);
+}
+
+/* Alineación de Badges Estilo Píldora */
 .badge-pill {
-    padding: 0.35em 0.85em;
-    border-radius: 50rem;
-    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    font-size: var(--fs-xsmall);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
+    border-radius: 20px;
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-}
-
-/* Variantes de Estado */
-.status-open {
-    background-color: #eff6ff; /* Azul muy claro */
-    color: #2563eb; /* Azul fuerte */
-    border: 1px solid #dbeafe;
-}
-
-.status-process {
-    background-color: #fefce8; /* Amarillo claro */
-    color: #ca8a04; /* Dorado oscuro */
-    border: 1px solid #fef9c3;
-}
-
-.status-solved {
-    background-color: #f0fdf4; /* Verde claro */
-    color: #16a34a; /* Verde fuerte */
-    border: 1px solid #dcfce7;
-}
-
-.status-urgent {
-    background-color: #fef2f2; /* Rojo claro */
-    color: #dc2626; /* Rojo fuerte */
-    border: 1px solid #fee2e2;
+    line-height: 1;
 }
 
 /* =========================================
-   4. FORMULARIOS (Inputs Modernos)
+   4. FORMULARIOS (Inputs Alineados)
    ========================================= */
 .form-control-pro {
     background-color: var(--bg-subtle);
-    border: 2px solid transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
-    font-size: 0.95rem;
+    font-size: var(--fs-body);
     transition: all 0.2s ease;
 }
 
     .form-control-pro:focus {
-        background-color: white;
+        background-color: var(--bg-surface);
         border-color: var(--utepsa-red);
         box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.1);
         outline: none;
     }
 
 /* =========================================
-   5. EXTRAS & ANIMACIONES
-   ========================================= */
-.text-balance {
-    text-wrap: balance; /* Equilibra títulos automáticamente */
-}
-
-.animate-enter {
-    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes slideUpFade {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* =========================================
-   6. BLAZOR ERROR UI (Restaurado)
+   5. BLAZOR ERROR UI (Personalizado)
    ========================================= */
 #blazor-error-ui {
-    background: lightyellow;
+    background: var(--utepsa-dark);
+    color: white;
     bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    display: none; /* <--- ESTA es la clave: Oculto por defecto */
     left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    padding: 1rem;
     position: fixed;
     width: 100%;
-    z-index: 1000;
+    z-index: 2000;
+    display: none;
+    text-align: center;
+    font-size: var(--fs-small);
 }
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }

@@ -4,75 +4,87 @@
 @using HelpDeskSystem.Domain.Entities
 @using HelpDeskSystem.Domain.Enums
 @using System.Text
+@using System.Globalization
 @inject IReportService ServicioReportes
 @inject IUsuarioService ServicioUsuarios
 @inject IJSRuntime JS
 
-<PageTitle>Reportes de Gestión</PageTitle>
+<PageTitle>Reportes de Gestión | HelpDesk UTEPSA</PageTitle>
 
 <style>
+    /* Estilos específicos para reportes e impresión */
+    .bg-report-header {
+        background-color: var(--bg-subtle);
+    }
+
     @@media print {
-        .no-print, .sidebar, .navbar {
+        .no-print, .sidebar-container, header, footer {
             display: none !important;
         }
 
-        .card {
-            border: 1px solid #ddd !important;
+        .container-fluid {
+            padding: 0 !important;
+        }
+
+        .card-pro {
+            border: 1px solid #eee !important;
             box-shadow: none !important;
             break-inside: avoid;
         }
 
         body {
             background-color: white !important;
+            font-size: 10pt;
+            color: black;
         }
 
-        .container {
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
+        .badge-pill {
+            border: 1px solid #ccc !important;
+            color: black !important;
+            background: transparent !important;
         }
-
-        .table {
-            font-size: 0.8rem;
-        }
-        /* Letra más pequeña para que quepa al imprimir */
     }
 </style>
 
-<div class="container mt-4">
+<div class="container-fluid px-4 py-4">
 
-    @* --- CABECERA Y FILTROS --- *@
-    <div class="card mb-4 no-print border-0 shadow-sm bg-light">
-        <div class="card-body py-3">
-            <div class="row g-2 align-items-end">
+    @* --- BARRA DE FILTROS MAESTROS (Simetría de Controles) --- *@
+    <div class="card-pro mb-4 no-print shadow-sm border-0 bg-surface">
+        <div class="card-pro-body p-3">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted">Asesor</label>
-                    <select class="form-select form-select-sm" @onchange="CambiarFiltro">
-                        <option value="">Vista General (Todos)</option>
-                        @foreach (var asesor in listaAsesores)
-                        {
-                            <option value="@asesor.Id">@asesor.Nombre</option>
-                        }
-                    </select>
+                    <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Identificar Asesor</label>
+                    <div class="position-relative">
+                        <select class="form-control-pro w-100 appearance-none shadow-none" @onchange="CambiarFiltro" style="cursor: pointer;">
+                            <option value="">Vista General (Todos)</option>
+                            @foreach (var asesor in listaAsesores)
+                            {
+                                <option value="@asesor.Id">@asesor.Nombre</option>
+                            }
+                        </select>
+                        <i class="bi bi-person-badge position-absolute end-0 top-50 translate-middle-y me-3 text-secondary pointer-events-none"></i>
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted">Desde</label>
-                    <input type="date" class="form-control form-control-sm" @bind="fechaDesde" />
+                    <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Rango Desde</label>
+                    <input type="date" class="form-control-pro w-100" @bind="fechaDesde" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted">Hasta</label>
-                    <input type="date" class="form-control form-control-sm" @bind="fechaHasta" />
+                    <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Rango Hasta</label>
+                    <input type="date" class="form-control-pro w-100" @bind="fechaHasta" />
                 </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button class="btn btn-primary btn-sm w-100" @onclick="CargarDatos">
-                        <i class="bi bi-funnel-fill"></i> Filtrar
-                    </button>
-                    <button class="btn btn-success btn-sm w-50" @onclick="ExportarExcel" title="Exportar Detalle">
-                        <i class="bi bi-file-earmark-excel-fill"></i>
-                    </button>
-                    <button class="btn btn-secondary btn-sm w-50" @onclick="ImprimirPDF" title="Imprimir">
-                        <i class="bi bi-printer-fill"></i>
-                    </button>
+                <div class="col-md-3">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-utepsa flex-grow-1 fw-bold shadow-red-glow" @onclick="CargarDatos">
+                            <i class="bi bi-funnel-fill me-2"></i>GENERAR
+                        </button>
+                        <button class="btn btn-outline-success border-2 fw-bold px-3" @onclick="ExportarExcel" title="Exportar CSV">
+                            <i class="bi bi-file-earmark-spreadsheet"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary border-2 fw-bold px-3" @onclick="ImprimirPDF" title="Imprimir PDF">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,104 +92,142 @@
 
     @if (cargando)
     {
-        <div class="d-flex justify-content-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
+        <div class="d-flex flex-column justify-content-center align-items-center py-5 animate-enter">
+            <div class="spinner-border text-utepsa-red mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+            <span class="text-secondary fw-bold ls-1">PROCESANDO DATOS...</span>
         </div>
     }
     else
     {
-        @* TÍTULO DINÁMICO *@
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        @* --- RESUMEN KPI (Jerarquía Visual) --- *@
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 animate-enter">
             <div>
-                <h4 class="fw-bold text-dark mb-0">@tituloReporte</h4>
-                <small class="text-muted">Periodo: @(fechaDesde?.ToShortDateString() ?? "Inicio") - @(fechaHasta?.ToShortDateString() ?? "Hoy")</small>
-            </div>
-            <span class="badge bg-primary fs-6">Total: @listaDetalleTickets.Count tickets</span>
-        </div>
-
-        <div class="row g-4 mb-4">
-            @* KPI PRINCIPAL *@
-            <div class="col-md-4">
-                <div class="card shadow-sm border-start border-5 border-primary h-100">
-                    <div class="card-body p-3">
-                        <h6 class="text-uppercase text-muted fw-bold ls-1 mb-1" style="font-size:0.75rem;">Tiempo Promedio</h6>
-                        <h2 class="fw-bold text-dark mb-0">@tiempoPromedio</h2>
-                    </div>
+                <h2 class="fw-bold text-primary mb-1" style="letter-spacing: -1px;">@tituloReporte</h2>
+                <div class="d-flex align-items-center text-secondary small">
+                    <i class="bi bi-calendar-range me-2 text-utepsa-red"></i>
+                    <span class="fw-medium">Periodo: @(fechaDesde?.ToString("dd/MM/yyyy") ?? "Inicio") — @(fechaHasta?.ToString("dd/MM/yyyy") ?? "Hoy")</span>
                 </div>
             </div>
-            @* KPI SATISFACCIÓN (Nuevo) *@
-            <div class="col-md-4">
-                <div class="card shadow-sm border-start border-5 border-warning h-100">
-                    <div class="card-body p-3">
-                        <h6 class="text-uppercase text-muted fw-bold ls-1 mb-1" style="font-size:0.75rem;">Satisfacción Promedio</h6>
-                        <h2 class="fw-bold text-dark mb-0">
-                            @(listaDetalleTickets.Any(t => t.SatisfaccionUsuario != null)
-                                                    ? listaDetalleTickets
-                                                    .Where(t => t.SatisfaccionUsuario != null)
-                                                    .Average(t => t.SatisfaccionUsuario!.Value) // <--- EL CAMBIO ESTÁ AQUÍ
-                                                    .ToString("0.0")
-                                                    : "-") / 5
-                        </h2>
-                    </div>
-                </div>
+            <div class="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-pill px-4 py-2">
+                <span class="text-primary fw-bold">Total: @listaDetalleTickets.Count Casos Cerrados</span>
             </div>
         </div>
 
-        @* --- TABLA DETALLADA DE ATENCIONES --- *@
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Detalle de Atenciones</h5>
+        <div class="row g-4 mb-4 animate-enter" style="animation-delay: 0.1s;">
+            @* KPI: Tiempo Promedio *@
+            <div class="col-md-6 col-lg-4">
+                <div class="card-pro h-100 border-start border-4 border-primary shadow-sm bg-surface">
+                    <div class="card-body d-flex align-items-center p-4">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-3 text-primary me-4">
+                            <i class="bi bi-speedometer fs-2"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-uppercase text-secondary fw-bold ls-1 mb-1" style="font-size:0.65rem;">Eficiencia Operativa</h6>
+                            <h3 class="fw-bold text-primary mb-0">@tiempoPromedio</h3>
+                            <small class="text-muted">Tiempo medio de resolución</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* KPI: Satisfacción Media *@
+            <div class="col-md-6 col-lg-4">
+                <div class="card-pro h-100 border-start border-4 border-warning shadow-sm bg-surface">
+                    <div class="card-body d-flex align-items-center p-4">
+                        <div class="bg-warning bg-opacity-10 rounded-circle p-3 text-warning me-4">
+                            <i class="bi bi-star-half fs-2"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-uppercase text-secondary fw-bold ls-1 mb-1" style="font-size:0.65rem;">Índice de Calidad</h6>
+                            <h3 class="fw-bold text-primary mb-0">
+                                @(listaDetalleTickets.Any(t => t.SatisfaccionUsuario != null)
+                                                            ? listaDetalleTickets.Where(t => t.SatisfaccionUsuario != null).Average(t => (double)t.SatisfaccionUsuario!.Value).ToString("0.0", CultureInfo.InvariantCulture)
+                                                            : "0.0") / 5.0
+                            </h3>
+                            <div class="text-warning small">
+                                <i class="bi bi-star-fill"></i> Nivel de satisfacción de usuarios
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* --- TABLA DE ATENCIONES (Simetría y Alineación) --- *@
+        <div class="card-pro shadow-pro border-0 bg-surface animate-enter" style="animation-delay: 0.2s;">
+            <div class="card-pro-header border-bottom py-3 px-4 bg-subtle">
+                <h6 class="mb-0 fw-bold text-primary">Detalle de Casos Finalizados</h6>
             </div>
             <div class="table-responsive">
-                <table class="table table-hover table-striped mb-0 align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Fecha Cierre</th>
-                            <th>Ticket</th>
-                            <th>Categoría</th>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-subtle">
+                        <tr class="text-secondary small fw-bold text-uppercase">
+                            <th class="ps-4 py-3 border-0" style="letter-spacing: 0.5px;">Cierre</th>
+                            <th class="border-0">Ticket / Asunto</th>
+                            <th class="border-0">Categoría</th>
                             @if (filtroAsesorId == null)
                             {
-                                <th>Asesor</th>
+                                <th class="border-0">Asesor Responsable</th>
                             }
-                            @* Si es general, mostramos columna Asesor *@
-                            <th>Cliente</th>
-                            <th>Calif.</th>
+                            <th class="border-0">Solicitante</th>
+                            <th class="text-end pe-4 border-0">Calif.</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var t in listaDetalleTickets)
                         {
-                            <tr>
-                                <td>@t.FechaCierre?.ToString("g")</td>
-                                <td>
-                                    <div class="fw-bold">@t.Titulo</div>
-                                    <small class="text-muted">#@t.Id</small>
+                            <tr class="border-bottom border-light">
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex flex-column lh-1">
+                                        <span class="fw-bold text-primary small">@t.FechaCierre?.ToString("dd MMM yyyy")</span>
+                                        <small class="text-muted" style="font-size: 0.7rem;">@t.FechaCierre?.ToString("HH:mm")</small>
+                                    </div>
                                 </td>
-                                <td><span class="badge bg-light text-dark border">@t.Categoria?.Nombre</span></td>
+                                <td>
+                                    <div class="d-flex flex-column lh-1">
+                                        <span class="fw-bold text-primary" style="font-size: 0.9rem;">@t.Titulo</span>
+                                        <small class="text-secondary">Ref: #@t.Id</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-subtle text-secondary border fw-semibold px-2 py-1" style="font-size: 0.7rem;">@t.Categoria?.Nombre</span>
+                                </td>
                                 @if (filtroAsesorId == null)
                                 {
-                                    <td><span class="fw-bold text-primary">@t.Asesor?.Nombre</span></td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-utepsa-red rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+                                            <span class="fw-bold text-primary small">@t.Asesor?.Nombre</span>
+                                        </div>
+                                    </td>
                                 }
-                                <td>@t.Usuario?.Nombre</td>
-                                <td>
+                                <td><span class="text-secondary small">@t.Usuario?.Nombre</span></td>
+                                <td class="text-end pe-4">
                                     @if (t.SatisfaccionUsuario != null)
                                     {
-                                        <span class="text-warning fw-bold">@t.SatisfaccionUsuario ★</span>
+                                        <div class="d-inline-flex align-items-center bg-warning bg-opacity-10 text-warning px-2 py-1 rounded border border-warning border-opacity-25 shadow-sm">
+                                            <span class="fw-bold me-1">@t.SatisfaccionUsuario</span>
+                                            <i class="bi bi-star-fill small"></i>
+                                        </div>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">-</span>
+                                        <span class="text-muted opacity-50 small">—</span>
                                     }
                                 </td>
                             </tr>
                         }
-                        @if (listaDetalleTickets.Count == 0)
-                        {
-                            <tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron atenciones en este periodo.</td></tr>
-                        }
                     </tbody>
                 </table>
             </div>
+
+            @if (listaDetalleTickets.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-search fs-1 text-secondary opacity-25 d-block mb-3"></i>
+                    <p class="text-secondary fw-bold ls-1">SIN RESULTADOS PARA LOS FILTROS SELECCIONADOS</p>
+                </div>
+            }
         </div>
     }
 </div>
@@ -185,13 +235,11 @@
 @code {
     private bool cargando = true;
     private string tiempoPromedio = "0.0 h";
-    private string tituloReporte = "Reporte General de Atenciones";
-
+    private string tituloReporte = "Reporte Maestro de Atenciones";
     private Guid? filtroAsesorId = null;
     private DateTime? fechaDesde = DateTime.Today.AddDays(-30);
     private DateTime? fechaHasta = DateTime.Today;
 
-    // Listas de datos
     private List<Ticket> listaDetalleTickets = new();
     private List<Usuario> listaAsesores = new();
 
@@ -207,12 +255,12 @@
         {
             filtroAsesorId = id;
             var asesor = listaAsesores.FirstOrDefault(a => a.Id == id);
-            tituloReporte = $"Reporte Individual: {asesor?.Nombre}";
+            tituloReporte = $"Análisis de Desempeño: {asesor?.Nombre}";
         }
         else
         {
             filtroAsesorId = null;
-            tituloReporte = "Reporte General de Atenciones";
+            tituloReporte = "Reporte Maestro de Atenciones";
         }
         await CargarDatos();
     }
@@ -220,50 +268,38 @@
     private async Task CargarDatos()
     {
         cargando = true;
-        // 1. Obtenemos KPIs
         tiempoPromedio = await ServicioReportes.ObtenerTiempoPromedio(filtroAsesorId, fechaDesde, fechaHasta);
-
-        // 2. Obtenemos el DETALLE (La lista real de tickets)
         listaDetalleTickets = await ServicioReportes.ObtenerDetalleTickets(filtroAsesorId, fechaDesde, fechaHasta);
-
         cargando = false;
     }
 
     private async Task ExportarExcel()
     {
         var csv = new StringBuilder();
-        csv.AppendLine("REPORTE DE ATENCIONES - HELPDESK");
-        csv.AppendLine($"Tipo;{tituloReporte}");
+        csv.AppendLine("REPORTE DE GESTIÓN HELPDESK UTEPSA");
+        csv.AppendLine($"Alcance;{tituloReporte}");
         csv.AppendLine($"Periodo;{fechaDesde:d} al {fechaHasta:d}");
         csv.AppendLine("");
 
-        // Encabezados dinámicos
         var headers = "ID;FECHA CIERRE;TITULO;CATEGORIA;CLIENTE;CALIFICACION";
-        if (filtroAsesorId == null) headers += ";ASESOR"; // Agregamos columna asesor si es reporte general
+        if (filtroAsesorId == null) headers += ";ASESOR";
         csv.AppendLine(headers);
 
-        // Filas de datos
         foreach (var t in listaDetalleTickets)
         {
-            var linea = $"{t.Id};{t.FechaCierre};{t.Titulo};{t.Categoria?.Nombre};{t.Usuario?.Nombre};{t.SatisfaccionUsuario}";
-
+            var linea = $"{t.Id};{t.FechaCierre:g};{t.Titulo};{t.Categoria?.Nombre};{t.Usuario?.Nombre};{t.SatisfaccionUsuario}";
             if (filtroAsesorId == null) linea += $";{t.Asesor?.Nombre}";
-
             csv.AppendLine(linea);
         }
 
-        // Pie de página con totales
         csv.AppendLine("");
-        csv.AppendLine($"TOTAL TICKETS;{listaDetalleTickets.Count}");
-        csv.AppendLine($"TIEMPO PROMEDIO;{tiempoPromedio}");
+        csv.AppendLine($"TICKET TOTALES;{listaDetalleTickets.Count}");
+        csv.AppendLine($"EFICIENCIA MEDIA;{tiempoPromedio}");
 
         var bytes = Encoding.UTF8.GetBytes(csv.ToString());
         var base64 = Convert.ToBase64String(bytes);
-        await JS.InvokeVoidAsync("descargarArchivo", $"Reporte_{DateTime.Now:yyyyMMdd}.csv", base64);
+        await JS.InvokeVoidAsync("descargarArchivo", $"Reporte_{DateTime.Now:yyyyMMdd}_UTEPSA.csv", base64);
     }
 
-    private async Task ImprimirPDF()
-    {
-        await JS.InvokeVoidAsync("print");
-    }
+    private async Task ImprimirPDF() => await JS.InvokeVoidAsync("print");
 }

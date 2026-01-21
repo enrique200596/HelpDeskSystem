@@ -1,30 +1,116 @@
 ﻿@page "/Error"
 @using System.Diagnostics
+@inject NavigationManager Nav
 
-<PageTitle>Error</PageTitle>
+<PageTitle>Error Inesperado | HelpDesk UTEPSA</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="container-fluid px-4 vh-100 d-flex align-items-center justify-content-center bg-app">
+    <div class="row justify-content-center w-100 animate-enter">
+        <div class="col-md-8 col-lg-6 col-xl-5 text-center">
 
-@if (ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@RequestId</code>
-    </p>
-}
+            @* --- ICONOGRAFÍA DE ESTADO --- *@
+            <div class="mb-4">
+                <div class="bg-utepsa-red bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm"
+                     style="width: 100px; height: 100px;">
+                    <i class="bi bi-exclamation-triangle-fill text-utepsa-red display-4"></i>
+                </div>
+            </div>
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+            @* --- MENSAJE PRINCIPAL --- *@
+            <h1 class="fw-bold text-primary display-6 mb-3" style="letter-spacing: -1.5px;">Algo no salió como esperábamos</h1>
+            <p class="text-secondary fw-medium mb-5">
+                Ha ocurrido un error interno al procesar tu solicitud. No te preocupes, nuestro equipo técnico ha sido notificado.
+            </p>
 
-@code{
+            @* --- ACCIONES DE RECUPERACIÓN (SIMETRÍA) --- *@
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mb-5">
+                <button class="btn btn-utepsa px-5 py-3 shadow-red-glow fw-bold" @onclick='() => Nav.NavigateTo("/")'>
+                    <i class="bi bi-house-door-fill me-2"></i> VOLVER AL INICIO
+                </button>
+                <button class="btn btn-outline-secondary px-4 py-3 fw-bold border-2" @onclick='() => Nav.NavigateTo("/ayuda")'>
+                    CENTRO DE AYUDA
+                </button>
+            </div>
+
+            @* --- DETALLES TÉCNICOS (Minimalistas) --- *@
+            <div class="card-pro bg-surface border-0 shadow-sm overflow-hidden">
+                <div class="card-pro-body p-4">
+                    @if (ShowRequestId)
+                    {
+                        <div class="mb-0">
+                            <span class="text-secondary small fw-bold text-uppercase ls-1">ID de Seguimiento</span>
+                            <div class="mt-2">
+                                <code class="bg-subtle p-2 rounded text-utepsa-red fw-bold small border d-inline-block">
+                                    @RequestId
+                                </code>
+                            </div>
+                        </div>
+                    }
+
+                    @* Nota informativa para Administradores *@
+                    <div class="mt-4 pt-4 border-top border-light opacity-75">
+                        <div class="d-flex align-items-center justify-content-center gap-2 text-secondary small">
+                            <i class="bi bi-terminal-fill"></i>
+                            <span>Modo de depuración restringido por seguridad institucional.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Footer sutil *@
+            <p class="text-secondary small opacity-50 mt-5">
+                &copy; @DateTime.Now.Year Soporte Técnico UTEPSA
+            </p>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-app {
+        background-color: var(--bg-app) !important;
+    }
+
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    /* Animación de entrada para reducir la frustración */
+    .animate-enter {
+        animation: slideDownFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+
+    @@keyframes slideDownFade {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+@code {
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 

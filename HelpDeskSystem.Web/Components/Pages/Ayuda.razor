@@ -3,100 +3,110 @@
 @using System.Security.Claims
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Centro de Ayuda | HelpDesk</PageTitle>
+<PageTitle>Centro de Soporte | HelpDesk UTEPSA</PageTitle>
 
-<div class="container py-4">
-    @* --- ENCABEZADO Y BUSCADOR --- *@
-    <div class="text-center mb-5">
-        <h1 class="fw-bold text-dark"><i class="bi bi-life-preserver text-danger me-2"></i>Centro de Ayuda</h1>
-        <p class="text-muted lead">¿En qué podemos ayudarte hoy?</p>
+<div class="container-fluid px-4 py-5 bg-app">
+    @* --- ENCABEZADO Y BUSCADOR MAESTRO --- *@
+    <div class="text-center mb-5 animate-enter">
+        <div class="bg-utepsa-red rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm mb-3" style="width: 70px; height: 70px;">
+            <i class="bi bi-life-preserver text-white fs-2"></i>
+        </div>
+        <h1 class="fw-bold text-primary display-5" style="letter-spacing: -1.5px;">Centro de Ayuda</h1>
+        <p class="text-secondary fw-medium fs-5 mb-5">Soluciones rápidas y guías operativas para la plataforma.</p>
 
-        <div class="row justify-content-center mt-4">
-            <div class="col-md-6">
-                <div class="input-group input-group-lg shadow-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-primary"></i></span>
-                    <input type="text" class="form-control border-start-0"
-                           placeholder="Buscar temas (ej. ticket, contraseña, manual)..."
-                           @bind="terminoBusqueda" @bind:event="oninput" />
-                    @if (!string.IsNullOrEmpty(terminoBusqueda))
-                    {
-                        <button class="btn btn-outline-secondary border-start-0" type="button" @onclick="() => terminoBusqueda = string.Empty">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    }
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card-pro shadow-pro p-1 bg-surface border-0 rounded-pill overflow-hidden">
+                    <div class="input-group input-group-lg border-0">
+                        <span class="input-group-text bg-transparent border-0 ps-4 text-secondary">
+                            <i class="bi bi-search fs-5"></i>
+                        </span>
+                        <input type="text" class="form-control border-0 shadow-none bg-transparent ps-2 py-3"
+                               placeholder="Buscar temas o palabras clave..."
+                               @bind="terminoBusqueda" @bind:event="oninput" />
+
+                        @if (!string.IsNullOrEmpty(terminoBusqueda))
+                        {
+                            <button class="btn btn-link text-secondary pe-4 border-0" type="button" @onclick="() => terminoBusqueda = string.Empty">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row justify-content-center">
-        <div class="col-lg-10">
+        <div class="col-xl-9">
 
-            @* --- RESULTADOS DE BÚSQUEDA / CONTENIDO --- *@
+            @* --- RESULTADOS DINÁMICOS POR ROL --- *@
             <AuthorizeView>
                 <Authorized>
                     @if (TemasFiltrados.Any())
                     {
                         var rolUsuario = context.User.FindFirst(ClaimTypes.Role)?.Value;
 
-                        @* SECCIÓN 1: TEMAS ESPECÍFICOS DE TU ROL *@
+                        @* SECCIÓN 1: CONTENIDO PERSONALIZADO POR ROL *@
                         @if (TemasFiltrados.Any(t => t.RolRequerido == rolUsuario))
                         {
-                            <div class="card shadow-sm mb-4 border-0 animate-fade-in">
-                                <div class="card-header @ObtenerClaseHeader(rolUsuario) text-white py-3">
-                                    <h5 class="mb-0"><i class="bi bi-person-badge-fill me-2"></i>Guías para @rolUsuario</h5>
+                            <div class="mb-5 animate-enter" style="animation-delay: 0.1s;">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="bg-utepsa-red rounded-circle me-3" style="width: 12px; height: 12px;"></div>
+                                    <h4 class="fw-bold text-primary mb-0">Recursos para @rolUsuario</h4>
                                 </div>
-                                <div class="card-body">
-                                    <div class="accordion" id="accordionRol">
-                                        @foreach (var item in TemasFiltrados.Where(t => t.RolRequerido == rolUsuario))
-                                        {
-                                            <div class="accordion-item">
-                                                <h2 class="accordion-header">
-                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-@item.Id">
-                                                        <i class="@item.Icono me-2 text-secondary"></i> @item.Titulo
-                                                    </button>
-                                                </h2>
-                                                <div id="item-@item.Id" class="accordion-collapse collapse" data-bs-parent="#accordionRol">
-                                                    <div class="accordion-body">
-                                                        @item.ContenidoHTML
 
-                                                        @if (!string.IsNullOrEmpty(item.EnlaceUrl))
-                                                        {
-                                                            <div class="mt-3">
-                                                                <a href="@item.EnlaceUrl" class="btn btn-sm btn-outline-primary">
-                                                                    @item.EnlaceTexto <i class="bi bi-arrow-right ms-1"></i>
-                                                                </a>
-                                                            </div>
-                                                        }
+                                <div class="row g-4">
+                                    @foreach (var item in TemasFiltrados.Where(t => t.RolRequerido == rolUsuario))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="card-pro h-100 shadow-sm border-0 bg-surface card-help-hover">
+                                                <div class="card-pro-body p-4">
+                                                    <div class="d-flex align-items-center mb-3">
+                                                        <div class="bg-subtle rounded-3 p-2 me-3 text-utepsa-red">
+                                                            <i class="@item.Icono fs-4"></i>
+                                                        </div>
+                                                        <h6 class="fw-bold text-primary mb-0">@item.Titulo</h6>
                                                     </div>
+                                                    <div class="text-secondary small mb-4 opacity-75">
+                                                        @item.ContenidoHTML
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(item.EnlaceUrl))
+                                                    {
+                                                        <a href="@item.EnlaceUrl" class="btn btn-utepsa btn-sm px-4 fw-bold shadow-sm">
+                                                            @item.EnlaceTexto <i class="bi bi-arrow-right-short ms-1"></i>
+                                                        </a>
+                                                    }
                                                 </div>
                                             </div>
-                                        }
-                                    </div>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
 
-                        @* SECCIÓN 2: PREGUNTAS FRECUENTES (GENERAL) *@
+                        @* SECCIÓN 2: PREGUNTAS FRECUENTES (FAQ) *@
                         @if (TemasFiltrados.Any(t => t.RolRequerido == "General"))
                         {
-                            <div class="card shadow-sm mb-4 border-0 animate-fade-in">
-                                <div class="card-header bg-light text-dark py-3 border-bottom">
-                                    <h5 class="mb-0"><i class="bi bi-question-circle-fill me-2 text-success"></i>Preguntas Frecuentes</h5>
+                            <div class="card-pro shadow-pro border-0 bg-surface overflow-hidden animate-enter" style="animation-delay: 0.2s;">
+                                <div class="card-pro-header border-bottom py-3 px-4 bg-subtle">
+                                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-patch-question-fill me-2 text-utepsa-red"></i>Consultas Frecuentes</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="accordion" id="accordionGeneral">
+                                <div class="card-pro-body p-0">
+                                    <div class="accordion accordion-flush" id="accordionHelp">
                                         @foreach (var item in TemasFiltrados.Where(t => t.RolRequerido == "General"))
                                         {
-                                            <div class="accordion-item">
+                                            <div class="accordion-item bg-transparent">
                                                 <h2 class="accordion-header">
-                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gen-@item.Id">
+                                                    <button class="accordion-button collapsed py-4 px-4 fw-bold text-primary bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#gen-@item.Id">
                                                         @item.Titulo
                                                     </button>
                                                 </h2>
-                                                <div id="gen-@item.Id" class="accordion-collapse collapse" data-bs-parent="#accordionGeneral">
-                                                    <div class="accordion-body text-muted">
-                                                        @item.ContenidoHTML
+                                                <div id="gen-@item.Id" class="accordion-collapse collapse" data-bs-parent="#accordionHelp">
+                                                    <div class="accordion-body px-4 pb-4 pt-0 text-secondary">
+                                                        <div class="p-3 rounded-3 bg-subtle">
+                                                            @item.ContenidoHTML
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -108,17 +118,20 @@
                     }
                     else
                     {
-                        <div class="text-center py-5">
-                            <i class="bi bi-emoji-frown fs-1 text-muted"></i>
-                            <h4 class="mt-3 text-muted">No encontramos resultados para "@terminoBusqueda"</h4>
-                            <p>Intenta con otra palabra clave o revisa los manuales.</p>
-                            <button class="btn btn-link" @onclick="() => terminoBusqueda = string.Empty">Mostrar todo</button>
+                        <div class="text-center py-5 animate-enter">
+                            <i class="bi bi-search-heart fs-1 text-secondary opacity-25 d-block mb-3"></i>
+                            <h4 class="text-primary fw-bold">Sin resultados para "@terminoBusqueda"</h4>
+                            <p class="text-secondary small">Intenta buscar por términos como "Ticket", "Manual" o "Contraseña".</p>
+                            <button class="btn btn-link text-utepsa-red fw-bold text-decoration-none" @onclick="() => terminoBusqueda = string.Empty">Ver todos los temas</button>
                         </div>
                     }
                 </Authorized>
                 <NotAuthorized>
-                    <div class="alert alert-warning text-center">
-                        Debes <a href="login" class="alert-link">iniciar sesión</a> para ver la ayuda personalizada.
+                    <div class="card-pro shadow-pro border-0 p-5 text-center bg-surface">
+                        <i class="bi bi-lock-fill text-secondary fs-1 opacity-25 mb-3"></i>
+                        <h4 class="fw-bold text-primary">Acceso Restringido</h4>
+                        <p class="text-secondary">Debes autenticarte con tus credenciales institucionales para visualizar la ayuda avanzada.</p>
+                        <a href="login" class="btn btn-utepsa px-5 mt-3 shadow-red-glow">INICIAR SESIÓN</a>
                     </div>
                 </NotAuthorized>
             </AuthorizeView>
@@ -128,31 +141,59 @@
 </div>
 
 <style>
-    .animate-fade-in {
-        animation: fadeIn 0.5s ease-in-out;
+    .bg-app {
+        background-color: var(--bg-app) !important;
     }
 
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
+    .bg-surface {
+        background-color: var(--bg-surface) !important;
+    }
+
+    .bg-subtle {
+        background-color: var(--bg-subtle) !important;
+    }
+
+    .text-primary {
+        color: var(--text-primary) !important;
+    }
+
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .card-help-hover {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid transparent !important;
+    }
+
+        .card-help-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover) !important;
+            border-color: var(--utepsa-red) !important;
         }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .accordion-button:not(.collapsed) {
+        background-color: var(--bg-subtle);
+        color: var(--utepsa-red);
+        box-shadow: none;
+    }
+
+    .accordion-button::after {
+        filter: grayscale(1) opacity(0.5);
+    }
+
+    .ls-1 {
+        letter-spacing: 1px;
     }
 </style>
 
 @code {
     private string terminoBusqueda = "";
 
-    // Modelo interno para los temas de ayuda
     private class TemaAyuda
     {
         public int Id { get; set; }
-        public string RolRequerido { get; set; } = ""; // "Administrador", "Asesor", "Usuario", "General"
+        public string RolRequerido { get; set; } = "";
         public string Titulo { get; set; } = "";
         public string Icono { get; set; } = "bi-circle";
         public MarkupString ContenidoHTML { get; set; }
@@ -160,75 +201,48 @@
         public string? EnlaceTexto { get; set; }
     }
 
-    // Base de datos de conocimientos en memoria (Hardcoded pero estructurada)
     private List<TemaAyuda> TodosLosTemas = new()
     {
         // --- ADMIN ---
         new TemaAyuda {
             Id = 1, RolRequerido = "Administrador", Titulo = "Gestión de Usuarios", Icono = "bi-people-fill",
-            ContenidoHTML = new MarkupString("<p>Administra el acceso al sistema. Puedes crear nuevos usuarios, editar sus roles o darlos de baja (desactivar acceso).</p>"),
-            EnlaceUrl = "admin/usuarios", EnlaceTexto = "Ir a Usuarios"
+            ContenidoHTML = new MarkupString("<p>Control total sobre el acceso. Permite dar de alta personal, modificar roles y auditar accesos.</p>"),
+            EnlaceUrl = "admin/usuarios", EnlaceTexto = "Directorio"
         },
         new TemaAyuda {
-            Id = 2, RolRequerido = "Administrador", Titulo = "Gestión de Categorías", Icono = "bi-tags-fill",
-            ContenidoHTML = new MarkupString("<p>Crea o desactiva áreas de soporte (ej. 'Hardware', 'Redes'). Las categorías inactivas no aparecen al crear tickets.</p>"),
-            EnlaceUrl = "admin/categorias", EnlaceTexto = "Gestionar Categorías"
+            Id = 2, RolRequerido = "Administrador", Titulo = "Catálogos de Sistema", Icono = "bi-tags-fill",
+            ContenidoHTML = new MarkupString("<p>Configura las áreas de atención. Recuerda que desactivar una categoría ocultará sus tickets históricos de la vista rápida.</p>"),
+            EnlaceUrl = "admin/categorias", EnlaceTexto = "Configurar"
         },
-        new TemaAyuda {
-            Id = 3, RolRequerido = "Administrador", Titulo = "Asignar Especialidades", Icono = "bi-person-gear",
-            ContenidoHTML = new MarkupString("<p>Vincula asesores a categorías específicas para que puedan recibir y atender tickets.</p>"),
-            EnlaceUrl = "admin/asignar-especialidades", EnlaceTexto = "Asignar Especialidades"
-        },
-        new TemaAyuda {
-            Id = 4, RolRequerido = "Administrador", Titulo = "Reportes y KPIs", Icono = "bi-bar-chart-fill",
-            ContenidoHTML = new MarkupString("<p>Visualiza el rendimiento del equipo: Tiempo promedio de respuesta, volumen de tickets y satisfacción del usuario.</p>"),
-            EnlaceUrl = "reportes", EnlaceTexto = "Ver Reportes"
-        },
-
         // --- ASESOR ---
         new TemaAyuda {
-            Id = 5, RolRequerido = "Asesor", Titulo = "Tomar Tickets (Auto-asignación)", Icono = "bi-inbox-fill",
-            ContenidoHTML = new MarkupString("<p>Ve al Tablero, abre un ticket 'Abierto' y haz clic en <strong>Tomar Caso</strong>. Pasará a tu bandeja personal.</p>"),
-            EnlaceUrl = "", EnlaceTexto = "Ir al Tablero"
+            Id = 5, RolRequerido = "Asesor", Titulo = "Gestión de SLAs", Icono = "bi-clock-fill",
+            ContenidoHTML = new MarkupString("<p>Prioriza los tickets marcados como 'Urgente'. El sistema mide el tiempo desde la apertura hasta el cierre definitivo.</p>"),
+            EnlaceUrl = "/", EnlaceTexto = "Ver Tablero"
         },
         new TemaAyuda {
-            Id = 6, RolRequerido = "Asesor", Titulo = "Uso del Chat y Archivos", Icono = "bi-chat-dots-fill",
-            ContenidoHTML = new MarkupString("<p>Usa el chat para comunicarte. Puedes adjuntar imágenes o PDFs (Max 5MB). El sistema te avisará con sonido si responden.</p>")
+            Id = 6, RolRequerido = "Asesor", Titulo = "Evidencia y Adjuntos", Icono = "bi-paperclip",
+            ContenidoHTML = new MarkupString("<p>Puedes solicitar capturas de pantalla a los usuarios. Soporta formatos PNG, JPG y PDF hasta 5MB.</p>")
         },
-        new TemaAyuda {
-            Id = 7, RolRequerido = "Asesor", Titulo = "Base de Conocimiento", Icono = "bi-journal-bookmark-fill",
-            ContenidoHTML = new MarkupString("<p>Consulta o crea manuales para problemas recurrentes. Ayuda a reducir la carga de tickets futuros.</p>"),
-            EnlaceUrl = "manuales", EnlaceTexto = "Ver Manuales"
-        },
-
         // --- USUARIO ---
         new TemaAyuda {
-            Id = 8, RolRequerido = "Usuario", Titulo = "Antes de crear un ticket...", Icono = "bi-lightbulb-fill text-warning",
-            ContenidoHTML = new MarkupString("<p><strong>¡Ahorra tiempo!</strong> Revisa nuestra sección de Manuales. Es muy probable que la solución a tu problema ya esté documentada.</p>"),
-            EnlaceUrl = "manuales", EnlaceTexto = "Buscar en Manuales"
+            Id = 8, RolRequerido = "Usuario", Titulo = "Auto-Consulta", Icono = "bi-journal-check",
+            ContenidoHTML = new MarkupString("<p>Antes de reportar, verifica si existe una solución en nuestros manuales técnicos certificados.</p>"),
+            EnlaceUrl = "manuales", EnlaceTexto = "Explorar Manuales"
         },
         new TemaAyuda {
-            Id = 9, RolRequerido = "Usuario", Titulo = "Crear un Nuevo Ticket", Icono = "bi-plus-circle-fill",
-            ContenidoHTML = new MarkupString("<p>Si no encuentras solución, crea un ticket seleccionando la categoría correcta. Marca 'Urgente' solo si es crítico.</p>"),
-            EnlaceUrl = "nuevo-ticket", EnlaceTexto = "Crear Ticket"
+            Id = 9, RolRequerido = "Usuario", Titulo = "Seguimiento en Vivo", Icono = "bi-lightning-fill",
+            ContenidoHTML = new MarkupString("<p>Usa el chat de cada ticket para interactuar con el asesor. Recibirás notificaciones en tiempo real.</p>"),
+            EnlaceUrl = "/", EnlaceTexto = "Mis Tickets"
+        },
+        // --- GENERAL ---
+        new TemaAyuda {
+            Id = 11, RolRequerido = "General", Titulo = "¿Olvidaste tu contraseña institucional?",
+            ContenidoHTML = new MarkupString("Debe apersonarse a las oficinas de TI o contactar al administrador del sistema para un reinicio seguro de credenciales.")
         },
         new TemaAyuda {
-            Id = 10, RolRequerido = "Usuario", Titulo = "Calificar Atención", Icono = "bi-star-fill",
-            ContenidoHTML = new MarkupString("<p>Al finalizar el soporte, califica a tu asesor con estrellas. Tu retroalimentación es vital.</p>")
-        },
-
-        // --- GENERAL (FAQ) ---
-        new TemaAyuda {
-            Id = 11, RolRequerido = "General", Titulo = "¿Cómo cambio mi contraseña?",
-            ContenidoHTML = new MarkupString("Por seguridad, contacta a un Administrador para restablecer tus credenciales si no puedes ingresar.")
-        },
-        new TemaAyuda {
-            Id = 12, RolRequerido = "General", Titulo = "El sistema está lento",
-            ContenidoHTML = new MarkupString("Verifica tu conexión a internet. Si el problema persiste, reportalo seleccionando la categoría 'Sistemas'.")
-        },
-        new TemaAyuda {
-            Id = 13, RolRequerido = "General", Titulo = "¿Qué formatos de archivo puedo subir?",
-            ContenidoHTML = new MarkupString("Soportamos imágenes (.jpg, .png) y documentos PDF. El tamaño máximo por archivo es de 5MB.")
+            Id = 12, RolRequerido = "General", Titulo = "¿Cómo reportar un fallo crítico?",
+            ContenidoHTML = new MarkupString("Cree un nuevo ticket y active el switch de 'Urgencia'. Esto notificará a todos los asesores disponibles inmediatamente.")
         }
     };
 
@@ -237,12 +251,4 @@
         ? TodosLosTemas
         : TodosLosTemas.Where(t => t.Titulo.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
                                 || t.ContenidoHTML.Value.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase));
-
-    private string ObtenerClaseHeader(string? rol) => rol switch
-    {
-        "Administrador" => "bg-dark",
-        "Asesor" => "bg-warning text-dark",
-        "Usuario" => "bg-primary",
-        _ => "bg-secondary"
-    };
 }

@@ -5,72 +5,100 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using System.ComponentModel.DataAnnotations
+@using System.Globalization
 
-@* CORRECCIÓN AQUÍ: Usar la Interfaz ITicketService *@
 @inject ITicketService ServicioTickets
 @inject NavigationManager Navegacion
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Crear Nuevo Ticket</PageTitle>
+<PageTitle>Nuevo Ticket | HelpDesk UTEPSA</PageTitle>
 
-<div class="container mt-4">
+<div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white py-3">
-                    <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-plus-circle-fill me-2"></i>Crear Nuevo Ticket de Soporte</h4>
-                    <p class="mb-0 text-muted small">Completa el formulario para reportar un incidente.</p>
+        <div class="col-md-10 col-lg-8 col-xl-7 animate-enter">
+
+            @* --- CABECERA DE LA PÁGINA --- *@
+            <div class="text-center mb-4">
+                <div class="bg-utepsa-red rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi- megaphone-fill text-white fs-3"></i>
                 </div>
-                <div class="card-body p-4">
+                <h2 class="fw-bold text-primary" style="letter-spacing: -1px;">Crear Solicitud de Soporte</h2>
+                <p class="text-secondary small">Describe tu problema detalladamente para que nuestros asesores puedan ayudarte rápidamente.</p>
+            </div>
+
+            @* --- TARJETA DEL FORMULARIO --- *@
+            <div class="card-pro shadow-pro border-0">
+                <div class="card-pro-body p-4 p-md-5">
+
                     <EditForm Model="nuevoTicketModel" OnValidSubmit="Guardar" FormName="nuevoTicketForm">
                         <DataAnnotationsValidator />
 
-                        <div class="mb-3">
-                            <label for="titulo" class="form-label fw-bold">Título del Problema</label>
-                            <InputText id="titulo" @bind-Value="nuevoTicketModel.Titulo" class="form-control" placeholder="Ej: Error al generar factura" />
-                            <ValidationMessage For="@(() => nuevoTicketModel.Titulo)" />
-                        </div>
+                        <div class="row g-4">
+                            @* Título *@
+                            <div class="col-12">
+                                <label for="titulo" class="form-label fw-bold text-primary small text-uppercase ls-1">Título del Incidente</label>
+                                <InputText id="titulo" @bind-Value="nuevoTicketModel.Titulo"
+                                           class="form-control-pro w-100"
+                                           placeholder="Ej: Error al intentar acceder al módulo de notas" />
+                                <ValidationMessage For="@(() => nuevoTicketModel.Titulo)" class="text-danger small mt-1" />
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="categoria" class="form-label fw-bold">Categoría / Sistema Afectado</label>
-                            <InputSelect id="categoria" @bind-Value="nuevoTicketModel.CategoriaId" class="form-select">
-                                <option value="0">-- Seleccione una opción --</option>
-                                @foreach (var cat in listaCategorias)
-                                {
-                                    <option value="@cat.Id">@cat.Nombre</option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="@(() => nuevoTicketModel.CategoriaId)" />
-                        </div>
+                            @* Categoría *@
+                            <div class="col-12">
+                                <label for="categoria" class="form-label fw-bold text-primary small text-uppercase ls-1">Categoría o Sistema</label>
+                                <div class="position-relative">
+                                    <InputSelect id="categoria" @bind-Value="nuevoTicketModel.CategoriaId" class="form-control-pro w-100 appearance-none">
+                                        <option value="0">-- Selecciona el área afectada --</option>
+                                        @foreach (var cat in listaCategorias)
+                                        {
+                                            <option value="@cat.Id">@cat.Nombre</option>
+                                        }
+                                    </InputSelect>
+                                    <i class="bi bi-chevron-down position-absolute end-0 top-50 translate-middle-y me-3 text-secondary pointer-events-none"></i>
+                                </div>
+                                <ValidationMessage For="@(() => nuevoTicketModel.CategoriaId)" class="text-danger small mt-1" />
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="descripcion" class="form-label fw-bold">Descripción Detallada</label>
-                            <InputTextArea id="descripcion" @bind-Value="nuevoTicketModel.Descripcion" class="form-control" rows="5" placeholder="Describe paso a paso lo que sucedió, adjunta códigos de error si los tienes..." />
-                            <ValidationMessage For="@(() => nuevoTicketModel.Descripcion)" />
-                        </div>
+                            @* Descripción *@
+                            <div class="col-12">
+                                <label for="descripcion" class="form-label fw-bold text-primary small text-uppercase ls-1">Descripción Detallada</label>
+                                <InputTextArea id="descripcion" @bind-Value="nuevoTicketModel.Descripcion"
+                                               class="form-control-pro w-100" rows="5"
+                                               placeholder="Describe qué estabas haciendo, qué error apareció y cualquier código que visualices..." />
+                                <ValidationMessage For="@(() => nuevoTicketModel.Descripcion)" class="text-danger small mt-1" />
+                            </div>
 
-                        <div class="mb-4 form-check bg-light p-3 rounded border">
-                            <InputCheckbox @bind-Value="nuevoTicketModel.EsUrgente" class="form-check-input" id="checkUrgente" />
-                            <label class="form-check-label fw-bold text-danger" for="checkUrgente">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Marcar como URGENTE
-                            </label>
-                            <div class="form-text mt-1">Solo marca esto si el problema detiene completamente tu trabajo y requiere atención inmediata.</div>
-                        </div>
+                            @* Urgencia (Selector visual mejorado) *@
+                            <div class="col-12">
+                                <div class="p-3 rounded-3 border @(nuevoTicketModel.EsUrgente ? "bg-danger bg-opacity-10 border-danger" : "bg-subtle border-light") transition-all">
+                                    <div class="form-check d-flex align-items-center gap-2">
+                                        <InputCheckbox @bind-Value="nuevoTicketModel.EsUrgente" class="form-check-input mt-0" id="checkUrgente" style="width: 20px; height: 20px;" />
+                                        <label class="form-check-label fw-bold @(nuevoTicketModel.EsUrgente ? "text-danger" : "text-primary")" for="checkUrgente">
+                                            <i class="bi bi-lightning-charge-fill me-1"></i> Marcar como Solicitud Urgente
+                                        </label>
+                                    </div>
+                                    <p class="form-text mb-0 mt-2 small ms-4">Selecciona esta opción solo si el problema impide totalmente la continuación de tus actividades críticas.</p>
+                                </div>
+                            </div>
 
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="/" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary px-4" disabled="@estaGuardando">
-                                @if (estaGuardando)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                    <span>Enviando...</span>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-send-fill me-1"></i>
-                                    <span>Enviar Solicitud</span>
-                                }
-                            </button>
+                            @* Botones de Acción *@
+                            <div class="col-12 mt-5">
+                                <div class="d-flex flex-column-reverse flex-md-row justify-content-end gap-3">
+                                    <a href="/" class="btn btn-light px-4 fw-bold text-secondary">Cancelar</a>
+                                    <button type="submit" class="btn btn-utepsa px-5 shadow-red-glow" disabled="@estaGuardando">
+                                        @if (estaGuardando)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                            <span>Procesando...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-send-check-fill me-2"></i>
+                                            <span>Enviar Solicitud</span>
+                                        }
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                     </EditForm>
@@ -79,6 +107,22 @@
         </div>
     </div>
 </div>
+
+<style>
+    .ls-1 {
+        letter-spacing: 0.5px;
+    }
+
+    .appearance-none {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    .pointer-events-none {
+        pointer-events: none;
+    }
+</style>
 
 @code {
     private NuevoTicketModel nuevoTicketModel = new();
@@ -91,9 +135,8 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        if (user.Identity != null && user.Identity.IsAuthenticated)
+        if (user.Identity?.IsAuthenticated == true)
         {
-            // CORRECCIÓN: Intento robusto de obtener el SID o NameIdentifier
             var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
             if (idClaim != null) usuarioActualId = Guid.Parse(idClaim.Value);
         }
@@ -103,9 +146,7 @@
 
     private async Task Guardar()
     {
-        // CORRECCIÓN: Validación de seguridad y prevención de doble clic
         if (usuarioActualId == Guid.Empty || estaGuardando) return;
-
         estaGuardando = true;
 
         try
@@ -117,18 +158,15 @@
                 CategoriaId = nuevoTicketModel.CategoriaId,
                 EsUrgente = nuevoTicketModel.EsUrgente,
                 UsuarioId = usuarioActualId,
-                FechaCreacion = DateTime.UtcNow, // Estándar UTC para evitar líos de zona horaria
+                FechaCreacion = DateTime.UtcNow,
                 Estado = HelpDeskSystem.Domain.Enums.EstadoTicket.Abierto
             };
 
             await ServicioTickets.GuardarTicketAsync(nuevoTicket);
-
-            // Navegamos al inicio tras el éxito
             Navegacion.NavigateTo("/");
         }
         catch (Exception ex)
         {
-            // CORRECCIÓN: Si falla, liberamos la UI para que el usuario pueda corregir o reintentar
             Console.WriteLine($"Error al guardar ticket: {ex.Message}");
             estaGuardando = false;
             StateHasChanged();
