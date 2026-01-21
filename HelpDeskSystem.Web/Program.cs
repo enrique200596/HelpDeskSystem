@@ -13,32 +13,27 @@ var builder = WebApplication.CreateBuilder(args);
 // ============================================================
 // 1. CONFIGURACIÓN DE INFRAESTRUCTURA (DATOS)
 // ============================================================
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("La cadena de conexión 'DefaultConnection' no fue encontrada.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("La cadena de conexión 'DefaultConnection' no fue encontrada.");
 
 // Registro de la Fábrica de Contexto (Optimizado para Blazor Server)
-builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseSqlServer(connectionString));
 
 // Bridge para servicios que inyectan el contexto directamente (Compatibilidad)
-builder.Services.AddScoped<AppDbContext>(p =>
-    p.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
+builder.Services.AddScoped<AppDbContext>(p => p.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
 // ============================================================
 // 2. SEGURIDAD Y AUTENTICACIÓN (BLINDADO)
 // ============================================================
 
 // Eliminamos Magic Strings usando la constante oficial del SDK
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-    {
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options => {
         options.LoginPath = "/login";
         options.LogoutPath = "/account/logout";
         options.AccessDeniedPath = "/error";
         options.ExpireTimeSpan = TimeSpan.FromDays(1);
         options.SlidingExpiration = true; // Renueva la sesión si el usuario está activo
         options.Cookie.HttpOnly = true;   // Protección contra ataques XSS
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Solo sobre HTTPS
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // HTTP o HTTPS
     });
 
 builder.Services.AddAuthorization();
@@ -88,6 +83,7 @@ builder.Services.Configure<HubOptions>(options =>
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
 });
 
+builder.Services.AddHttpContextAccessor();
 var app = builder.Build();
 
 // ============================================================
