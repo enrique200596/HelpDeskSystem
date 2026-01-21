@@ -84,8 +84,6 @@
     private NuevoTicketModel nuevoTicketModel = new();
     private Guid usuarioActualId = Guid.Empty;
     private List<Categoria> listaCategorias = new();
-
-    // MEJORA: Variable para evitar múltiples envíos y controlar la UI
     private bool estaGuardando = false;
 
     protected override async Task OnInitializedAsync()
@@ -95,6 +93,7 @@
 
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
+            // CORRECCIÓN: Intento robusto de obtener el SID o NameIdentifier
             var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
             if (idClaim != null) usuarioActualId = Guid.Parse(idClaim.Value);
         }
@@ -104,10 +103,10 @@
 
     private async Task Guardar()
     {
-        // Validación de seguridad: si ya se está guardando o no hay ID, ignoramos clics extra
+        // CORRECCIÓN: Validación de seguridad y prevención de doble clic
         if (usuarioActualId == Guid.Empty || estaGuardando) return;
 
-        estaGuardando = true; // Bloqueamos el proceso
+        estaGuardando = true;
 
         try
         {
@@ -118,19 +117,19 @@
                 CategoriaId = nuevoTicketModel.CategoriaId,
                 EsUrgente = nuevoTicketModel.EsUrgente,
                 UsuarioId = usuarioActualId,
-                FechaCreacion = DateTime.UtcNow, // Mantenemos el estándar UTC
+                FechaCreacion = DateTime.UtcNow, // Estándar UTC para evitar líos de zona horaria
                 Estado = HelpDeskSystem.Domain.Enums.EstadoTicket.Abierto
             };
 
             await ServicioTickets.GuardarTicketAsync(nuevoTicket);
 
-            // Navegamos al éxito
+            // Navegamos al inicio tras el éxito
             Navegacion.NavigateTo("/");
         }
         catch (Exception ex)
         {
-            // Si hay un error de red o base de datos, liberamos el botón para reintentar
-            Console.WriteLine($"Error al guardar: {ex.Message}");
+            // CORRECCIÓN: Si falla, liberamos la UI para que el usuario pueda corregir o reintentar
+            Console.WriteLine($"Error al guardar ticket: {ex.Message}");
             estaGuardando = false;
             StateHasChanged();
         }
@@ -143,10 +142,10 @@
         public string Titulo { get; set; } = "";
 
         [Required(ErrorMessage = "La descripción es obligatoria.")]
-        [MinLength(10, ErrorMessage = "La descripción debe tener al menos 10 caracteres.")]
+        [MinLength(10, ErrorMessage = "Por favor, brinda una descripción más detallada (mín. 10 caracteres).")]
         public string Descripcion { get; set; } = "";
 
-        [Range(1, int.MaxValue, ErrorMessage = "Debes seleccionar una categoría.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Debes seleccionar una categoría válida.")]
         public int CategoriaId { get; set; }
 
         public bool EsUrgente { get; set; }

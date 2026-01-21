@@ -136,7 +136,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // EL TRY-CATCH QUE FALTABA
         try
         {
             if (AuthState != null)
@@ -147,21 +146,18 @@
         }
         catch
         {
-            // Si falla al cargar el menú, asumimos usuario desconectado
-            // en lugar de romper toda la página.
+            // Fallback preventivo para evitar que el componente rompa el renderizado global
             user = null;
         }
     }
 
     private bool EsRol(string rolRequerido)
     {
-        try
-        {
-            return user?.FindFirst(ClaimTypes.Role)?.Value == rolRequerido;
-        }
-        catch
-        {
+        if (user == null || user.Identity?.IsAuthenticated == false)
             return false;
-        }
+
+        // CORRECCIÓN: Uso del método estándar IsInRole.
+        // Este método busca en toda la colección de claims de tipo 'Role' de forma eficiente.
+        return user.IsInRole(rolRequerido);
     }
 }

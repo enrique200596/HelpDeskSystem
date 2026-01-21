@@ -11,20 +11,27 @@
 
 <div class="d-flex w-100 h-100 overflow-hidden bg-app font-main">
 
-    @* === SIDEBAR (Fijo a la izquierda) === *@
-    <aside class="d-none d-lg-flex flex-column flex-shrink-0" style="width: 260px; z-index: 1040;">
+    @* === SIDEBAR === *@
+    @* CORRECCIÓN: Se añade lógica para mostrar/ocultar en móvil mediante la clase 'show-mobile' *@
+    <aside class="sidebar-container @(mostrarMenuMovil ? "show-mobile" : "")">
         <NavMenu />
     </aside>
+
+    @* Overlay para cerrar el menú al tocar fuera en móviles *@
+    @if (mostrarMenuMovil)
+    {
+        <div class="sidebar-overlay d-lg-none" @onclick="ToggleMenu"></div>
+    }
 
     @* === CONTENIDO PRINCIPAL === *@
     <div class="flex-grow-1 d-flex flex-column h-100 overflow-hidden position-relative">
 
-        @* HEADER FLOTANTE *@
+        @* HEADER *@
         <header class="bg-white border-bottom shadow-sm d-flex align-items-center justify-content-between px-4 py-2" style="height: 64px; flex-shrink: 0; z-index: 1000;">
 
-            @* 1. Breadcrumbs / Título Dinámico *@
             <div class="d-flex align-items-center overflow-hidden">
-                <button class="btn btn-link text-dark d-lg-none me-2 p-0" onclick="alert('Menu móvil pendiente de JS')">
+                @* CORRECCIÓN: El botón ahora dispara la función ToggleMenu en lugar de un alert *@
+                <button class="btn btn-link text-dark d-lg-none me-2 p-0" @onclick="ToggleMenu">
                     <i class="bi bi-list fs-4"></i>
                 </button>
 
@@ -45,7 +52,7 @@
                 </nav>
             </div>
 
-            @* 2. Perfil de Usuario *@
+            @* Perfil de Usuario *@
             <AuthorizeView>
                 <Authorized>
                     <div class="d-flex align-items-center gap-3 ps-3 border-start">
@@ -61,20 +68,16 @@
                                  style="width: 40px; height: 40px; font-size: 1.1rem; cursor: pointer; border: 2px solid #fff;">
                                 @ObtenerIniciales(context.User.Identity?.Name)
                             </div>
-                            @* Punto verde de "Online" *@
                             <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
                                   style="width: 12px; height: 12px;"></span>
                         </div>
                     </div>
                 </Authorized>
             </AuthorizeView>
-
         </header>
 
-        @* CONTENEDOR CON SCROLL *@
         <main class="flex-grow-1 overflow-auto p-0 scroll-smooth">
             @Body
-
             <div class="container-fluid px-4 py-3">
                 <footer class="text-center text-muted small mt-4 pb-4 opacity-50">
                     &copy; @DateTime.Now.Year HelpDesk UTEPSA - Todos los derechos reservados
@@ -84,13 +87,41 @@
     </div>
 </div>
 
-<div id="blazor-error-ui">
-    Ha ocurrido un error inesperado.
-    <a href="" class="reload">Recargar</a>
-    <a class="dismiss">🗙</a>
-</div>
-
 <style>
+    .sidebar-container {
+        width: 260px;
+        flex-shrink: 0;
+        z-index: 1040;
+        transition: transform 0.3s ease;
+        background: var(--utepsa-dark);
+    }
+
+    /* Estilos para móviles */
+    @@media (max-width: 991.98px) {
+        .sidebar-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            transform: translateX(-100%);
+        }
+
+            .sidebar-container.show-mobile {
+                transform: translateX(0);
+            }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 1035;
+        }
+    }
+
+    /* Estilos base */
     .font-main {
         font-family: 'Segoe UI', system-ui, sans-serif;
     }
@@ -110,46 +141,9 @@
 
 @code {
     private string nombrePagina = "";
+    private bool mostrarMenuMovil = false; // Nueva variable de estado
 
-    private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, TipoNotificacion tipo, string? remitente, Guid? ownerId, Guid? asesorId)
-    {
-        try
-        {
-            await InvokeAsync(async () =>
-            {
-                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
-                if (user == null || user.Identity == null || !user.Identity.IsAuthenticated) return;
-
-                // Filtros de privacidad
-                var myIdStr = user.FindFirst(ClaimTypes.Sid)?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (Guid.TryParse(myIdStr, out Guid myId))
-                {
-                    if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name) return;
-                    if (asesorId != null)
-                    {
-                        if (myId != ownerId && myId != asesorId) return;
-                    }
-                }
-
-                var urlActual = NavManager.Uri.ToLower();
-                bool estaViendoElTicket = ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}");
-
-                string mensajeNotificacion = "Actividad en el sistema";
-                if (!string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente))
-                    mensajeNotificacion = $"{remitente}: {tituloTicket}";
-
-                try
-                {
-                    await JS.InvokeVoidAsync("verificarYNotificar", mensajeNotificacion, "info", estaViendoElTicket);
-                }
-                catch { }
-
-                StateHasChanged();
-            });
-        }
-        catch { }
-    }
+    private void ToggleMenu() => mostrarMenuMovil = !mostrarMenuMovil;
 
     protected override void OnInitialized()
     {
@@ -158,15 +152,51 @@
         StateContainer.OnChange += ManejarCambioGlobal;
     }
 
-    private void AlCambiarUrl(object? sender, LocationChangedEventArgs e) { ActualizarNombrePagina(); StateHasChanged(); }
+    private void AlCambiarUrl(object? sender, LocationChangedEventArgs e)
+    {
+        mostrarMenuMovil = false; // Cerrar menú al navegar
+        ActualizarNombrePagina();
+        StateHasChanged();
+    }
 
     private void ActualizarNombrePagina()
     {
         var uri = NavManager.Uri.ToLower();
         if (uri.EndsWith("dashboard")) nombrePagina = "Estadísticas";
-        else if (uri.EndsWith("manuales")) nombrePagina = "Base de Conocimiento";
+        else if (uri.Contains("manuales")) nombrePagina = "Base de Conocimiento";
         else if (uri.Contains("nuevo-ticket")) nombrePagina = "Nuevo Ticket";
-        else nombrePagina = "";
+        else if (uri.Contains("ticket/")) nombrePagina = "Detalle de Ticket";
+        else nombrePagina = "Tablero Principal";
+    }
+
+    // El resto de tus métodos (ManejarCambioGlobal, ObtenerIniciales, Dispose) se mantienen igual...
+    private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, TipoNotificacion tipo, string? remitente, Guid? ownerId, Guid? asesorId)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                if (user?.Identity?.IsAuthenticated != true) return;
+
+                var myIdStr = user.FindFirst(ClaimTypes.Sid)?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(myIdStr, out Guid myId))
+                {
+                    if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name) return;
+                    if (asesorId != null && myId != ownerId && myId != asesorId) return;
+                }
+
+                var urlActual = NavManager.Uri.ToLower();
+                bool estaViendoElTicket = ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}");
+                string mensajeNotificacion = !string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente)
+                    ? $"{remitente}: {tituloTicket}" : "Actividad en el sistema";
+
+                try { await JS.InvokeVoidAsync("verificarYNotificar", mensajeNotificacion, "info", estaViendoElTicket); } catch { }
+                StateHasChanged();
+            });
+        }
+        catch { }
     }
 
     private string ObtenerIniciales(string? nombre) => string.IsNullOrEmpty(nombre) ? "U" : nombre.Substring(0, 1).ToUpper();

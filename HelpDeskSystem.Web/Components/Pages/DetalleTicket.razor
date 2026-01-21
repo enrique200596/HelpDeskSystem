@@ -332,15 +332,16 @@
                                             <div class="bubble @(soyYo ? "bubble-me" : "bubble-other")">
                                                 @if (!soyYo)
                                                 {
-                                                    <div class="fw-bold small mb-1 text-utepsa-red">@msg.Usuario?.Nombre</div>
+                                                    <div class="fw-bold small mb-1 @(soyYo ? "text-white-50" : "text-utepsa-red")">@msg.Usuario?.Nombre</div>
                                                 }
 
                                                 <div class="text-break">@msg.Contenido</div>
 
-                                                @if (!string.IsNullOrEmpty(msg.AdjuntoUrl))
+                                                @* CORRECCIÓN: Solo renderizar si existe una URL válida *@
+                                                @if (!string.IsNullOrWhiteSpace(msg.AdjuntoUrl))
                                                 {
                                                     <div class="mt-2">
-                                                        <a href="@msg.AdjuntoUrl" target="_blank" class="btn btn-sm btn-light border w-100 text-truncate text-dark">
+                                                        <a href="@msg.AdjuntoUrl" target="_blank" class="btn btn-sm btn-light border w-100 text-truncate text-dark shadow-sm">
                                                             <i class="bi bi-paperclip me-1"></i> Ver Adjunto
                                                         </a>
                                                     </div>
@@ -368,12 +369,16 @@
                             @if (miTicket.UsuarioId == usuarioActualId && miTicket.SatisfaccionUsuario == null)
                             {
                                 <div class="text-center mt-3 animate-fade-in">
-                                    <h6 class="fw-bold text-dark">Tu opinión importa:</h6>
+                                    <h6 class="fw-bold text-dark">¿Cómo calificarías la atención?</h6>
                                     <div class="d-flex justify-content-center gap-2 mt-2">
+                                        @* CORRECCIÓN: Se añade variable 'estaCalificando' para evitar clics múltiples *@
                                         @for (int i = 1; i <= 5; i++)
                                         {
                                             int r = i;
-                                            <button class="btn btn-outline-warning rounded-circle shadow-sm" style="width: 45px; height: 45px;" @onclick="() => Calificar(r)">
+                                            <button class="btn btn-outline-warning rounded-circle shadow-sm"
+                                                    style="width: 45px; height: 45px;"
+                                                    @onclick="() => Calificar(r)"
+                                                    disabled="@estaCalificando">
                                                 <i class="bi bi-star-fill"></i>
                                             </button>
                                         }
@@ -465,6 +470,8 @@
     private Guid usuarioActualId = Guid.Empty;
     private string rolUsuarioActual = "";
 
+    private bool estaCalificando = false;
+
     protected override async Task OnInitializedAsync()
     {
         StateContainer.OnChange += ActualizarChatEnVivo;
@@ -512,7 +519,7 @@
 
     private async Task EnviarMensaje()
     {
-        if (string.IsNullOrWhiteSpace(nuevoMensaje.Contenido) && archivoSeleccionado == null) return;
+        if (enviandoMensaje || (string.IsNullOrWhiteSpace(nuevoMensaje.Contenido) && archivoSeleccionado == null)) return;
 
         enviandoMensaje = true;
         try
@@ -530,15 +537,16 @@
 
             nuevoMensaje = new Mensaje();
             archivoSeleccionado = null;
+
+            // Forzamos el scroll después de que Blazor termine de renderizar el nuevo mensaje
+            await InvokeAsync(StateHasChanged);
             await ScrollAlFondo();
-            await JS.InvokeVoidAsync("utilidadesChat.ponerFoco", "txtMensaje");
         }
         finally
         {
             enviandoMensaje = false;
         }
     }
-
     private async Task AsignarAsesor()
     {
         if (idAsesorSeleccionado != Guid.Empty && miTicket != null)
@@ -579,15 +587,29 @@
 
     private async Task Calificar(int estrellas)
     {
-        await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId);
-        await CargarDatosCompletos();
-    }
+        if (estaCalificando) return;
+        estaCalificando = true;
 
+        try
+        {
+            await ServicioTickets.CalificarTicketAsync(Id, estrellas, usuarioActualId);
+            await CargarDatosCompletos();
+        }
+        finally
+        {
+            estaCalificando = false;
+        }
+    }
     // --- UTILIDADES ---
     private void ManejarSeleccionArchivo(InputFileChangeEventArgs e) => archivoSeleccionado = e.File;
     private void VerImagen(string url) => imagenModalUrl = url;
     private void CerrarModal() => imagenModalUrl = null;
-    private async Task ScrollAlFondo() { await Task.Delay(100); await JS.InvokeVoidAsync("utilidadesChat.bajarScroll", "chatBox"); }
+    private async Task ScrollAlFondo()
+    {
+        // Aumentamos ligeramente el delay para asegurar el renderizado del DOM en Server-side
+        await Task.Delay(150);
+        await JS.InvokeVoidAsync("utilidadesChat.bajarScroll", "chatBox");
+    }
     public void Dispose()
     {
         StateContainer.OnChange -= ActualizarChatEnVivo;

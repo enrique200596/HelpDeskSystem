@@ -164,24 +164,23 @@
 @code {
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string ReturnUrl { get; set; } = "";
+
     [SupplyParameterFromQuery(Name = "error")]
     public string MensajeError { get; set; } = "";
+
     private bool mostrarPassword = false;
     private bool estaCargando = false;
+
     private void TogglePassword() => mostrarPassword = !mostrarPassword;
 
-    private async Task IniciarCarga()
+    private void IniciarCarga()
     {
         if (estaCargando) return;
 
+        // CORRECCIÓN: Activamos el spinner inmediatamente.
+        // Al ser un formulario con 'method="post"' y 'action',
+        // el navegador navegará fuera de este componente Blazor.
+        // No se requiere Delay ya que la página se descargará al recibir la respuesta del servidor.
         estaCargando = true;
-
-        // Como el formulario hace un POST tradicional, el navegador debería
-        // recargar la página o navegar. Si después de 10 segundos no ha
-        // pasado nada, liberamos el botón para que el usuario reintente.
-        await Task.Delay(10000);
-
-        estaCargando = false;
-        StateHasChanged();
     }
 }

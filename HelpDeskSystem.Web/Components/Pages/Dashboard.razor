@@ -122,21 +122,21 @@
                     </div>
                     <div class="card-pro-body text-center pt-4">
 
-                        @* GRÁFICO DE DONA CSS PURO (CORREGIDO) *@
+                        @* GRÁFICO DE DONA CSS PURO (OPTIMIZADO) *@
                         <div class="position-relative mx-auto mb-4" style="width: 160px; height: 160px;">
-                            @* --- FIX 2: USO DE CultureInfo.InvariantCulture PARA EVITAR COMAS EN CSS --- *@
+                            @* Se usa CultureInfo.InvariantCulture para asegurar el punto decimal en el estilo CSS *@
                             <div class="rounded-circle w-100 h-100 shadow-inner"
                                  style="background: conic-gradient(
-                                                     var(--utepsa-red) 0% @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))%,
-                                                     #198754 @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))% @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))%,
-                                                     #ffc107 @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))% 100%
-                                                 );">
+                                var(--utepsa-red) 0% @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))%,
+                                #198754 @(PorcentajePendientes.ToString("0.0", CultureInfo.InvariantCulture))% @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))%,
+                                #ffc107 @((PorcentajePendientes + PorcentajeResueltos).ToString("0.0", CultureInfo.InvariantCulture))% 100%
+                            );">
                             </div>
-                            @* Agujero de la dona *@
+                            @* Agujero central *@
                             <div class="position-absolute top-50 start-50 translate-middle bg-white rounded-circle d-flex flex-column align-items-center justify-content-center"
                                  style="width: 120px; height: 120px;">
                                 <span class="display-6 fw-bold text-dark">@metricas.TotalTickets</span>
-                                <span class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Tickets</span>
+                                <span class="small text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total</span>
                             </div>
                         </div>
 
@@ -213,7 +213,7 @@
                                         </td>
                                         <td>
                                             <span class="badge rounded-pill border fw-normal
-                                                                                @(ticket.Estado == EstadoTicket.Resuelto ? "bg-success bg-opacity-10 text-success border-success" : ticket.EsUrgente ? "bg-danger bg-opacity-10 text-danger border-danger" : "bg-light text-dark")">
+                                                                                                @(ticket.Estado == EstadoTicket.Resuelto ? "bg-success bg-opacity-10 text-success border-success" : ticket.EsUrgente ? "bg-danger bg-opacity-10 text-danger border-danger" : "bg-light text-dark")">
                                                 @ticket.Estado
                                             </span>
                                         </td>
@@ -286,24 +286,24 @@
 
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
-            nombreUsuario = user.Identity.Name ?? "";
-            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Usuario";
             var idClaim = user.FindFirst(ClaimTypes.Sid) ?? user.FindFirst(ClaimTypes.NameIdentifier);
             if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId)) usuarioId = parsedId;
+            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "Usuario";
 
-            // 1. Cargar Métricas
             metricas = await ServicioDashboard.ObtenerMetricasAsync(usuarioId, rolActual);
-
-            // 2. Cargar Tickets Recientes
             var todosLosTickets = await ServicioTickets.ObtenerTicketsFiltradosAsync(usuarioId, rolActual);
             ultimosTickets = todosLosTickets.OrderByDescending(t => t.FechaCreacion).Take(5).ToList();
 
-            // 3. Calcular Porcentajes para Gráfico
+            // CORRECCIÓN: Cálculo robusto de porcentajes
             if (metricas != null && metricas.TotalTickets > 0)
             {
-                PorcentajeResueltos = ((double)metricas.Resueltos / metricas.TotalTickets) * 100;
-                // Pendientes agrupamos Abiertos + Asignados
-                PorcentajePendientes = ((double)metricas.Pendientes / metricas.TotalTickets) * 100;
+                PorcentajeResueltos = (double)metricas.Resueltos / metricas.TotalTickets * 100;
+                PorcentajePendientes = (double)metricas.Pendientes / metricas.TotalTickets * 100;
+            }
+            else
+            {
+                PorcentajeResueltos = 0;
+                PorcentajePendientes = 0;
             }
         }
     }
