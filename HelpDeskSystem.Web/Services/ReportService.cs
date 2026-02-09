@@ -39,11 +39,12 @@ namespace HelpDeskSystem.Web.Services
 
             query = AplicarFiltro(query, asesorId, desde, hasta);
 
-            // OPTIMIZACIÓN: Cálculo de promedio directamente en el motor SQL
+            // CORRECCIÓN: Se utiliza (int?) en la proyección para asegurar la traducción a SQL Server.
+            // EF Core traduce AverageAsync() sobre tipos anulables devolviendo double?, lo que 
+            // evita errores de "secuencia vacía" si no hay tickets resueltos en el periodo.
             var promedioMinutos = await query
                 .Where(t => t.Estado == EstadoTicket.Resuelto && t.FechaCierre != null)
-                .Select(t => EF.Functions.DateDiffMinute(t.FechaCreacion, t.FechaCierre!.Value))
-                .Cast<double?>()
+                .Select(t => (int?)EF.Functions.DateDiffMinute(t.FechaCreacion, t.FechaCierre!.Value))
                 .AverageAsync();
 
             if (promedioMinutos == null || promedioMinutos == 0)
@@ -65,8 +66,7 @@ namespace HelpDeskSystem.Web.Services
                 .GroupBy(t => t.CategoriaId)
                 .Select(g => new ReporteDato
                 {
-                    // CORRECCIÓN CS8602: Uso del operador null-forgiving (!) para el compilador.
-                    // EF Core traducirá esto correctamente a un JOIN en SQL.
+                    // EF Core traducirá esto a un JOIN y COALESCE en SQL.
                     Etiqueta = g.Select(t => t.Categoria!.Nombre).FirstOrDefault() ?? "Sin Categoría",
                     Valor = g.Count()
                 })
@@ -79,7 +79,6 @@ namespace HelpDeskSystem.Web.Services
                     d.Porcentaje = (d.Valor * 100) / total;
             }
 
-            // CORRECCIÓN CS1061: Se usa .ToList() porque ya estamos operando sobre una lista en memoria.
             return datos.OrderByDescending(d => d.Valor).ToList();
         }
 
@@ -87,7 +86,6 @@ namespace HelpDeskSystem.Web.Services
         {
             using var context = _dbFactory.CreateDbContext();
 
-            // CORRECCIÓN CS0266: Declaración explícita como IQueryable para permitir reasignación de filtros.
             IQueryable<Ticket> query = context.Tickets
                 .AsNoTracking()
                 .Include(t => t.Usuario)
@@ -103,4 +101,5 @@ namespace HelpDeskSystem.Web.Services
                 .ToListAsync();
         }
     }
+
 }
