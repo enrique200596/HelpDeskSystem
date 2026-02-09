@@ -40,7 +40,7 @@
                         <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary">
                             <i class="bi bi-search"></i>
                         </span>
-                        @* CORRECCIÓN: Usamos @oninput con Debounce en lugar de bind directo para no saturar la DB *@
+                        @* Búsqueda con Debounce *@
                         <input type="text" class="form-control-pro w-100 ps-5"
                                placeholder="Buscar por título de guía o palabras clave..."
                                value="@busqueda"
@@ -80,7 +80,7 @@
     }
     else
     {
-        @* --- CUADRÍCULA DE MANUALES (Simetría Pro) --- *@
+        @* --- CUADRÍCULA DE MANUALES --- *@
         <div class="row g-4 animate-enter" style="animation-delay: 0.2s;">
             @foreach (var m in manuales)
             {
@@ -116,19 +116,21 @@
                                 </div>
                             </div>
 
-                            @* Etiquetas Interactivas *@
+                            @* --- CORRECCIÓN CRÍTICA: Iteración sobre Colección de Entidades --- *@
                             <div class="mb-4 flex-wrap d-flex gap-1">
-                                @if (!string.IsNullOrEmpty(m.Etiquetas))
+                                @if (m.ManualEtiquetas != null && m.ManualEtiquetas.Any())
                                 {
-                                    @foreach (var tag in m.Etiquetas.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                                    @foreach (var tagEntity in m.ManualEtiquetas)
                                     {
                                         <span class="badge bg-light text-secondary border fw-normal px-2 py-1 transition-all hover-tag"
-                                              @onclick="() => FiltrarPorEtiqueta(tag.Trim())" style="cursor: pointer; font-size: 0.7rem;">
-                                            <i class="bi bi-tag-fill me-1 text-utepsa-red"></i>@tag.Trim()
+                                              @onclick="() => FiltrarPorEtiqueta(tagEntity.Etiqueta)"
+                                              style="cursor: pointer; font-size: 0.7rem;">
+                                            <i class="bi bi-tag-fill me-1 text-utepsa-red"></i>@tagEntity.Etiqueta
                                         </span>
                                     }
                                 }
                             </div>
+                            @* ---------------------------------------------------------------- *@
 
                             @* Acciones de la Tarjeta *@
                             <div class="mt-auto pt-3 border-top border-light border-opacity-50">
@@ -230,10 +232,8 @@
         var user = authState.User;
         var rol = user.FindFirst(ClaimTypes.Role)?.Value;
 
-        // CORRECCIÓN: Filtro en Servidor (SQL)
+        // El servicio ya incluye .Include(m => m.ManualEtiquetas), por lo que la iteración funcionará
         manuales = await ManualService.ObtenerTodosAsync(rol, busqueda);
-
-        // Refrescamos la UI explícitamente (útil para eventos de timer)
         await InvokeAsync(StateHasChanged);
     }
 
@@ -241,14 +241,11 @@
 
     private async Task VerHistorial(int manualId, string titulo) => await modalHistorial.Abrir(manualId, titulo);
 
-    // CORRECCIÓN: Optimización de búsqueda "Live" (Debounce)
     private void OnBusquedaInput(ChangeEventArgs e)
     {
         busqueda = e.Value?.ToString() ?? "";
-
-        // Reiniciamos el timer cada vez que el usuario escribe
         _debounceTimer?.Stop();
-        _debounceTimer = new Timer(500); // Esperar 500ms
+        _debounceTimer = new Timer(500);
         _debounceTimer.AutoReset = false;
         _debounceTimer.Elapsed += async (sender, args) => await CargarManuales();
         _debounceTimer.Start();

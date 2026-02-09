@@ -9,7 +9,6 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Hosting
 @inject IManualService ManualService
-@inject IUsuarioService UsuarioService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
@@ -19,7 +18,6 @@
 <PageTitle>@(Id == 0 ? "Nuevo Procedimiento" : "Editar Procedimiento") | HelpDesk</PageTitle>
 
 <div class="container-fluid px-4 py-4">
-    @* Usamos EditContext para tener control total sobre el momento de la validación (necesario por el editor Quill asíncrono) *@
     <EditForm EditContext="@editContext" OnSubmit="ProcesarGuardado">
         <DataAnnotationsValidator />
 
@@ -49,7 +47,6 @@
         }
         else
         {
-            @* Muestra resumen de errores si la validación falla *@
             <div class="row">
                 <div class="col-12">
                     <ValidationSummary class="alert alert-danger shadow-sm border-0 mb-4" />
@@ -93,7 +90,6 @@
                         </div>
 
                         <div class="card-pro-body p-0 editor-container-pro">
-                            @* El editor Quill no es un input nativo, se gestiona manualmente al guardar *@
                             <BlazoredTextEditor @ref="@QuillHtml" Placeholder="Comienza a redactar el procedimiento paso a paso...">
                                 <ToolbarContent>
                                     <select class="ql-header">
@@ -122,7 +118,7 @@
                                 </ToolbarContent>
                             </BlazoredTextEditor>
                         </div>
-                        @* Mensaje de validación específico para el contenido HTML *@
+
                         <div class="px-4 py-2">
                             <ValidationMessage For="@(() => manual.ContenidoHTML)" />
                         </div>
@@ -144,21 +140,23 @@
                                 <ValidationMessage For="@(() => manual.Titulo)" />
                             </div>
 
-                            @* Etiquetas *@
+                            @* Etiquetas - CORREGIDO: Binding a variable local *@
                             <div class="mb-4">
                                 <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Etiquetas (Separadas por coma)</label>
                                 <div class="position-relative">
                                     <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"><i class="bi bi-tags"></i></span>
-                                    <InputText class="form-control-pro w-100 ps-5" @bind-Value="manual.Etiquetas" placeholder="Redes, Seguridad, Alumnos" />
+                                    @* Usamos la variable local 'etiquetasInput' *@
+                                    <InputText class="form-control-pro w-100 ps-5" @bind-Value="etiquetasInput" placeholder="Redes, Seguridad, Alumnos" />
                                 </div>
-                                <ValidationMessage For="@(() => manual.Etiquetas)" />
+                                @* Validación manual eliminada o personalizada *@
                             </div>
 
-                            @* Visibilidad *@
+                            @* Visibilidad - CORREGIDO: Binding a variable local *@
                             <div class="mb-4">
                                 <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Alcance / Visibilidad</label>
                                 <div class="position-relative">
-                                    <InputSelect class="form-control-pro w-100 appearance-none shadow-none" @bind-Value="manual.RolesVisibles">
+                                    @* Usamos la variable local 'rolSeleccionado' *@
+                                    <InputSelect class="form-control-pro w-100 appearance-none shadow-none" @bind-Value="rolSeleccionado">
                                         <option value="">Todo el público</option>
                                         <option value="Administrador">Solo Administradores</option>
                                         <option value="Administrador,Asesor">Admin y Asesores (Interno)</option>
@@ -219,7 +217,6 @@
         pointer-events: none;
     }
 
-    /* Personalización del Editor Quill */
     .editor-container-pro .ql-toolbar {
         border: none !important;
         background-color: var(--bg-subtle);
@@ -255,15 +252,35 @@
     private string urlImagenReciente = "";
     private string mensajeErrorImagen = "";
 
+    // --- VARIABLES ADAPTADORAS PARA LA VISTA ---
+    // Estas variables permiten usar inputs simples (string) para alimentar las colecciones complejas del backend
+    private string etiquetasInput = "";
+    private string rolSeleccionado = "";
+
     protected override async Task OnInitializedAsync()
     {
         if (Id != 0)
         {
             var existente = await ManualService.ObtenerPorIdAsync(Id);
-            if (existente != null) manual = existente;
+            if (existente != null)
+            {
+                manual = existente;
+
+                // MAPEO DE LECTURA (Backend -> UI)
+                // Convertimos la colección de etiquetas a string separado por comas
+                if (manual.ManualEtiquetas != null)
+                {
+                    etiquetasInput = string.Join(", ", manual.ManualEtiquetas.Select(e => e.Etiqueta));
+                }
+
+                // Convertimos la colección de roles (si existe alguno) al valor del select
+                if (manual.RolesVisibles != null && manual.RolesVisibles.Any())
+                {
+                    rolSeleccionado = manual.RolesVisibles.First().RolNombre;
+                }
+            }
         }
 
-        // Inicializamos el EditContext con el modelo
         editContext = new EditContext(manual);
         cargando = false;
     }
@@ -272,11 +289,9 @@
     {
         if (!firstRender && QuillHtml != null && !string.IsNullOrEmpty(manual.ContenidoHTML))
         {
-            // Pequeño delay para asegurar que Quill esté listo en el DOM
             await Task.Delay(150);
             try
             {
-                // Solo cargamos si el editor está vacío para evitar sobrescribir si el usuario ya escribió algo antes del render
                 var contenidoActual = await QuillHtml.GetHTML();
                 if (string.IsNullOrWhiteSpace(contenidoActual))
                 {
@@ -289,54 +304,30 @@
 
     private async Task SubirImagenAlServidor(InputFileChangeEventArgs e)
     {
+        // ... (Lógica de imagen se mantiene igual, es segura y correcta) ...
         mensajeErrorImagen = "";
         var file = e.File;
         if (file == null) return;
-
-        // Validación 1: Tamaño (Max 5MB)
         long maxFileSize = 5 * 1024 * 1024;
-        if (file.Size > maxFileSize)
-        {
-            mensajeErrorImagen = "La imagen supera el límite de 5MB.";
-            return;
-        }
-
+        if (file.Size > maxFileSize) { mensajeErrorImagen = "La imagen supera el límite de 5MB."; return; }
         try
         {
-            // Validación 2: Cabeceras Reales (Magic Numbers) para seguridad anti-malware
             var buffer = new byte[8];
-            using (var stream = file.OpenReadStream(maxFileSize))
-            {
-                await stream.ReadAsync(buffer, 0, 8);
-            }
-
-            // Firmas: JPG (FF D8 F0), PNG (89 50 4E 47)
+            using (var stream = file.OpenReadStream(maxFileSize)) { await stream.ReadAsync(buffer, 0, 8); }
             bool esImagenValida = false;
-            if (buffer[0] == 0xFF && buffer[1] == 0xD8) esImagenValida = true; // JPG
-            if (buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47) esImagenValida = true; // PNG
+            if (buffer[0] == 0xFF && buffer[1] == 0xD8) esImagenValida = true;
+            if (buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47) esImagenValida = true;
+            if (!esImagenValida) { mensajeErrorImagen = "El archivo no es una imagen válida."; return; }
 
-            if (!esImagenValida)
-            {
-                mensajeErrorImagen = "El archivo no es una imagen válida o está dañado.";
-                return;
-            }
-
-            // Guardado Seguro
             var pathCarpeta = Path.Combine(Environment.WebRootPath, "uploads", "manuales");
             if (!Directory.Exists(pathCarpeta)) Directory.CreateDirectory(pathCarpeta);
-
             var nombreSeguro = Path.GetFileNameWithoutExtension(file.Name).Replace(" ", "_");
-            // Limitar longitud de nombre
             if (nombreSeguro.Length > 50) nombreSeguro = nombreSeguro.Substring(0, 50);
-
             var ext = Path.GetExtension(file.Name).ToLower();
             var nombreArchivo = $"{Guid.NewGuid()}_{nombreSeguro}{ext}";
             var pathCompleto = Path.Combine(pathCarpeta, nombreArchivo);
-
             await using FileStream fs = new(pathCompleto, FileMode.Create);
-            // Volvemos a abrir el stream para copiar todo el contenido
             await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
-
             urlImagenReciente = $"/uploads/manuales/{nombreArchivo}";
         }
         catch (Exception ex)
@@ -358,10 +349,28 @@
 
     private async Task ProcesarGuardado()
     {
-        // 1. Sincronizar contenido del editor visual al modelo antes de validar
         manual.ContenidoHTML = await QuillHtml.GetHTML();
 
-        // 2. Ejecutar validación explícita (DataAnnotations)
+        // --- MAPEO DE ESCRITURA (UI -> Backend) ---
+        // Antes de validar y guardar, transformamos los inputs simples en las colecciones que espera el dominio
+
+        // 1. Procesar Etiquetas
+        manual.ManualEtiquetas.Clear();
+        if (!string.IsNullOrWhiteSpace(etiquetasInput))
+        {
+            foreach (var tag in etiquetasInput.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                manual.ManualEtiquetas.Add(new ManualEtiqueta { Etiqueta = tag.Trim() });
+            }
+        }
+
+        // 2. Procesar Roles
+        manual.RolesVisibles.Clear();
+        if (!string.IsNullOrEmpty(rolSeleccionado))
+        {
+            manual.RolesVisibles.Add(new ManualRolVisibilidad { RolNombre = rolSeleccionado });
+        }
+
         if (editContext != null && editContext.Validate())
         {
             await GuardarSeguro();
@@ -374,20 +383,19 @@
 
     private async Task GuardarSeguro()
     {
-        // Verificación de integridad de sesión (Defensa en profundidad)
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var claimId = user.FindFirst(ClaimTypes.NameIdentifier);
 
         if (claimId == null || !Guid.TryParse(claimId.Value, out Guid usuarioEditorId))
         {
-            // CRÍTICO: No usamos GUIDs hardcodeados. Si no hay usuario, abortamos.
             await JS.InvokeVoidAsync("verificarYNotificar", "Error de sesión. Recargue la página.", "error", true);
             return;
         }
 
         try
         {
+            // El servicio recibirá el objeto manual con las colecciones ya llenas desde ProcesarGuardado
             await ManualService.GuardarManualAsync(manual, usuarioEditorId);
             await JS.InvokeVoidAsync("verificarYNotificar", "Manual guardado con éxito", "success", false);
             Nav.NavigateTo("/manuales");
