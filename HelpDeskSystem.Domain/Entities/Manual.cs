@@ -1,5 +1,6 @@
 ﻿using HelpDeskSystem.Domain.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -17,22 +18,19 @@ namespace HelpDeskSystem.Domain.Entities
         [Required(ErrorMessage = "El contenido es obligatorio")]
         public string ContenidoHTML { get; set; } = string.Empty;
 
-        // --- NUEVOS CAMPOS ---
+        // --- CORRECCIÓN: NORMALIZACIÓN DE DATOS (100/100) ---
+        // Reemplazamos los strings CSV por tablas relacionales para integridad y consultas eficientes.
 
-        // Guardaremos las etiquetas separadas por comas. Ej: "Redes,Wifi,Configuración"
-        [MaxLength(500)]
-        public string Etiquetas { get; set; } = string.Empty;
+        // Relación con Etiquetas (Antes string separada por comas)
+        public virtual ICollection<ManualEtiqueta> ManualEtiquetas { get; set; } = new List<ManualEtiqueta>();
 
-        // Guardaremos los roles permitidos separados por comas. Ej: "Administrador,Asesor"
-        // Si está vacío, asumiremos que es público para todos.
-        [MaxLength(200)]
-        public string RolesVisibles { get; set; } = string.Empty;
-
-        // Control de eliminación lógica (Soft Delete)
-        public bool IsDeleted { get; set; } = false;
-        public bool IsActive { get; set; } = true; // Para borrador/publicado
+        // Relación con Roles de Visibilidad (Antes string separada por comas)
+        public virtual ICollection<ManualRolVisibilidad> RolesVisibles { get; set; } = new List<ManualRolVisibilidad>();
 
         // ---------------------
+
+        public bool IsDeleted { get; set; } = false;
+        public bool IsActive { get; set; } = true;
 
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
         public DateTime? UltimaActualizacion { get; set; }
