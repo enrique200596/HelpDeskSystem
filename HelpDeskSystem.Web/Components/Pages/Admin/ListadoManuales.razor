@@ -2,6 +2,7 @@
 @using HelpDeskSystem.Domain.Entities
 @using HelpDeskSystem.Web.Services
 @using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
 @inject IManualService ManualService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
@@ -92,7 +93,6 @@
                                 }
                                 else if (!m.IsActive)
                                 {
-
                                     <span class="badge bg-warning text-dark rounded-pill shadow-sm">BORRADOR</span>
                                 }
                             </div>
@@ -224,15 +224,23 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarManuales();
+    }
+
+    private async Task CargarManuales()
+    {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        var rol = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var rol = user.FindFirst(ClaimTypes.Role)?.Value;
         manuales = await ManualService.ObtenerTodosAsync(rol);
     }
 
     private void CrearNuevo() => Nav.NavigateTo("/manuales/nuevo");
+
     private async Task VerHistorial(int manualId, string titulo) => await modalHistorial.Abrir(manualId, titulo);
+
     private void FiltrarPorEtiqueta(string etiqueta) => busqueda = etiqueta;
+
     private void LimpiarBusqueda() => busqueda = "";
 
     private async Task Eliminar(int id)
@@ -242,13 +250,26 @@
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            var userIdStr = user.FindFirst(c => c.Type.Contains("nameidentifier"))?.Value;
-            Guid.TryParse(userIdStr, out Guid usuarioId);
-            if (usuarioId == Guid.Empty) usuarioId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            var claimId = user.FindFirst(ClaimTypes.NameIdentifier);
 
-            await ManualService.EliminarManualAsync(id, usuarioId, user.IsInRole("Administrador"));
-            var rol = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-            manuales = await ManualService.ObtenerTodosAsync(rol);
+            // --- CORRECCIÓN DE SEGURIDAD CRÍTICA ---
+            if (claimId == null || !Guid.TryParse(claimId.Value, out Guid usuarioId))
+            {
+                await JS.InvokeVoidAsync("alert", "Error de seguridad: No se pudo identificar al usuario. Por favor recargue la sesión.");
+                return; // Abortamos. No usamos IDs falsos.
+            }
+            // ----------------------------------------
+
+            try
+            {
+                await ManualService.EliminarManualAsync(id, usuarioId, user.IsInRole("Administrador"));
+                await CargarManuales(); // Recarga limpia
+                await JS.InvokeVoidAsync("verificarYNotificar", "Manual eliminado correctamente", "success", false);
+            }
+            catch (Exception ex)
+            {
+                await JS.InvokeVoidAsync("verificarYNotificar", "No se pudo eliminar el manual.", "error", false);
+            }
         }
     }
 }

@@ -9,7 +9,10 @@ namespace HelpDeskSystem.Web.Services
     public class ManualService : IManualService
     {
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
-        private readonly ILogger<ManualService> _logger; // Inyección para resiliencia
+        private readonly ILogger<ManualService> _logger;
+
+        // Definimos el ID Fantasma para bloquearlo explícitamente
+        private readonly Guid _ghostUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
         public ManualService(IDbContextFactory<AppDbContext> dbFactory, ILogger<ManualService> logger)
         {
@@ -26,8 +29,6 @@ namespace HelpDeskSystem.Web.Services
                 .AsNoTracking()
                 .AsQueryable();
 
-            // Si no es admin, filtramos por visibilidad y estado activo
-            // Nota: IsDeleted ya lo filtra AppDbContext automáticamente
             if (rolUsuario != nameof(RolUsuario.Administrador))
             {
                 query = query.Where(m => m.IsActive &&
@@ -36,7 +37,6 @@ namespace HelpDeskSystem.Web.Services
             }
             else
             {
-                // El Admin sí necesita ver TODO, incluso lo borrado lógicamente
                 query = query.IgnoreQueryFilters();
             }
 
@@ -47,6 +47,10 @@ namespace HelpDeskSystem.Web.Services
 
         public async Task GuardarManualAsync(Manual manual, Guid usuarioEditorId)
         {
+            // --- CORRECCIÓN DE SEGURIDAD (Backend) ---
+            ValidarIdentidad(usuarioEditorId, "Guardar/Editar Manual");
+            // -----------------------------------------
+
             using var context = _dbFactory.CreateDbContext();
             TipoAccionManual accion;
             string detalle;
@@ -79,7 +83,6 @@ namespace HelpDeskSystem.Web.Services
 
                 await context.SaveChangesAsync();
 
-                // Registrar auditoría
                 var log = new ManualLog
                 {
                     ManualId = manual.Id,
@@ -93,20 +96,22 @@ namespace HelpDeskSystem.Web.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al guardar manual {Id}", manual.Id);
-                throw; // El componente UI manejará el mensaje amigable
+                throw;
             }
         }
 
         public async Task EliminarManualAsync(int id, Guid usuarioId, bool esAdmin)
         {
+            // --- CORRECCIÓN DE SEGURIDAD (Backend) ---
+            ValidarIdentidad(usuarioId, "Eliminar Manual");
+            // -----------------------------------------
+
             using var context = _dbFactory.CreateDbContext();
-            // Usamos IgnoreQueryFilters para encontrarlo aunque ya esté marcado como borrado
             var manual = await context.Manuales.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.Id == id);
             if (manual == null) return;
 
             if (esAdmin)
             {
-                // Limpieza en cascada manual de logs
                 var logs = context.ManualLogs.Where(l => l.ManualId == id);
                 context.ManualLogs.RemoveRange(logs);
                 context.Manuales.Remove(manual);
@@ -145,8 +150,19 @@ namespace HelpDeskSystem.Web.Services
             using var context = _dbFactory.CreateDbContext();
             return await context.Manuales
                 .Include(m => m.Autor)
-                .IgnoreQueryFilters() // Permite al editor ver manuales borrados/inactivos
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(m => m.Id == id);
+        }
+
+        // Método auxiliar de seguridad
+        private void ValidarIdentidad(Guid userId, string operacion)
+        {
+            if (userId == Guid.Empty || userId == _ghostUserId)
+            {
+                var error = $"Intento de operación no autorizada ({operacion}) con identidad inválida o hardcodeada.";
+                _logger.LogCritical(error);
+                throw new UnauthorizedAccessException("Error de Seguridad: Identidad de usuario no válida para realizar cambios.");
+            }
         }
     }
 }
