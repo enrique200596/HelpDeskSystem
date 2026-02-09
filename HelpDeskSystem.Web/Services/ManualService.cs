@@ -21,7 +21,6 @@ namespace HelpDeskSystem.Web.Services
         {
             using var context = _dbFactory.CreateDbContext();
 
-            // 1. Configuración base: Incluimos las relaciones normalizadas (Autor, Etiquetas, Roles)
             var query = context.Manuales
                 .Include(m => m.Autor)
                 .Include(m => m.ManualEtiquetas)
@@ -29,28 +28,23 @@ namespace HelpDeskSystem.Web.Services
                 .AsNoTracking()
                 .AsQueryable();
 
-            // 2. SEGURIDAD: Filtro de Visibilidad por Rol (Lógica Normalizada)
             if (rolUsuario != nameof(RolUsuario.Administrador))
             {
-                // Usuarios normales: Solo activos Y (públicos O coincidentes con su rol)
                 query = query.Where(m => m.IsActive &&
-                    (!m.RolesVisibles.Any() || // Si la lista de roles está vacía, es público
+                    (!m.RolesVisibles.Any() ||
                      (!string.IsNullOrEmpty(rolUsuario) && m.RolesVisibles.Any(r => r.RolNombre == rolUsuario))));
             }
             else
             {
-                // Administradores: Ven todo (incluido borrados y borradores)
                 query = query.IgnoreQueryFilters();
             }
 
-            // 3. BÚSQUEDA: Filtro SQL optimizado sobre colecciones
             if (!string.IsNullOrEmpty(terminoBusqueda))
             {
                 query = query.Where(m => m.Titulo.Contains(terminoBusqueda) ||
                                          m.ManualEtiquetas.Any(e => e.Etiqueta.Contains(terminoBusqueda)));
             }
 
-            // 4. Ordenar por fecha más reciente
             return await query
                 .OrderByDescending(m => m.UltimaActualizacion ?? m.FechaCreacion)
                 .ToListAsync();
@@ -69,10 +63,11 @@ namespace HelpDeskSystem.Web.Services
 
         public async Task GuardarManualAsync(Manual manual, Guid usuarioEditorId)
         {
-            // --- CORRECCIÓN DE SEGURIDAD: Validación real ---
-            ValidarIdentidad(usuarioEditorId, "Guardar/Editar Manual");
-
             using var context = _dbFactory.CreateDbContext();
+
+            // MEJORA 100/100: Validación de existencia y permisos de rol en BD
+            await ValidarAccesoAsync(context, usuarioEditorId, "Guardar/Editar Manual");
+
             TipoAccionManual accion;
             string detalle;
 
@@ -80,19 +75,15 @@ namespace HelpDeskSystem.Web.Services
             {
                 if (manual.Id == 0)
                 {
-                    // --- CREACIÓN ---
                     manual.FechaCreacion = DateTime.UtcNow;
                     manual.AutorId = usuarioEditorId;
-
-                    // EF Core insertará automáticamente los hijos en ManualEtiquetas y RolesVisibles
                     context.Manuales.Add(manual);
 
                     accion = TipoAccionManual.Creacion;
-                    detalle = $"Creó el manual inicial";
+                    detalle = "Creó el manual inicial";
                 }
                 else
                 {
-                    // --- EDICIÓN (Manejo de Relaciones) ---
                     var manualDb = await context.Manuales
                         .Include(m => m.ManualEtiquetas)
                         .Include(m => m.RolesVisibles)
@@ -100,20 +91,17 @@ namespace HelpDeskSystem.Web.Services
 
                     if (manualDb == null) return;
 
-                    // Actualizar campos escalares
                     manualDb.Titulo = manual.Titulo;
                     manualDb.ContenidoHTML = manual.ContenidoHTML;
                     manualDb.IsActive = manual.IsActive;
                     manualDb.UltimaActualizacion = DateTime.UtcNow;
 
-                    // Actualizar Colección Etiquetas (Estrategia: Limpiar y Reemplazar)
                     manualDb.ManualEtiquetas.Clear();
                     foreach (var tag in manual.ManualEtiquetas)
                     {
                         manualDb.ManualEtiquetas.Add(new ManualEtiqueta { Etiqueta = tag.Etiqueta });
                     }
 
-                    // Actualizar Colección Roles
                     manualDb.RolesVisibles.Clear();
                     foreach (var rol in manual.RolesVisibles)
                     {
@@ -126,7 +114,6 @@ namespace HelpDeskSystem.Web.Services
 
                 await context.SaveChangesAsync();
 
-                // Registro de Auditoría
                 var log = new ManualLog
                 {
                     ManualId = manual.Id,
@@ -147,27 +134,23 @@ namespace HelpDeskSystem.Web.Services
 
         public async Task EliminarManualAsync(int id, Guid usuarioId, bool esAdmin)
         {
-            ValidarIdentidad(usuarioId, "Eliminar Manual");
-
             using var context = _dbFactory.CreateDbContext();
+
+            // MEJORA 100/100: Validación de integridad de identidad antes de eliminar
+            await ValidarAccesoAsync(context, usuarioId, "Eliminar Manual");
+
             var manual = await context.Manuales.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.Id == id);
             if (manual == null) return;
 
             if (esAdmin)
             {
-                // Borrado Físico: EF Core maneja el borrado en cascada de etiquetas/logs si está configurado en DB,
-                // pero por seguridad limpiamos logs explícitamente.
                 var logs = context.ManualLogs.Where(l => l.ManualId == id);
                 context.ManualLogs.RemoveRange(logs);
-
-                // Las etiquetas/roles se borran por cascada (FK) o se pueden borrar explícitamente aquí si fuera necesario.
                 context.Manuales.Remove(manual);
-
                 _logger.LogWarning("Admin {User} eliminó físicamente el manual {Id}", usuarioId, id);
             }
             else
             {
-                // Borrado Lógico (Soft Delete)
                 manual.IsDeleted = true;
                 manual.UltimaActualizacion = DateTime.UtcNow;
 
@@ -194,14 +177,34 @@ namespace HelpDeskSystem.Web.Services
                 .ToListAsync();
         }
 
-        private void ValidarIdentidad(Guid userId, string operacion)
+        /// <summary>
+        /// Validación de seguridad robusta: Comprueba que el ID no sea nulo, 
+        /// que el usuario exista en la BD y que posea un rol autorizado para gestionar manuales.
+        /// </summary>
+        private async Task ValidarAccesoAsync(AppDbContext context, Guid userId, string operacion)
         {
-            // --- CORRECCIÓN: Eliminado el ID Fantasma Hardcodeado ---
             if (userId == Guid.Empty)
             {
-                var error = $"Intento de operación no autorizada ({operacion}) con identidad anónima/vacía.";
-                _logger.LogCritical(error);
-                throw new UnauthorizedAccessException("Error de Seguridad: Sesión no válida.");
+                _logger.LogCritical("Intento de operación {Operacion} sin GUID de usuario.", operacion);
+                throw new UnauthorizedAccessException("Sesión no válida.");
+            }
+
+            var usuario = await context.Usuarios
+                .AsNoTracking()
+                .Select(u => new { u.Id, u.Rol })
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (usuario == null)
+            {
+                _logger.LogCritical("Identidad falsificada detectada. Usuario {UserId} no existe en BD para {Operacion}", userId, operacion);
+                throw new UnauthorizedAccessException("El usuario no tiene una cuenta válida en el sistema.");
+            }
+
+            // Validación de rol: Solo Administradores y Asesores pueden realizar cambios en manuales
+            if (usuario.Rol != RolUsuario.Administrador && usuario.Rol != RolUsuario.Asesor)
+            {
+                _logger.LogWarning("Acceso denegado: El usuario {UserId} (Rol: {Rol}) intentó {Operacion}", userId, usuario.Rol, operacion);
+                throw new UnauthorizedAccessException("No tiene permisos suficientes para gestionar manuales.");
             }
         }
     }
