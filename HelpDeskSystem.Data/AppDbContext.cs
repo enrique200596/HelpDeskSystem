@@ -8,7 +8,6 @@ namespace HelpDeskSystem.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        // DbSet's (Se mantienen igual)
         public DbSet<Ticket> Tickets { get; set; } = null!;
         public DbSet<Usuario> Usuarios { get; set; } = null!;
         public DbSet<Mensaje> Mensajes { get; set; } = null!;
@@ -22,7 +21,7 @@ namespace HelpDeskSystem.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // ============================================================
+            // ================= :   ===========================================
             // 1. RESOLUCIÓN DE CONFLICTOS DE CASCADA (ERROR 1785)
             // ============================================================
 
@@ -33,32 +32,42 @@ namespace HelpDeskSystem.Data
                 .HasForeignKey(m => m.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Ticket -> Usuario (Creador)
+            // Ticket -> Usuario y Asesor
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Usuario)
                 .WithMany()
                 .HasForeignKey(t => t.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Ticket -> Asesor (Usuario asignado)
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Asesor)
                 .WithMany()
                 .HasForeignKey(t => t.AsesorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ManualLog -> Usuario
+            // CORRECCIÓN CRÍTICA: ManualLog -> Usuario (Evita el ciclo de cascada)
             modelBuilder.Entity<ManualLog>()
                 .HasOne(log => log.Usuario)
                 .WithMany()
                 .HasForeignKey(log => log.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ================= :   ===========================================
+            // 2. CONFIGURACIÓN DE FILTROS GLOBALES (SOFT DELETE)
             // ============================================================
-            // 2. CONFIGURACIÓN DE RELACIONES MUCHOS A MUCHOS
-            // ============================================================
+            modelBuilder.Entity<Ticket>().HasQueryFilter(t => !t.IsDeleted);
+            modelBuilder.Entity<Manual>().HasQueryFilter(m => !m.IsDeleted);
+            modelBuilder.Entity<Usuario>().HasQueryFilter(u => u.IsActive);
 
-            // Relación Usuario <-> Categoria (Especialidades de Asesores)
+            // CORRECCIÓN DE WARNINGS: Filtros en cascada para entidades hijas
+            modelBuilder.Entity<Mensaje>().HasQueryFilter(m => !m.Ticket.IsDeleted);
+            modelBuilder.Entity<ManualEtiqueta>().HasQueryFilter(e => !e.Manual.IsDeleted);
+            modelBuilder.Entity<ManualLog>().HasQueryFilter(log => !log.Manual.IsDeleted);
+            modelBuilder.Entity<ManualRolVisibilidad>().HasQueryFilter(rv => !rv.Manual.IsDeleted);
+
+            // ================= :   ===========================================
+            // 3. RELACIONES MUCHOS A MUCHOS Y OTROS
+            // ============================================================
             modelBuilder.Entity<Usuario>()
                 .HasMany(u => u.Categorias)
                 .WithMany(c => c.Asesores)
@@ -68,9 +77,6 @@ namespace HelpDeskSystem.Data
                     j => j.HasOne<Usuario>().WithMany().HasForeignKey("UsuarioId")
                 );
 
-            // ================= :   ===========================================
-            // 3. CONFIGURACIÓN DE MANUALES Y OTROS
-            // ============================================================
             modelBuilder.Entity<ManualEtiqueta>()
                 .HasOne(e => e.Manual)
                 .WithMany(m => m.ManualEtiquetas)
@@ -80,13 +86,6 @@ namespace HelpDeskSystem.Data
                 .HasOne(rv => rv.Manual)
                 .WithMany(m => m.RolesVisibles)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // ================= :   ===========================================
-            // 4. FILTROS GLOBALES (SOFT DELETE)
-            // ============================================================
-            modelBuilder.Entity<Ticket>().HasQueryFilter(t => !t.IsDeleted);
-            modelBuilder.Entity<Manual>().HasQueryFilter(m => !m.IsDeleted);
-            modelBuilder.Entity<Usuario>().HasQueryFilter(u => u.IsActive);
         }
     }
 }

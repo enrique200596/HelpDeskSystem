@@ -1,10 +1,15 @@
 ﻿using HelpDeskSystem.Data;
 using HelpDeskSystem.Domain.Entities;
 using HelpDeskSystem.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 Console.WriteLine("--- Iniciando Base de Datos ---");
 
-using (var context = new AppDbContext())
+// CONFIGURACIÓN: Creamos las opciones manualmente para el entorno de Consola
+var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+optionsBuilder.UseSqlServer("Server=srv-sistem-saf;Database=HelpDeskDB;User Id=sa;Password=$Sin123$5;TrustServerCertificate=True;");
+
+using (var context = new AppDbContext(optionsBuilder.Options))
 {
     // Crear un ticket nuevo
     var nuevoTicket = new Ticket

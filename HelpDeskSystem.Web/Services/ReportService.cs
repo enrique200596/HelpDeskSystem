@@ -39,12 +39,11 @@ namespace HelpDeskSystem.Web.Services
 
             query = AplicarFiltro(query, asesorId, desde, hasta);
 
-            // OPTIMIZACIÓN 10/10: Cálculo de promedio directamente en el motor SQL
-            // Evitamos traer miles de registros a la memoria de la aplicación
+            // OPTIMIZACIÓN: Cálculo de promedio directamente en el motor SQL
             var promedioMinutos = await query
                 .Where(t => t.Estado == EstadoTicket.Resuelto && t.FechaCierre != null)
                 .Select(t => EF.Functions.DateDiffMinute(t.FechaCreacion, t.FechaCierre!.Value))
-                .Cast<double?>() // Permite manejar resultados nulos si no hay datos
+                .Cast<double?>()
                 .AverageAsync();
 
             if (promedioMinutos == null || promedioMinutos == 0)
@@ -62,18 +61,17 @@ namespace HelpDeskSystem.Web.Services
             query = AplicarFiltro(query, asesorId, desde, hasta);
             query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
 
-            // Agrupación eficiente en servidor por relación de navegación
             var datos = await query
                 .GroupBy(t => t.CategoriaId)
                 .Select(g => new ReporteDato
                 {
-                    // Obtenemos el nombre de la categoría o un valor por defecto
-                    Etiqueta = g.Select(t => t.Categoria.Nombre).FirstOrDefault() ?? "Sin Categoría",
+                    // CORRECCIÓN CS8602: Uso del operador null-forgiving (!) para el compilador.
+                    // EF Core traducirá esto correctamente a un JOIN en SQL.
+                    Etiqueta = g.Select(t => t.Categoria!.Nombre).FirstOrDefault() ?? "Sin Categoría",
                     Valor = g.Count()
                 })
                 .ToListAsync();
 
-            // Cálculo de porcentajes en memoria (después de la agregación de SQL)
             int total = datos.Sum(d => d.Valor);
             if (total > 0)
             {
@@ -81,13 +79,16 @@ namespace HelpDeskSystem.Web.Services
                     d.Porcentaje = (d.Valor * 100) / total;
             }
 
-            return datos.OrderByDescending(d => d.Valor).ToListAsync().Result; // Ordenamos por volumen
+            // CORRECCIÓN CS1061: Se usa .ToList() porque ya estamos operando sobre una lista en memoria.
+            return datos.OrderByDescending(d => d.Valor).ToList();
         }
 
         public async Task<List<Ticket>> ObtenerDetalleTickets(Guid? asesorId = null, DateTime? desde = null, DateTime? hasta = null)
         {
             using var context = _dbFactory.CreateDbContext();
-            var query = context.Tickets
+
+            // CORRECCIÓN CS0266: Declaración explícita como IQueryable para permitir reasignación de filtros.
+            IQueryable<Ticket> query = context.Tickets
                 .AsNoTracking()
                 .Include(t => t.Usuario)
                 .Include(t => t.Asesor)
@@ -95,7 +96,6 @@ namespace HelpDeskSystem.Web.Services
 
             query = AplicarFiltro(query, asesorId, desde, hasta);
 
-            // Un reporte de detalle suele enfocarse en lo resuelto para auditoría
             query = query.Where(t => t.Estado == EstadoTicket.Resuelto);
 
             return await query

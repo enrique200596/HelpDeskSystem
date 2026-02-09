@@ -43,7 +43,8 @@
 
                 <div class="mb-5 animate-enter">
                     <h2 class="fw-bold text-primary mb-2" style="letter-spacing: -0.5px;">Bienvenido al Portal</h2>
-                    <p class="text-secondary small fw-medium">Ingresa tus credenciales para acceder a la plataforma.</>
+                    @* CORRECCIÓN RZ9980/RZ9981: Se cierra la etiqueta </p> correctamente *@
+                    <p class="text-secondary small fw-medium">Ingresa tus credenciales para acceder a la plataforma.</p>
                 </div>
 
                 @if (!string.IsNullOrEmpty(MensajeError))
@@ -54,7 +55,7 @@
                     </div>
                 }
 
-                @* CORRECCIÓN: Formulario HTML tradicional para procesar Cookies vía Controller *@
+                @* Formulario HTML tradicional para procesar Cookies vía Controller *@
                 <form action="/account/login" method="post" class="animate-enter" style="animation-delay: 0.1s;">
                     <AntiforgeryToken />
                     <input type="hidden" name="returnUrl" value="@ReturnUrl" />
@@ -90,7 +91,6 @@
                         <a href="#" class="text-decoration-none small text-secondary hover-red fw-bold">¿Olvidaste tu contraseña?</a>
                     </div>
 
-                    @* CORRECCIÓN: Se elimina @onclick y disabled para asegurar el envío del POST *@
                     <button type="submit" class="btn btn-utepsa w-100 py-3 shadow-red-glow d-flex justify-content-center align-items-center gap-2">
                         <span class="fw-bold">INGRESAR AHORA</span>
                         <i class="bi bi-arrow-right-short fs-4"></i>
@@ -99,7 +99,8 @@
 
                 <div class="text-center mt-5">
                     <p class="text-secondary small">
-                        ¿No tienes acceso? <a href="registrar" class="text-utepsa-red text-decoration-none fw-bold hover-underline">Solicitar registro</a>
+                        ¿No tienes acceso?
+                        <a href="registrar" class="text-utepsa-red text-decoration-none fw-bold hover-underline">Solicitar registro</a>
                     </p>
                 </div>
             </div>
@@ -108,7 +109,6 @@
 </div>
 
 <style>
-    /* Estilos se mantienen igual por ser correctos visualmente */
     .bg-surface {
         background-color: var(--bg-surface) !important;
     }

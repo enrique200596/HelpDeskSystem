@@ -95,8 +95,6 @@ namespace HelpDeskSystem.Web.Services
                 throw new InvalidOperationException("El ticket de destino no existe.");
 
             // CORRECCIÓN DE LÓGICA: Se permite enviar mensajes si el ticket está abierto o asignado.
-            // Se elimina la restricción de 'AsesorId == null' para que el usuario pueda añadir más detalles
-            // al ticket antes de que un asesor lo tome.
             if (ticket.Estado == EstadoTicket.Resuelto)
                 throw new InvalidOperationException("El ticket ya ha sido resuelto. No se admiten nuevos mensajes.");
 
@@ -104,11 +102,12 @@ namespace HelpDeskSystem.Web.Services
             context.Mensajes.Add(mensaje);
             await context.SaveChangesAsync();
 
-            // Carga asíncrona del remitente para enriquecer la notificación en tiempo real
+            // CORRECCIÓN CS1061: Se cambia el orden para filtrar por Id antes de proyectar solo el Nombre.
             var usuario = await context.Usuarios
                 .AsNoTracking()
+                .Where(u => u.Id == mensaje.UsuarioId)
                 .Select(u => new { u.Nombre })
-                .FirstOrDefaultAsync(u => u.Id == mensaje.UsuarioId);
+                .FirstOrDefaultAsync();
 
             // Sincronización con el contenedor de estado para la reactividad de Blazor
             _stateContainer.NotifyStateChanged(
