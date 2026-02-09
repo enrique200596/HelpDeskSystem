@@ -2,15 +2,16 @@
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Claims;
 using HelpDeskSystem.Domain.Entities;
-using Microsoft.AspNetCore.Http; // Necesario para IHttpContextAccessor
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace HelpDeskSystem.Web.Auth
 {
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         private readonly ProtectedSessionStorage _sessionStorage;
-        private readonly IHttpContextAccessor _httpContextAccessor; // Agregado para eficiencia
-        private readonly ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
 
         public CustomAuthenticationStateProvider(ProtectedSessionStorage sessionStorage, IHttpContextAccessor httpContextAccessor)
         {
@@ -22,16 +23,17 @@ namespace HelpDeskSystem.Web.Auth
         {
             try
             {
-                // 1. INTENTO EFICIENTE: Leer la Cookie del servidor
-                // Si el AccountController ya creó la cookie, el HttpContext tendrá el usuario.
-                var currentUser = _httpContextAccessor.HttpContext?.User;
-
-                if (currentUser?.Identity != null && currentUser.Identity.IsAuthenticated)
+                // 1. FUENTE DE VERDAD PRIMARIA: La Cookie de Autenticación.
+                // Durante el renderizado inicial (SSR), el HttpContext contiene al usuario autenticado por el AccountController.
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext?.User?.Identity != null && httpContext.User.Identity.IsAuthenticated)
                 {
-                    return new AuthenticationState(currentUser);
+                    return new AuthenticationState(httpContext.User);
                 }
 
-                // 2. RESPALDO: Leer del SessionStorage (para persistencia en el circuito de Blazor)
+                // 2. FUENTE DE RESPALDO: SessionStorage.
+                // Una vez que Blazor es interactivo (SignalR), el HttpContext puede ser nulo o perderse.
+                // Usamos SessionStorage para mantener al usuario dentro del circuito actual.
                 var userSessionResult = await _sessionStorage.GetAsync<UserSession>("UserSession");
                 var userSession = userSessionResult.Success ? userSessionResult.Value : null;
 
@@ -40,24 +42,14 @@ namespace HelpDeskSystem.Web.Auth
                     var claimsPrincipal = CreateClaimsPrincipalFromSession(userSession);
                     return new AuthenticationState(claimsPrincipal);
                 }
-
-                return new AuthenticationState(_anonymous);
             }
             catch
             {
+                // Captura excepciones de JS Interop durante el pre-renderizado (cuando SessionStorage no es accesible).
                 return new AuthenticationState(_anonymous);
             }
-        }
 
-        private ClaimsPrincipal CreateClaimsPrincipalFromSession(UserSession session)
-        {
-            return new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, session.Nombre),
-                new Claim(ClaimTypes.Email, session.Email),
-                new Claim(ClaimTypes.Role, session.Rol),
-                new Claim(ClaimTypes.Sid, session.Id.ToString())
-            }, "CustomAuth"));
+            return new AuthenticationState(_anonymous);
         }
 
         public async Task MarcarUsuarioComoAutenticado(Usuario usuario)
@@ -79,6 +71,22 @@ namespace HelpDeskSystem.Web.Auth
         {
             await _sessionStorage.DeleteAsync("UserSession");
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
+        }
+
+        private ClaimsPrincipal CreateClaimsPrincipalFromSession(UserSession session)
+        {
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.Name, session.Nombre),
+                new(ClaimTypes.Email, session.Email),
+                new(ClaimTypes.Role, session.Rol),
+                new(ClaimTypes.Sid, session.Id.ToString())
+            };
+
+            // CORRECCIÓN: Usamos CookieAuthenticationDefaults.AuthenticationScheme para que el sistema
+            // reconozca la identidad como válida y coincida con el AccountController.
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            return new ClaimsPrincipal(identity);
         }
     }
 }

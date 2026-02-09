@@ -25,7 +25,7 @@
     @* === CONTENIDO PRINCIPAL === *@
     <div class="flex-grow-1 d-flex flex-column h-100 overflow-hidden position-relative">
 
-        @* HEADER OPTIMIZADO: Alineación matemática de elementos *@
+        @* HEADER OPTIMIZADO *@
         <header class="bg-surface border-bottom shadow-sm d-flex align-items-center justify-content-between px-4"
                 style="height: 64px; flex-shrink: 0; z-index: 1000;">
 
@@ -53,8 +53,6 @@
 
             @* Lado Derecho: Toggle de Tema + Perfil *@
             <div class="d-flex align-items-center gap-3">
-
-                @* Botón de Cambio de Tema (UX: Fácil acceso) *@
                 <button class="btn btn-link text-secondary p-0 border-0" @onclick="ToggleDarkMode" title="Cambiar Tema">
                     <i class="bi @(isDarkMode ? "bi-sun-fill text-warning" : "bi-moon-stars-fill") fs-5"></i>
                 </button>
@@ -83,13 +81,10 @@
             </div>
         </header>
 
-        @* CONTENEDOR PRINCIPAL *@
         <main class="flex-grow-1 overflow-auto d-flex flex-column">
-
             <div class="flex-grow-1 p-0">
                 @Body
             </div>
-
             <footer class="text-center text-secondary small py-3 border-top mt-auto bg-surface">
                 <span class="opacity-75">&copy; @DateTime.Now.Year <strong>HelpDesk UTEPSA</strong> - Gestión Tecnológica</span>
             </footer>
@@ -102,17 +97,15 @@
         width: 260px;
         flex-shrink: 0;
         z-index: 1040;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.3s ease;
         background: var(--utepsa-dark);
     }
 
-    /* Ajustes de alineación para el breadcrumb */
     .breadcrumb-item + .breadcrumb-item::before {
         color: var(--text-light);
         padding: 0 0.5rem;
     }
 
-    /* Fondo dinámico para el header */
     .bg-surface {
         background-color: var(--bg-surface) !important;
     }
@@ -157,11 +150,10 @@
 @code {
     private string nombrePagina = "";
     private bool mostrarMenuMovil = false;
-    private bool isDarkMode = false; // Estado del tema
+    private bool isDarkMode = false;
 
     private void ToggleMenu() => mostrarMenuMovil = !mostrarMenuMovil;
 
-    // Lógica de intercambio de temas (Claro/Oscuro)
     private async Task ToggleDarkMode()
     {
         isDarkMode = !isDarkMode;
@@ -184,12 +176,15 @@
 
     private void ActualizarNombrePagina()
     {
-        var uri = NavManager.Uri.ToLower();
-        if (uri.EndsWith("dashboard")) nombrePagina = "Estadísticas";
-        else if (uri.Contains("manuales")) nombrePagina = "Base de Conocimiento";
-        else if (uri.Contains("nuevo-ticket")) nombrePagina = "Nuevo Ticket";
-        else if (uri.Contains("ticket/")) nombrePagina = "Detalle de Ticket";
-        else nombrePagina = "Tablero Principal";
+        // CORRECCIÓN: Usar ToBaseRelativePath para evitar errores con URLs absolutas o parámetros de búsqueda
+        var path = NavManager.ToBaseRelativePath(NavManager.Uri).ToLower();
+
+        if (path.StartsWith("dashboard")) nombrePagina = "Estadísticas";
+        else if (path.Contains("manuales")) nombrePagina = "Base de Conocimiento";
+        else if (path.Contains("nuevo-ticket")) nombrePagina = "Nuevo Ticket";
+        else if (path.Contains("ticket/")) nombrePagina = "Detalle de Ticket";
+        else if (string.IsNullOrEmpty(path) || path == "/") nombrePagina = "Tablero Principal";
+        else nombrePagina = "Panel de Control";
     }
 
     private async void ManejarCambioGlobal(int? ticketId, string? tituloTicket, TipoNotificacion tipo, string? remitente, Guid? ownerId, Guid? asesorId)
@@ -200,28 +195,38 @@
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 var user = authState.User;
+
                 if (user?.Identity?.IsAuthenticated != true) return;
 
-                var myIdStr = user.FindFirst(ClaimTypes.Sid)?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                // CORRECCIÓN: Obtener ID usando ClaimTypes.Sid para coincidir con la sesión corregida
+                var myIdStr = user.FindFirst(ClaimTypes.Sid)?.Value;
+
                 if (Guid.TryParse(myIdStr, out Guid myId))
                 {
+                    // No notificar al propio ejecutor
                     if (!string.IsNullOrEmpty(remitente) && remitente == user.Identity.Name) return;
-                    if (asesorId != null && myId != ownerId && myId != asesorId) return;
+
+                    // Lógica de visibilidad: Admins ven todo, Usuarios/Asesores solo lo suyo
+                    bool esAdmin = user.IsInRole(RolUsuario.Administrador.ToString());
+                    if (!esAdmin && asesorId != null && myId != ownerId && myId != asesorId) return;
                 }
 
                 var urlActual = NavManager.Uri.ToLower();
                 bool estaViendoElTicket = ticketId.HasValue && urlActual.Contains($"/ticket/{ticketId}");
-                string mensajeNotificacion = !string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente)
-                    ? $"{remitente}: {tituloTicket}" : "Actividad en el sistema";
 
-                try { await JS.InvokeVoidAsync("verificarYNotificar", mensajeNotificacion, "info", estaViendoElTicket); } catch { }
+                string mensajeNotificacion = !string.IsNullOrEmpty(tituloTicket) && !string.IsNullOrEmpty(remitente)
+                    ? $"{remitente}: {tituloTicket}"
+                    : "Nueva actividad en el sistema";
+
+                await JS.InvokeVoidAsync("verificarYNotificar", mensajeNotificacion, "info", estaViendoElTicket);
                 StateHasChanged();
             });
         }
-        catch { }
+        catch { /* Previene errores durante la desconexión del circuito */ }
     }
 
-    private string ObtenerIniciales(string? nombre) => string.IsNullOrEmpty(nombre) ? "U" : nombre.Substring(0, 1).ToUpper();
+    private string ObtenerIniciales(string? nombre) =>
+        string.IsNullOrWhiteSpace(nombre) ? "U" : nombre.Trim()[0].ToString().ToUpper();
 
     public void Dispose()
     {

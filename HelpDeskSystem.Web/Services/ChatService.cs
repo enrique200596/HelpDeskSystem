@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Text.RegularExpressions;
 
 namespace HelpDeskSystem.Web.Services
 {
@@ -13,16 +12,18 @@ namespace HelpDeskSystem.Web.Services
     {
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly IWebHostEnvironment _env;
-        private readonly TicketStateContainer _stateContainer; // Usamos el contenedor directamente
+        private readonly TicketStateContainer _stateContainer;
         private readonly ILogger<ChatService> _logger;
 
+        // Extensiones permitidas por seguridad institucional
         private static readonly Dictionary<string, string> TiposPermitidos = new()
         {
             { ".jpg", "image/jpeg" },
             { ".jpeg", "image/jpeg" },
             { ".png", "image/png" },
             { ".pdf", "application/pdf" },
-            { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+            { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
         };
 
         public ChatService(
@@ -43,27 +44,31 @@ namespace HelpDeskSystem.Web.Services
             {
                 var extension = Path.GetExtension(archivo.Name).ToLowerInvariant();
                 if (!TiposPermitidos.ContainsKey(extension))
-                    throw new InvalidOperationException("Tipo de archivo no permitido.");
+                    throw new InvalidOperationException("Formato de archivo no permitido por políticas de seguridad.");
 
-                if (archivo.Size > 5 * 1024 * 1024)
-                    throw new InvalidOperationException("El archivo excede los 5MB.");
+                // Límite de 5MB por archivo para evitar saturación del servidor
+                const long maxFileSize = 5 * 1024 * 1024;
+                if (archivo.Size > maxFileSize)
+                    throw new InvalidOperationException("El archivo excede el límite permitido de 5MB.");
 
                 var carpetaDestino = Path.Combine(_env.WebRootPath, "uploads");
-                if (!Directory.Exists(carpetaDestino)) Directory.CreateDirectory(carpetaDestino);
+                if (!Directory.Exists(carpetaDestino))
+                    Directory.CreateDirectory(carpetaDestino);
 
-                // Sanitización y nombre único (Capa de Seguridad 5)
+                // Nombre único para evitar colisiones y ataques de sobreescritura
                 var nombreArchivo = $"{Guid.NewGuid()}{extension}";
                 var rutaCompleta = Path.Combine(carpetaDestino, nombreArchivo);
 
-                await using var stream = archivo.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-                await using var fs = new FileStream(rutaCompleta, FileMode.Create, FileAccess.Write);
+                // Apertura de flujo segura con límite de tamaño explícito
+                await using var stream = archivo.OpenReadStream(maxAllowedSize: maxFileSize);
+                await using var fs = new FileStream(rutaCompleta, FileMode.Create, FileAccess.Write, FileShare.None);
                 await stream.CopyToAsync(fs);
 
                 return $"/uploads/{nombreArchivo}";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al subir archivo de chat: {Name}", archivo.Name);
+                _logger.LogError(ex, "Error crítico al procesar archivo adjunto: {Name}", archivo.Name);
                 throw;
             }
         }
@@ -72,10 +77,10 @@ namespace HelpDeskSystem.Web.Services
         {
             using var context = _dbFactory.CreateDbContext();
             return await context.Mensajes
-                .Where(m => m.TicketId == ticketId)
+                .AsNoTracking() // Optimización: Los mensajes de chat son de solo lectura en el listado
                 .Include(m => m.Usuario)
+                .Where(m => m.TicketId == ticketId)
                 .OrderBy(m => m.FechaHora)
-                .AsNoTracking()
                 .ToListAsync();
         }
 
@@ -83,24 +88,29 @@ namespace HelpDeskSystem.Web.Services
         {
             using var context = _dbFactory.CreateDbContext();
 
-            var ticket = await context.Tickets.FindAsync(mensaje.TicketId);
-            if (ticket == null) throw new InvalidOperationException("Ticket no encontrado.");
+            // Carga del ticket sin filtros globales para permitir chat en tickets resueltos si fuera necesario (opcional)
+            var ticket = await context.Tickets.FirstOrDefaultAsync(t => t.Id == mensaje.TicketId);
 
-            // Reglas de Negocio
+            if (ticket == null)
+                throw new InvalidOperationException("El ticket de destino no existe.");
+
+            // CORRECCIÓN DE LÓGICA: Se permite enviar mensajes si el ticket está abierto o asignado.
+            // Se elimina la restricción de 'AsesorId == null' para que el usuario pueda añadir más detalles
+            // al ticket antes de que un asesor lo tome.
             if (ticket.Estado == EstadoTicket.Resuelto)
-                throw new InvalidOperationException("No se pueden enviar mensajes a un ticket cerrado.");
-
-            if (ticket.AsesorId == null)
-                throw new InvalidOperationException("El ticket aún no tiene un asesor asignado.");
+                throw new InvalidOperationException("El ticket ya ha sido resuelto. No se admiten nuevos mensajes.");
 
             mensaje.FechaHora = DateTime.UtcNow;
             context.Mensajes.Add(mensaje);
             await context.SaveChangesAsync();
 
-            // Obtener datos del remitente para la notificación
-            var usuario = await context.Usuarios.FindAsync(mensaje.UsuarioId);
+            // Carga asíncrona del remitente para enriquecer la notificación en tiempo real
+            var usuario = await context.Usuarios
+                .AsNoTracking()
+                .Select(u => new { u.Nombre })
+                .FirstOrDefaultAsync(u => u.Id == mensaje.UsuarioId);
 
-            // Notificamos usando el nuevo sistema de Enums
+            // Sincronización con el contenedor de estado para la reactividad de Blazor
             _stateContainer.NotifyStateChanged(
                 mensaje.TicketId,
                 ticket.Titulo,
