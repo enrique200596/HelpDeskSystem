@@ -12,29 +12,29 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
 
-    @* --- REFERENCIAS PARA EL EDITOR DE TEXTO (Quill) --- *@
+    @* --- LIBRERÍAS EXTERNAS (CARGA PRIORITARIA) --- *@
+    @* Quill CSS *@
     <link href="//cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <link href="//cdn.quilljs.com/1.3.6/quill.bubble.css" rel="stylesheet">
 
-    @* --- CORRECCIÓN VITAL: prerender: false --- *@
+    @* Quill JS: Movido al head para solucionar el error "Quill is not defined" *@
+    <script src="_content/Blazored.TextEditor/quill.min.js"></script>
+    <script src="_content/Blazored.TextEditor/Blazored-BlazorQuill.js"></script>
+
+    @* --- RENDERIZADO INTERACTIVO: prerender: false es vital para JS Interop --- *@
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 <body>
-    @* --- CORRECCIÓN VITAL: prerender: false --- *@
     <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 
+    @* --- SCRIPTS DE FRAMEWORK Y UI --- *@
     <script src="_framework/blazor.web.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    @* --- SCRIPTS DE LIBRERÍAS (Solución al error QuillFunctions) --- *@
-    <script src="_content/Blazored.TextEditor/quill.min.js"></script>
-    <script src="_content/Blazored.TextEditor/Blazored-BlazorQuill.js"></script>
 
     @* --- SCRIPTS PERSONALIZADOS --- *@
     <script src="js/notificaciones.js"></script>
     <script>
-        // Solución para la exportación de reportes:
-        // Esta función procesa la cadena Base64 generada en C# y dispara la descarga en el navegador.
+        // Función para descarga de archivos (Reportes)
         window.descargarArchivo = (nombre, base64) => {
             const link = document.createElement('a');
             link.download = nombre;

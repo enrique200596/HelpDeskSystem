@@ -60,30 +60,22 @@
                     <div class="card-pro shadow-sm border-0 bg-surface mb-4">
                         <div class="card-pro-header border-bottom py-3 px-4 bg-subtle d-flex justify-content-between align-items-center">
                             <span class="fw-bold text-primary small text-uppercase ls-1">Contenido del Manual</span>
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-info-circle text-secondary" title="Use los estilos de encabezado para una mejor estructura"></i>
-                            </div>
+                            <i class="bi bi-info-circle text-secondary" title="Use los estilos de encabezado para una estructura clara"></i>
                         </div>
 
-                        @* HERRAMIENTA DE IMÁGENES INTEGRADA *@
                         <div class="p-3 bg-light border-bottom d-flex align-items-center gap-3 flex-wrap">
-                            <div class="d-flex align-items-center gap-2">
-                                <label class="btn btn-dark btn-sm fw-bold px-3 m-0 cursor-pointer">
-                                    <i class="bi bi-image me-2"></i>SUBIR IMAGEN
-                                    <InputFile OnChange="SubirImagenAlServidor" style="display:none;" accept=".jpg,.png,.jpeg" />
-                                </label>
-                            </div>
+                            <label class="btn btn-dark btn-sm fw-bold px-3 m-0 cursor-pointer">
+                                <i class="bi bi-image me-2"></i>SUBIR IMAGEN
+                                <InputFile OnChange="SubirImagenAlServidor" style="display:none;" accept=".jpg,.png,.jpeg" />
+                            </label>
 
                             @if (!string.IsNullOrEmpty(urlImagenReciente))
                             {
                                 <div class="animate-enter d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">
                                     <span class="text-success small fw-bold me-3"><i class="bi bi-check-circle-fill"></i> Imagen lista</span>
-                                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" @onclick="InsertarImagenEnEditor">
-                                        INSERTAR
-                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" @onclick="InsertarImagenEnEditor">INSERTAR</button>
                                 </div>
                             }
-
                             @if (!string.IsNullOrEmpty(mensajeErrorImagen))
                             {
                                 <span class="text-danger small fw-bold animate-enter">@mensajeErrorImagen</span>
@@ -91,7 +83,7 @@
                         </div>
 
                         <div class="card-pro-body p-0 editor-container-pro">
-                            <BlazoredTextEditor @ref="@QuillHtml" Placeholder="Comienza a redactar el procedimiento paso a paso...">
+                            <BlazoredTextEditor @ref="@QuillHtml" Placeholder="Redacte el procedimiento paso a paso...">
                                 <ToolbarContent>
                                     <select class="ql-header">
                                         <option selected=""></option>
@@ -111,8 +103,6 @@
                                     <span class="ql-formats">
                                         <button class="ql-list" value="ordered"></button>
                                         <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                    <span class="ql-formats">
                                         <button class="ql-link"></button>
                                         <button class="ql-clean"></button>
                                     </span>
@@ -130,23 +120,20 @@
                         </div>
 
                         <div class="card-pro-body p-4">
-                            @* Título *@
                             <div class="mb-4">
                                 <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Título de la Guía</label>
-                                <InputText class="form-control-pro w-100" @bind-Value="manual.Titulo" placeholder="Ej: Configuración VPN UTEPSA" />
+                                <InputText class="form-control-pro w-100" @bind-Value="manual.Titulo" placeholder="Ej: Configuración VPN" />
                                 <ValidationMessage For="@(() => manual.Titulo)" />
                             </div>
 
-                            @* Etiquetas *@
                             <div class="mb-4">
                                 <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Etiquetas (Separadas por coma)</label>
                                 <div class="position-relative">
                                     <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"><i class="bi bi-tags"></i></span>
-                                    <InputText class="form-control-pro w-100 ps-5" @bind-Value="etiquetasInput" placeholder="Redes, Seguridad, Alumnos" />
+                                    <InputText class="form-control-pro w-100 ps-5" @bind-Value="etiquetasInput" placeholder="Redes, Seguridad" />
                                 </div>
                             </div>
 
-                            @* Visibilidad *@
                             <div class="mb-4">
                                 <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Alcance / Visibilidad</label>
                                 <div class="position-relative">
@@ -155,22 +142,14 @@
                                         <option value="Administrador">Solo Administradores</option>
                                         <option value="Administrador,Asesor">Admin y Asesores (Interno)</option>
                                     </InputSelect>
-                                    <i class="bi bi-chevron-down position-absolute end-0 top-50 translate-middle-y me-3 text-secondary pointer-events-none"></i>
+                                    <i class="bi bi-chevron-down position-absolute end-0 top-50 translate-middle-y me-3 text-secondary"></i>
                                 </div>
                             </div>
 
-                            @* Estado Switch *@
                             <div class="p-3 rounded-3 border bg-subtle">
                                 <div class="form-check form-switch d-flex align-items-center gap-3 p-0 ms-4">
                                     <InputCheckbox class="form-check-input mt-0" @bind-Value="manual.IsActive" id="switchActivo" style="width: 40px; height: 20px; cursor: pointer;" />
                                     <label class="form-check-label fw-bold text-primary small" for="switchActivo">Habilitar publicación inmediatamente</label>
-                                </div>
-                            </div>
-
-                            <div class="mt-4 pt-4 border-top">
-                                <div class="alert alert-secondary bg-light border-0 small mb-0 d-flex align-items-start">
-                                    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
-                                    <span>Los cambios se auditan automáticamente para garantizar la trazabilidad del conocimiento.</span>
                                 </div>
                             </div>
                         </div>
@@ -183,7 +162,6 @@
 
 @code {
     [Parameter] public int Id { get; set; }
-
     private Manual manual = new();
     private BlazoredTextEditor QuillHtml = default!;
     private EditContext? editContext;
@@ -203,12 +181,10 @@
                 manual = existente;
                 if (manual.ManualEtiquetas != null)
                     etiquetasInput = string.Join(", ", manual.ManualEtiquetas.Select(e => e.Etiqueta));
-
                 if (manual.RolesVisibles != null && manual.RolesVisibles.Any())
                     rolSeleccionado = string.Join(",", manual.RolesVisibles.Select(r => r.RolNombre));
             }
         }
-
         editContext = new EditContext(manual);
         cargando = false;
     }
@@ -217,7 +193,7 @@
     {
         if (!firstRender && QuillHtml != null && !string.IsNullOrEmpty(manual.ContenidoHTML))
         {
-            await Task.Delay(200); // Buffer de carga para el editor JS
+            await Task.Delay(300); // Margen de seguridad para inicialización JS
             try
             {
                 var contenidoActual = await QuillHtml.GetHTML();
@@ -226,7 +202,7 @@
                     await QuillHtml.LoadHTMLContent(manual.ContenidoHTML);
                 }
             }
-            catch { /* Silencio operativo para evitar parpadeos */ }
+            catch { /* Silencio operativo para evitar parpadeos en fallos de carga JS */ }
         }
     }
 
@@ -269,20 +245,16 @@
     {
         var htmlContenido = await QuillHtml.GetHTML();
 
-        // --- APLICACIÓN DE LÓGICA DE DOMINIO (100/100) ---
-        // Usamos los métodos de la entidad para asegurar la integridad de datos
+        // Sincronización con la entidad de dominio
         manual.ActualizarContenido(manual.Titulo, htmlContenido);
         manual.SetEstado(manual.IsActive);
 
-        // Procesar Etiquetas mediante método de dominio
-        // Reemplaza las líneas 210-211 por:
+        // Procesamiento de Etiquetas (Llamada única para evitar el borrado cíclico)
         var tags = etiquetasInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                  .Select(t => t.Trim());
+        manual.AsignarEtiquetas(tags);
 
-        // El método AgregarEtiqueta en Manual.cs ya maneja la lógica de no duplicados
-        foreach (var tag in tags) manual.AsignarEtiquetas(tags);
-
-        // Procesar Roles mediante método de dominio
+        // Procesamiento de Roles
         var roles = rolSeleccionado.Split(',', StringSplitOptions.RemoveEmptyEntries);
         manual.AsignarRolesVisibilidad(roles);
 
