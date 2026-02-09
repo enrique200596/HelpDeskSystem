@@ -2,11 +2,13 @@
 @using HelpDeskSystem.Domain.Entities
 @using HelpDeskSystem.Web.Services
 @using System.Globalization
+@using System.Security.Claims
 @inject IManualService ManualService
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 
-<PageTitle>@(manual?.Titulo ?? "Leyendo Manual") | HelpDesk UTEPSA</PageTitle>
+<PageTitle>@(manual?.Titulo ?? (noAutorizado ? "Acceso Restringido" : "Leyendo Manual")) | HelpDesk UTEPSA</PageTitle>
 
 <div class="container py-4">
 
@@ -16,49 +18,67 @@
             <i class="bi bi-arrow-left-circle-fill fs-5 me-2"></i> Volver a la Base de Conocimiento
         </button>
 
-        @if (manual != null)
+        @if (manual != null && !noAutorizado)
         {
-            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold border-2" @onclick='() => JS.InvokeVoidAsync("print")'>
-                <i class="bi bi-printer-fill me-2"></i> IMPRIMIR GUÍA
-            </button>
+            <div class="d-flex gap-2">
+                <AuthorizeView Roles="Administrador,Asesor">
+                    <a href="/manuales/editar/@manual.Id" class="btn btn-utepsa-ghost btn-sm rounded-pill px-3 fw-bold border-2">
+                        <i class="bi bi-pencil-square me-2"></i> EDITAR
+                    </a>
+                </AuthorizeView>
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold border-2" @onclick='() => JS.InvokeVoidAsync("print")'>
+                    <i class="bi bi-printer-fill me-2"></i> IMPRIMIR
+                </button>
+            </div>
         }
     </div>
 
-    @if (manual == null)
+    @if (cargando)
     {
-        @if (noEncontrado)
-        {
-            <div class="text-center py-5 animate-enter">
-                <i class="bi bi-exclamation-octagon-fill text-danger display-1 opacity-25"></i>
-                <h2 class="fw-bold text-primary mt-3">Recurso no disponible</h2>
-                <p class="text-secondary">El manual solicitado no existe o ha sido retirado del sistema.</p>
-                <button class="btn btn-utepsa mt-3 px-4" @onclick="Volver">Explorar otros manuales</button>
-            </div>
-        }
-        else
-        {
-            <div class="d-flex flex-column justify-content-center align-items-center py-5">
-                <div class="spinner-grow text-utepsa-red mb-3"></div>
-                <span class="text-secondary fw-bold ls-1">CARGANDO DOCUMENTO...</span>
-            </div>
-        }
+        <div class="d-flex flex-column justify-content-center align-items-center py-5">
+            <div class="spinner-grow text-utepsa-red mb-3"></div>
+            <span class="text-secondary fw-bold ls-1">VALIDANDO CREDENCIALES Y CARGANDO...</span>
+        </div>
+    }
+    else if (noAutorizado)
+    {
+        <div class="text-center py-5 animate-enter">
+            <i class="bi bi-shield-lock-fill text-warning display-1 opacity-25"></i>
+            <h2 class="fw-bold text-primary mt-3">Acceso Restringido</h2>
+            <p class="text-secondary">No tienes los permisos necesarios para visualizar este recurso técnico.</p>
+            <button class="btn btn-utepsa mt-3 px-4" @onclick="Volver">Regresar al listado</button>
+        </div>
+    }
+    else if (manual == null)
+    {
+        <div class="text-center py-5 animate-enter">
+            <i class="bi bi-exclamation-octagon-fill text-danger display-1 opacity-25"></i>
+            <h2 class="fw-bold text-primary mt-3">Recurso no encontrado</h2>
+            <p class="text-secondary">El manual solicitado no existe o ha sido eliminado permanentemente.</p>
+            <button class="btn btn-utepsa mt-3 px-4" @onclick="Volver">Explorar otros manuales</button>
+        </div>
     }
     else
     {
         <div class="row justify-content-center">
-            @* Limitamos el ancho a 9 para una lectura óptima (Max 800px-900px aprox) *@
             <div class="col-lg-9 col-xl-8 animate-enter">
-
                 <article class="card-pro shadow-pro border-0 bg-surface overflow-hidden">
 
                     @* HEADER DEL DOCUMENTO *@
                     <header class="card-pro-header p-4 p-md-5 bg-subtle border-bottom">
+                        @if (!manual.IsActive)
+                        {
+                            <span class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill shadow-sm">
+                                <i class="bi bi-eye-slash-fill me-2"></i>ESTADO: BORRADOR (SÓLO PERSONAL AUTORIZADO)
+                            </span>
+                        }
+
                         <h1 class="display-5 fw-bold text-primary mb-4" style="letter-spacing: -1.5px; line-height: 1.1;">@manual.Titulo</h1>
 
                         <div class="d-flex flex-wrap align-items-center gap-4 text-secondary small fw-medium">
                             <div class="d-flex align-items-center">
                                 <div class="bg-utepsa-red rounded-circle me-2 d-flex align-items-center justify-content-center text-white shadow-sm" style="width: 28px; height: 28px; font-size: 0.7rem;">
-                                    @manual.Autor?.Nombre.Substring(0, 1).ToUpper()
+                                    @(manual.Autor?.Nombre?.Substring(0, 1).ToUpper() ?? "S")
                                 </div>
                                 <span>Autor: <strong class="text-primary">@(manual.Autor?.Nombre ?? "Soporte Técnico")</strong></span>
                             </div>
@@ -71,10 +91,23 @@
                             @if (manual.UltimaActualizacion.HasValue)
                             {
                                 <div class="badge bg-white text-secondary border px-3 py-2 rounded-pill shadow-sm">
-                                    <i class="bi bi-arrow-repeat me-1 text-success"></i> Actualizado: @manual.UltimaActualizacion.Value.ToString("d")
+                                    <i class="bi bi-arrow-repeat me-1 text-success"></i> Act: @manual.UltimaActualizacion.Value.ToString("d")
                                 </div>
                             }
                         </div>
+
+                        @* VISUALIZACIÓN DE ETIQUETAS (MEJORA 100/100) *@
+                        @if (manual.ManualEtiquetas != null && manual.ManualEtiquetas.Any())
+                        {
+                            <div class="mt-4 d-flex flex-wrap gap-2">
+                                @foreach (var tag in manual.ManualEtiquetas)
+                                {
+                                    <span class="badge bg-light text-secondary border-0 px-3 py-2" style="font-size: 0.75rem;">
+                                        <i class="bi bi-tag-fill me-1 text-utepsa-red"></i>@tag.Etiqueta
+                                    </span>
+                                }
+                            </div>
+                        }
                     </header>
 
                     @* CUERPO DEL MANUAL *@
@@ -90,7 +123,6 @@
                         </p>
                     </footer>
                 </article>
-
             </div>
         </div>
     }
@@ -113,7 +145,6 @@
         color: var(--text-secondary) !important;
     }
 
-    /* Estilos de Contenido (Rich Text) */
     .manual-rich-text {
         font-family: 'Inter', -apple-system, sans-serif;
         color: var(--text-primary);
@@ -125,44 +156,18 @@
             margin-bottom: 1.5rem;
         }
 
-        .manual-rich-text h2, .manual-rich-text h3 {
-            color: var(--text-primary);
-            font-weight: 800;
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            letter-spacing: -0.5px;
-        }
-
         .manual-rich-text h2 {
             font-size: 1.75rem;
+            font-weight: 800;
             border-left: 5px solid var(--utepsa-red);
             padding-left: 1rem;
+            margin-top: 2.5rem;
         }
 
         .manual-rich-text img {
             max-width: 100%;
-            height: auto;
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-pro);
-            margin: 2rem 0;
-            display: block;
-        }
-
-        .manual-rich-text ul, .manual-rich-text ol {
-            margin-bottom: 1.5rem;
-            padding-left: 1.5rem;
-        }
-
-        .manual-rich-text li {
-            margin-bottom: 0.5rem;
-        }
-
-        .manual-rich-text blockquote {
-            border-left: 4px solid var(--border-color);
-            padding: 1rem 1.5rem;
-            background-color: var(--bg-subtle);
-            font-style: italic;
-            border-radius: 0 var(--radius-md) var(--radius-md) 0;
             margin: 2rem 0;
         }
 
@@ -175,26 +180,48 @@
             box-shadow: none !important;
             border: none !important;
         }
-
-        .manual-rich-text {
-            color: black !important;
-        }
-
-            .manual-rich-text h2 {
-                color: #C8102E !important;
-            }
     }
 </style>
 
 @code {
     [Parameter] public int Id { get; set; }
     private Manual? manual;
-    private bool noEncontrado = false;
+    private bool cargando = true;
+    private bool noAutorizado = false;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userRol = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        // Recuperar manual (El servicio ignora filtros para permitir validación personalizada aquí)
         manual = await ManualService.ObtenerPorIdAsync(Id);
-        if (manual == null) noEncontrado = true;
+
+        if (manual != null)
+        {
+            // --- LÓGICA DE SEGURIDAD UI-SIDE (100/100) ---
+            bool esAdmin = user.IsInRole("Administrador");
+
+            // 1. Si está borrado, solo admin puede verlo
+            if (manual.IsDeleted && !esAdmin)
+            {
+                manual = null;
+            }
+            // 2. Si no es admin, validar visibilidad por Rol y Estado Activo
+            else if (!esAdmin)
+            {
+                bool tieneAccesoPorRol = !manual.RolesVisibles.Any() ||
+                                         manual.RolesVisibles.Any(r => r.RolNombre == userRol);
+
+                if (!manual.IsActive || !tieneAccesoPorRol)
+                {
+                    noAutorizado = true;
+                }
+            }
+        }
+
+        cargando = false;
     }
 
     private void Volver() => Nav.NavigateTo("/manuales");

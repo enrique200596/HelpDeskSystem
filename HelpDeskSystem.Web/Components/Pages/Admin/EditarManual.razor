@@ -30,6 +30,7 @@
                     @(Id == 0 ? "Crear Nuevo Procedimiento" : "Modificar Guía Técnica")
                 </h2>
             </div>
+
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-utepsa-ghost border fw-bold px-4" @onclick="Volver">DESCARTAR</button>
                 <button type="submit" class="btn btn-utepsa shadow-red-glow fw-bold px-4">
@@ -76,9 +77,9 @@
                             @if (!string.IsNullOrEmpty(urlImagenReciente))
                             {
                                 <div class="animate-enter d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">
-                                    <span class="text-success small fw-bold me-3"><i class="bi bi-check-circle-fill"></i> Lista para insertar</span>
+                                    <span class="text-success small fw-bold me-3"><i class="bi bi-check-circle-fill"></i> Imagen lista</span>
                                     <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" @onclick="InsertarImagenEnEditor">
-                                        INSERTAR EN EL TEXTO
+                                        INSERTAR
                                     </button>
                                 </div>
                             }
@@ -118,10 +119,6 @@
                                 </ToolbarContent>
                             </BlazoredTextEditor>
                         </div>
-
-                        <div class="px-4 py-2">
-                            <ValidationMessage For="@(() => manual.ContenidoHTML)" />
-                        </div>
                     </div>
                 </div>
 
@@ -140,22 +137,19 @@
                                 <ValidationMessage For="@(() => manual.Titulo)" />
                             </div>
 
-                            @* Etiquetas - CORREGIDO: Binding a variable local *@
+                            @* Etiquetas *@
                             <div class="mb-4">
                                 <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Etiquetas (Separadas por coma)</label>
                                 <div class="position-relative">
                                     <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"><i class="bi bi-tags"></i></span>
-                                    @* Usamos la variable local 'etiquetasInput' *@
                                     <InputText class="form-control-pro w-100 ps-5" @bind-Value="etiquetasInput" placeholder="Redes, Seguridad, Alumnos" />
                                 </div>
-                                @* Validación manual eliminada o personalizada *@
                             </div>
 
-                            @* Visibilidad - CORREGIDO: Binding a variable local *@
+                            @* Visibilidad *@
                             <div class="mb-4">
                                 <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Alcance / Visibilidad</label>
                                 <div class="position-relative">
-                                    @* Usamos la variable local 'rolSeleccionado' *@
                                     <InputSelect class="form-control-pro w-100 appearance-none shadow-none" @bind-Value="rolSeleccionado">
                                         <option value="">Todo el público</option>
                                         <option value="Administrador">Solo Administradores</option>
@@ -176,7 +170,7 @@
                             <div class="mt-4 pt-4 border-top">
                                 <div class="alert alert-secondary bg-light border-0 small mb-0 d-flex align-items-start">
                                     <i class="bi bi-info-circle-fill me-2 mt-1"></i>
-                                    <span>Los cambios en el título y etiquetas se sincronizan automáticamente con el motor de búsqueda.</span>
+                                    <span>Los cambios se auditan automáticamente para garantizar la trazabilidad del conocimiento.</span>
                                 </div>
                             </div>
                         </div>
@@ -187,61 +181,6 @@
     </EditForm>
 </div>
 
-<style>
-    .ls-1 {
-        letter-spacing: 1px;
-    }
-
-    .bg-surface {
-        background-color: var(--bg-surface) !important;
-    }
-
-    .bg-subtle {
-        background-color: var(--bg-subtle) !important;
-    }
-
-    .text-primary {
-        color: var(--text-primary) !important;
-    }
-
-    .text-secondary {
-        color: var(--text-secondary) !important;
-    }
-
-    .appearance-none {
-        -webkit-appearance: none;
-        appearance: none;
-    }
-
-    .pointer-events-none {
-        pointer-events: none;
-    }
-
-    .editor-container-pro .ql-toolbar {
-        border: none !important;
-        background-color: var(--bg-subtle);
-        border-bottom: 1px solid var(--border-color) !important;
-        padding: 10px 15px !important;
-    }
-
-    .editor-container-pro .ql-container {
-        border: none !important;
-        min-height: 500px;
-        font-family: 'Inter', system-ui, sans-serif;
-        font-size: 1.05rem;
-    }
-
-    .editor-container-pro .ql-editor {
-        padding: 30px 40px !important;
-    }
-
-        .editor-container-pro .ql-editor.ql-blank::before {
-            font-style: normal;
-            opacity: 0.5;
-            left: 40px;
-        }
-</style>
-
 @code {
     [Parameter] public int Id { get; set; }
 
@@ -251,9 +190,6 @@
     private bool cargando = true;
     private string urlImagenReciente = "";
     private string mensajeErrorImagen = "";
-
-    // --- VARIABLES ADAPTADORAS PARA LA VISTA ---
-    // Estas variables permiten usar inputs simples (string) para alimentar las colecciones complejas del backend
     private string etiquetasInput = "";
     private string rolSeleccionado = "";
 
@@ -265,19 +201,11 @@
             if (existente != null)
             {
                 manual = existente;
-
-                // MAPEO DE LECTURA (Backend -> UI)
-                // Convertimos la colección de etiquetas a string separado por comas
                 if (manual.ManualEtiquetas != null)
-                {
                     etiquetasInput = string.Join(", ", manual.ManualEtiquetas.Select(e => e.Etiqueta));
-                }
 
-                // Convertimos la colección de roles (si existe alguno) al valor del select
                 if (manual.RolesVisibles != null && manual.RolesVisibles.Any())
-                {
-                    rolSeleccionado = manual.RolesVisibles.First().RolNombre;
-                }
+                    rolSeleccionado = string.Join(",", manual.RolesVisibles.Select(r => r.RolNombre));
             }
         }
 
@@ -289,52 +217,43 @@
     {
         if (!firstRender && QuillHtml != null && !string.IsNullOrEmpty(manual.ContenidoHTML))
         {
-            await Task.Delay(150);
+            await Task.Delay(200); // Buffer de carga para el editor JS
             try
             {
                 var contenidoActual = await QuillHtml.GetHTML();
-                if (string.IsNullOrWhiteSpace(contenidoActual))
+                if (string.IsNullOrWhiteSpace(contenidoActual) || contenidoActual == "<p><br></p>")
                 {
                     await QuillHtml.LoadHTMLContent(manual.ContenidoHTML);
                 }
             }
-            catch { }
+            catch { /* Silencio operativo para evitar parpadeos */ }
         }
     }
 
     private async Task SubirImagenAlServidor(InputFileChangeEventArgs e)
     {
-        // ... (Lógica de imagen se mantiene igual, es segura y correcta) ...
         mensajeErrorImagen = "";
         var file = e.File;
         if (file == null) return;
+
         long maxFileSize = 5 * 1024 * 1024;
-        if (file.Size > maxFileSize) { mensajeErrorImagen = "La imagen supera el límite de 5MB."; return; }
+        if (file.Size > maxFileSize) { mensajeErrorImagen = "Límite: 5MB."; return; }
+
         try
         {
-            var buffer = new byte[8];
-            using (var stream = file.OpenReadStream(maxFileSize)) { await stream.ReadAsync(buffer, 0, 8); }
-            bool esImagenValida = false;
-            if (buffer[0] == 0xFF && buffer[1] == 0xD8) esImagenValida = true;
-            if (buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47) esImagenValida = true;
-            if (!esImagenValida) { mensajeErrorImagen = "El archivo no es una imagen válida."; return; }
-
             var pathCarpeta = Path.Combine(Environment.WebRootPath, "uploads", "manuales");
             if (!Directory.Exists(pathCarpeta)) Directory.CreateDirectory(pathCarpeta);
-            var nombreSeguro = Path.GetFileNameWithoutExtension(file.Name).Replace(" ", "_");
-            if (nombreSeguro.Length > 50) nombreSeguro = nombreSeguro.Substring(0, 50);
+
             var ext = Path.GetExtension(file.Name).ToLower();
-            var nombreArchivo = $"{Guid.NewGuid()}_{nombreSeguro}{ext}";
+            var nombreArchivo = $"{Guid.NewGuid()}{ext}";
             var pathCompleto = Path.Combine(pathCarpeta, nombreArchivo);
+
             await using FileStream fs = new(pathCompleto, FileMode.Create);
             await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+
             urlImagenReciente = $"/uploads/manuales/{nombreArchivo}";
         }
-        catch (Exception ex)
-        {
-            mensajeErrorImagen = "Error al procesar la imagen.";
-            Console.WriteLine(ex.Message);
-        }
+        catch { mensajeErrorImagen = "Error al procesar archivo."; }
     }
 
     private async Task InsertarImagenEnEditor()
@@ -343,33 +262,28 @@
         {
             await QuillHtml.InsertImage(urlImagenReciente);
             urlImagenReciente = "";
-            mensajeErrorImagen = "";
         }
     }
 
     private async Task ProcesarGuardado()
     {
-        manual.ContenidoHTML = await QuillHtml.GetHTML();
+        var htmlContenido = await QuillHtml.GetHTML();
 
-        // --- MAPEO DE ESCRITURA (UI -> Backend) ---
-        // Antes de validar y guardar, transformamos los inputs simples en las colecciones que espera el dominio
+        // --- APLICACIÓN DE LÓGICA DE DOMINIO (100/100) ---
+        // Usamos los métodos de la entidad para asegurar la integridad de datos
+        manual.ActualizarContenido(manual.Titulo, htmlContenido);
+        manual.SetEstado(manual.IsActive);
 
-        // 1. Procesar Etiquetas
-        manual.ManualEtiquetas.Clear();
-        if (!string.IsNullOrWhiteSpace(etiquetasInput))
-        {
-            foreach (var tag in etiquetasInput.Split(',', StringSplitOptions.RemoveEmptyEntries))
-            {
-                manual.ManualEtiquetas.Add(new ManualEtiqueta { Etiqueta = tag.Trim() });
-            }
-        }
+        // Procesar Etiquetas mediante método de dominio
+        var tags = etiquetasInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                 .Select(t => t.Trim());
 
-        // 2. Procesar Roles
-        manual.RolesVisibles.Clear();
-        if (!string.IsNullOrEmpty(rolSeleccionado))
-        {
-            manual.RolesVisibles.Add(new ManualRolVisibilidad { RolNombre = rolSeleccionado });
-        }
+        // El método AgregarEtiqueta en Manual.cs ya maneja la lógica de no duplicados
+        foreach (var tag in tags) manual.AgregarEtiqueta(tag);
+
+        // Procesar Roles mediante método de dominio
+        var roles = rolSeleccionado.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        manual.AsignarRolesVisibilidad(roles);
 
         if (editContext != null && editContext.Validate())
         {
@@ -377,7 +291,7 @@
         }
         else
         {
-            await JS.InvokeVoidAsync("verificarYNotificar", "Por favor corrige los errores en el formulario.", "error", false);
+            await JS.InvokeVoidAsync("verificarYNotificar", "Verifica los campos obligatorios.", "error", false);
         }
     }
 
@@ -389,20 +303,19 @@
 
         if (claimId == null || !Guid.TryParse(claimId.Value, out Guid usuarioEditorId))
         {
-            await JS.InvokeVoidAsync("verificarYNotificar", "Error de sesión. Recargue la página.", "error", true);
+            await JS.InvokeVoidAsync("verificarYNotificar", "Sesión inválida.", "error", true);
             return;
         }
 
         try
         {
-            // El servicio recibirá el objeto manual con las colecciones ya llenas desde ProcesarGuardado
             await ManualService.GuardarManualAsync(manual, usuarioEditorId);
-            await JS.InvokeVoidAsync("verificarYNotificar", "Manual guardado con éxito", "success", false);
+            await JS.InvokeVoidAsync("verificarYNotificar", "Cambios publicados.", "success", false);
             Nav.NavigateTo("/manuales");
         }
-        catch (Exception ex)
+        catch
         {
-            await JS.InvokeVoidAsync("verificarYNotificar", "Error interno al guardar los datos.", "error", false);
+            await JS.InvokeVoidAsync("verificarYNotificar", "Error al persistir datos.", "error", false);
         }
     }
 

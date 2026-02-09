@@ -23,7 +23,7 @@
 
         <AuthorizeView Roles="Administrador,Asesor">
             <Authorized>
-                <button class="btn btn-utepsa shadow-red-glow d-flex align-items-center gap-2 py-2 px-4" @onclick="CrearNuevo">
+                <button class="btn btn-utepsa shadow-red-glow d-flex align-items-center gap-2 py-2 px-4" @onclick="CrearNuevo" aria-label="Crear nuevo manual">
                     <i class="bi bi-plus-circle-fill fs-5"></i>
                     <span>Nuevo Manual</span>
                 </button>
@@ -40,7 +40,8 @@
                         <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary">
                             <i class="bi bi-search"></i>
                         </span>
-                        @* Búsqueda con Debounce *@
+
+                        @* Búsqueda con Debounce Optimizado *@
                         <input type="text" class="form-control-pro w-100 ps-5"
                                placeholder="Buscar por título de guía o palabras clave..."
                                value="@busqueda"
@@ -48,7 +49,8 @@
 
                         @if (!string.IsNullOrEmpty(busqueda))
                         {
-                            <button class="btn position-absolute end-0 top-50 translate-middle-y me-2 text-secondary border-0" @onclick="LimpiarBusqueda">
+                            <button class="btn position-absolute end-0 top-50 translate-middle-y me-2 text-secondary border-0"
+                                    @onclick="LimpiarBusqueda" title="Limpiar búsqueda">
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
                         }
@@ -66,7 +68,9 @@
         <div class="row g-4">
             @for (int i = 0; i < 6; i++)
             {
-                <div class="col-md-6 col-xl-4"><div class="card-pro p-5 placeholder-glow"><span class="placeholder col-12 rounded"></span></div></div>
+                <div class="col-md-6 col-xl-4">
+                    <div class="card-pro p-5 placeholder-glow"><span class="placeholder col-12 rounded"></span></div>
+                </div>
             }
         </div>
     }
@@ -87,36 +91,43 @@
                 <div class="col-md-6 col-xl-4">
                     <div class="card-pro h-100 shadow-sm border-0 bg-surface d-flex flex-column card-manual-hover">
 
-                        @* Estado de Borrador/Eliminado *@
-                        @if (m.IsDeleted || !m.IsActive)
-                        {
-                            <div class="position-absolute top-0 end-0 m-3 z-2">
-                                @if (m.IsDeleted)
+                        @* Estado de Borrador/Eliminado y Visibilidad (RBAC Visual) *@
+                        <div class="position-absolute top-0 end-0 m-3 z-2 d-flex flex-column gap-1 align-items-end">
+                            @if (m.IsDeleted)
+                            {
+                                <span class="badge bg-danger rounded-pill shadow-sm">ELIMINADO</span>
+                            }
+                            else if (!m.IsActive)
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill shadow-sm">BORRADOR</span>
+                            }
+
+                            <AuthorizeView Roles="Administrador,Asesor">
+                                @if (m.RolesVisibles != null && m.RolesVisibles.Any())
                                 {
-                                    <span class="badge bg-danger rounded-pill shadow-sm">ELIMINADO</span>
+                                    <span class="badge bg-dark rounded-pill shadow-sm" style="font-size: 0.65rem;">
+                                        <i class="bi bi-eye-slash-fill me-1"></i>RESTRINGIDO
+                                    </span>
                                 }
-                                else if (!m.IsActive)
-                                {
-                                    <span class="badge bg-warning text-dark rounded-pill shadow-sm">BORRADOR</span>
-                                }
-                            </div>
-                        }
+                            </AuthorizeView>
+                        </div>
 
                         <div class="card-pro-body p-4 d-flex flex-column h-100">
                             <div class="d-flex align-items-start gap-3 mb-3">
-                                <div class="bg-subtle rounded-3 p-3 d-flex align-items-center justify-content-center text-utepsa-red shadow-sm" style="width: 54px; height: 54px; flex-shrink: 0;">
+                                <div class="bg-subtle rounded-3 p-3 d-flex align-items-center justify-content-center text-utepsa-red shadow-sm"
+                                     style="width: 54px; height: 54px; flex-shrink: 0;">
                                     <i class="bi bi-file-earmark-richtext-fill fs-2"></i>
                                 </div>
                                 <div class="overflow-hidden">
                                     <h5 class="fw-bold text-primary mb-1 text-truncate" title="@m.Titulo">@m.Titulo</h5>
                                     <small class="text-secondary d-block">
-                                        Por <span class="fw-bold text-dark">@(m.Autor?.Nombre ?? "Admin")</span>
+                                        Por <span class="fw-bold text-dark">@(m.Autor?.Nombre ?? "Sistema")</span>
                                         <i class="bi bi-dot"></i> @m.FechaCreacion.ToString("dd MMM yyyy")
                                     </small>
                                 </div>
                             </div>
 
-                            @* --- CORRECCIÓN CRÍTICA: Iteración sobre Colección de Entidades --- *@
+                            @* --- ETIQUETAS NORMALIZADAS --- *@
                             <div class="mb-4 flex-wrap d-flex gap-1">
                                 @if (m.ManualEtiquetas != null && m.ManualEtiquetas.Any())
                                 {
@@ -129,8 +140,11 @@
                                         </span>
                                     }
                                 }
+                                else
+                                {
+                                    <span class="text-secondary opacity-50 small italic">Sin etiquetas</span>
+                                }
                             </div>
-                            @* ---------------------------------------------------------------- *@
 
                             @* Acciones de la Tarjeta *@
                             <div class="mt-auto pt-3 border-top border-light border-opacity-50">
@@ -142,7 +156,7 @@
                                     <AuthorizeView Roles="Administrador,Asesor">
                                         <Authorized>
                                             <div class="dropdown">
-                                                <button class="btn btn-subtle border rounded-3 py-2 px-3" type="button" data-bs-toggle="dropdown">
+                                                <button class="btn btn-subtle border rounded-3 py-2 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                     <i class="bi bi-three-dots-vertical"></i>
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-end shadow-pro border-0">
@@ -201,10 +215,6 @@
         color: white !important;
     }
 
-    .ls-1 {
-        letter-spacing: 1px;
-    }
-
     .btn-subtle {
         background-color: var(--bg-subtle);
         color: var(--text-primary);
@@ -232,22 +242,23 @@
         var user = authState.User;
         var rol = user.FindFirst(ClaimTypes.Role)?.Value;
 
-        // El servicio ya incluye .Include(m => m.ManualEtiquetas), por lo que la iteración funcionará
+        // La búsqueda ya está optimizada en el servidor por el ManualService
         manuales = await ManualService.ObtenerTodosAsync(rol, busqueda);
         await InvokeAsync(StateHasChanged);
     }
 
-    private void CrearNuevo() => Nav.NavigateTo("/manuales/nuevo");
+    private void CrearNuevo() => Nav.NavigateTo("/manuales/editar/0");
 
     private async Task VerHistorial(int manualId, string titulo) => await modalHistorial.Abrir(manualId, titulo);
 
     private void OnBusquedaInput(ChangeEventArgs e)
     {
         busqueda = e.Value?.ToString() ?? "";
+
         _debounceTimer?.Stop();
-        _debounceTimer = new Timer(500);
+        _debounceTimer = new Timer(450); // Reducido para mayor fluidez
         _debounceTimer.AutoReset = false;
-        _debounceTimer.Elapsed += async (sender, args) => await CargarManuales();
+        _debounceTimer.Elapsed += async (s, args) => await CargarManuales();
         _debounceTimer.Start();
     }
 
@@ -265,7 +276,7 @@
 
     private async Task Eliminar(int id)
     {
-        bool confirmado = await JS.InvokeAsync<bool>("confirm", "¿Confirmas la eliminación definitiva de este recurso?");
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de que deseas eliminar este manual? Esta acción registrará un evento de auditoría.");
         if (confirmado)
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -274,7 +285,7 @@
 
             if (claimId == null || !Guid.TryParse(claimId.Value, out Guid usuarioId))
             {
-                await JS.InvokeVoidAsync("alert", "Error de seguridad: No se pudo identificar al usuario. Por favor recargue la sesión.");
+                await JS.InvokeVoidAsync("verificarYNotificar", "Error: Sesión inválida", "error", false);
                 return;
             }
 
@@ -282,11 +293,11 @@
             {
                 await ManualService.EliminarManualAsync(id, usuarioId, user.IsInRole("Administrador"));
                 await CargarManuales();
-                await JS.InvokeVoidAsync("verificarYNotificar", "Manual eliminado correctamente", "success", false);
+                await JS.InvokeVoidAsync("verificarYNotificar", "Recurso gestionado correctamente", "success", false);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                await JS.InvokeVoidAsync("verificarYNotificar", "No se pudo eliminar el manual.", "error", false);
+                await JS.InvokeVoidAsync("verificarYNotificar", "Error al procesar la eliminación.", "error", false);
             }
         }
     }

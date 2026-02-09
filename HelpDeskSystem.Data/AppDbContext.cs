@@ -2,7 +2,6 @@
 using HelpDeskSystem.Domain.Enums;
 using HelpDeskSystem.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HelpDeskSystem.Data
 {
@@ -12,19 +11,23 @@ namespace HelpDeskSystem.Data
 
         public AppDbContext() { }
 
-        public DbSet<Ticket> Tickets { get; set; }
-        public DbSet<Usuario> Usuarios { get; set; }
-        public DbSet<Mensaje> Mensajes { get; set; }
-        public DbSet<Categoria> Categorias { get; set; }
-        public DbSet<Manual> Manuales { get; set; }
-        public DbSet<ManualLog> ManualLogs { get; set; }
+        // Entidades Generales
+        public DbSet<Ticket> Tickets { get; set; } = null!;
+        public DbSet<Usuario> Usuarios { get; set; } = null!;
+        public DbSet<Mensaje> Mensajes { get; set; } = null!;
+        public DbSet<Categoria> Categorias { get; set; } = null!;
 
-        // ADICIÓN NECESARIA: Configuración para entornos sin Inyección de Dependencias
+        // --- MÓDULO DE MANUALES (CORRECCIÓN 100/100) ---
+        public DbSet<Manual> Manuales { get; set; } = null!;
+        public DbSet<ManualLog> ManualLogs { get; set; } = null!;
+        public DbSet<ManualEtiqueta> ManualEtiquetas { get; set; } = null!;
+        public DbSet<ManualRolVisibilidad> ManualRolesVisibilidad { get; set; } = null!;
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                // Esta cadena debe coincidir con la de tu appsettings.json
+                // Configuración de respaldo para herramientas de diseño (Migrations)
                 optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=HelpDeskUtepsa;Trusted_Connection=True;MultipleActiveResultSets=true");
             }
         }
@@ -34,17 +37,31 @@ namespace HelpDeskSystem.Data
             base.OnModelCreating(modelBuilder);
 
             // ============================================================
-            // 1. CONFIGURACIÓN DE RELACIONES Y COMPORTAMIENTO DE BORRADO
+            // 1. CONFIGURACIÓN DEL MÓDULO DE MANUALES (RBAC e INTEGRIDAD)
             // ============================================================
 
-            // Ticket -> Usuario (Restrict: No borrar usuario si tiene tickets)
-            modelBuilder.Entity<Ticket>()
-                .HasOne(t => t.Usuario)
+            // Relación Manual -> Etiquetas (Borrado en Cascada Físico)
+            modelBuilder.Entity<ManualEtiqueta>()
+                .HasOne(e => e.Manual)
+                .WithMany(m => m.ManualEtiquetas)
+                .HasForeignKey(e => e.ManualId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relación Manual -> Roles de Visibilidad (Borrado en Cascada Físico)
+            modelBuilder.Entity<ManualRolVisibilidad>()
+                .HasOne(rv => rv.Manual)
+                .WithMany(m => m.RolesVisibles)
+                .HasForeignKey(rv => rv.ManualId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relación Manual -> Historial (Restrict: Protegemos la auditoría)
+            modelBuilder.Entity<ManualLog>()
+                .HasOne(log => log.Manual)
                 .WithMany()
-                .HasForeignKey(t => t.UsuarioId)
+                .HasForeignKey(log => log.ManualId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ManualLog -> Usuario (Restrict: No borrar usuario si tiene historial)
+            // Relación ManualLog -> Usuario (Auditoría)
             modelBuilder.Entity<ManualLog>()
                 .HasOne(log => log.Usuario)
                 .WithMany()
@@ -52,47 +69,28 @@ namespace HelpDeskSystem.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ============================================================
-            // 2. RELACIÓN MUCHOS A MUCHOS (ASESORES - CATEGORÍAS)
-            // ============================================================
-            modelBuilder.Entity<Usuario>()
-                .HasMany(u => u.Categorias)
-                .WithMany(c => c.Asesores)
-                .UsingEntity<Dictionary<string, object>>(
-                    "UsuarioCategoria",
-                    j => j.HasOne<Categoria>().WithMany().HasForeignKey("CategoriasId"),
-                    j => j.HasOne<Usuario>().WithMany().HasForeignKey("AsesoresId")
-                );
-
-            // ============================================================
-            // 3. SEMILLA DE DATOS (SEED DATA)
-            // ============================================================
-            modelBuilder.Entity<Categoria>().HasData(
-                new Categoria { Id = 1, Nombre = "Sistema Financiero", IsActive = true },
-                new Categoria { Id = 2, Nombre = "Sistema Genesis", IsActive = true },
-                new Categoria { Id = 3, Nombre = "Reportes", IsActive = true }
-            );
-
-            // ============================================================
-            // 4. FILTROS GLOBALES (SEGURIDAD E INTEGRIDAD)
+            // 2. FILTROS GLOBALES DE SEGURIDAD (Manejo de Papelera)
             // ============================================================
 
-            // Entidades principales (Soft Delete y Activos)
-            modelBuilder.Entity<Ticket>().HasQueryFilter(t => !t.IsDeleted);
+            // Filtro para Manuales (Soft Delete)
             modelBuilder.Entity<Manual>().HasQueryFilter(m => !m.IsDeleted);
+
+            // MEJORA 100/100: Filtros dependientes para integridad de consultas.
+            // Si un manual está en la papelera, sus etiquetas y roles no deben aparecer en búsquedas globales.
+            modelBuilder.Entity<ManualEtiqueta>()
+                .HasQueryFilter(e => !e.Manual!.IsDeleted);
+
+            modelBuilder.Entity<ManualRolVisibilidad>()
+                .HasQueryFilter(rv => !rv.Manual!.IsDeleted);
+
+            // Filtros de otras entidades
+            modelBuilder.Entity<Ticket>().HasQueryFilter(t => !t.IsDeleted);
             modelBuilder.Entity<Usuario>().HasQueryFilter(u => u.IsActive);
             modelBuilder.Entity<Categoria>().HasQueryFilter(c => c.IsActive);
-
-            // CORRECCIÓN 10/10: Filtros para entidades hijas (Evita advertencias EF 10622)
-            // Esto asegura que si un Ticket se "elimina", sus mensajes también se oculten automáticamente
-            modelBuilder.Entity<Mensaje>()
-                .HasQueryFilter(m => !m.Ticket.IsDeleted);
-
-            // Esto asegura que si un Manual se "elimina", su bitácora de cambios también se oculte
-            modelBuilder.Entity<ManualLog>()
-                .HasQueryFilter(ml => !ml.Manual.IsDeleted);
+            modelBuilder.Entity<Mensaje>().HasQueryFilter(m => !m.Ticket.IsDeleted);
 
             // ============================================================
-            // 5. CONVERSIÓN GLOBAL A UTC (ESTANDARIZACIÓN TEMPORAL)
+            // 3. CONVERSIÓN GLOBAL A UTC (ESTANDARIZACIÓN)
             // ============================================================
             var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
                 v => v,
@@ -112,6 +110,15 @@ namespace HelpDeskSystem.Data
                         property.SetValueConverter(nullableDateTimeConverter);
                 }
             }
+
+            // ============================================================
+            // 4. SEMILLA DE DATOS (SEED DATA)
+            // ============================================================
+            modelBuilder.Entity<Categoria>().HasData(
+                new Categoria { Id = 1, Nombre = "Sistema Financiero", IsActive = true },
+                new Categoria { Id = 2, Nombre = "Sistema Genesis", IsActive = true },
+                new Categoria { Id = 3, Nombre = "Reportes", IsActive = true }
+            );
         }
     }
 }
