@@ -61,7 +61,7 @@ namespace HelpDeskSystem.Data
             // Relación Usuario <-> Categoria (Especialidades de Asesores)
             modelBuilder.Entity<Usuario>()
                 .HasMany(u => u.Categorias)
-                .WithMany(c => c.Usuarios)
+                .WithMany(c => c.Asesores)
                 .UsingEntity<Dictionary<string, object>>(
                     "UsuarioCategoria",
                     j => j.HasOne<Categoria>().WithMany().HasForeignKey("CategoriaId"),

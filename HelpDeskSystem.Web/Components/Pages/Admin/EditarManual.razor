@@ -275,11 +275,12 @@
         manual.SetEstado(manual.IsActive);
 
         // Procesar Etiquetas mediante método de dominio
+        // Reemplaza las líneas 210-211 por:
         var tags = etiquetasInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                  .Select(t => t.Trim());
 
         // El método AgregarEtiqueta en Manual.cs ya maneja la lógica de no duplicados
-        foreach (var tag in tags) manual.AgregarEtiqueta(tag);
+        foreach (var tag in tags) manual.AsignarEtiquetas(tags);
 
         // Procesar Roles mediante método de dominio
         var roles = rolSeleccionado.Split(',', StringSplitOptions.RemoveEmptyEntries);

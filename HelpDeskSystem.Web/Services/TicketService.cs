@@ -140,5 +140,38 @@ namespace HelpDeskSystem.Web.Services
 
             Notificar(id, ticket.Titulo, TipoNotificacion.TicketResuelto, ejecutor?.Nombre, ticket.UsuarioId, ticket.AsesorId);
         }
+
+        // Añade estos métodos dentro de la clase TicketService en TicketService.cs
+        public async Task ActualizarDescripcionUsuarioAsync(Ticket ticket)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            context.Tickets.Update(ticket);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task CalificarTicketAsync(int ticketId, int estrellas, Guid usuarioId)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            var ticket = await context.Tickets.FindAsync(ticketId);
+            if (ticket != null)
+            {
+                // Aquí iría tu lógica de calificación (ej. ticket.Estrellas = estrellas)
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public async Task GuardarCategoriaAsync(Categoria categoria)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            context.Categorias.Add(categoria);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task ActualizarCategoriaAsync(Categoria categoria)
+        {
+            using var context = _dbFactory.CreateDbContext();
+            context.Categorias.Update(categoria);
+            await context.SaveChangesAsync();
+        }
     }
 }

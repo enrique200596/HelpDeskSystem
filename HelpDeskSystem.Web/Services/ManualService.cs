@@ -107,14 +107,16 @@ namespace HelpDeskSystem.Web.Services
                     context.ManualEtiquetas.RemoveRange(manualDb.ManualEtiquetas);
                     foreach (var et in manual.ManualEtiquetas)
                     {
-                        manualDb.ManualEtiquetas.Add(new ManualEtiqueta { Etiqueta = et.Etiqueta });
+                        var tags = manual.ManualEtiquetas.Select(e => e.Etiqueta);
+                        manualDb.AsignarEtiquetas(tags);
                     }
 
                     // CORRECCIÓN: Sincronización manual de Roles de Visibilidad
                     context.ManualRolesVisibilidad.RemoveRange(manualDb.RolesVisibles);
                     foreach (var rv in manual.RolesVisibles)
                     {
-                        manualDb.RolesVisibles.Add(new ManualRolVisibilidad { RolNombre = rv.RolNombre });
+                        var roles = manual.RolesVisibles.Select(r => r.RolNombre);
+                        manualDb.AsignarRolesVisibilidad(roles);
                     }
                 }
 
