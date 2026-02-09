@@ -21,19 +21,18 @@
     <EditForm EditContext="@editContext" OnSubmit="ProcesarGuardado">
         <DataAnnotationsValidator />
 
-        @* --- CABECERA DINÁMICA --- *@
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 animate-enter">
             <div>
                 <h6 class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1.2px; opacity: 0.8;">Editor de Contenido</h6>
                 <h2 class="fw-bold text-primary mb-0" style="letter-spacing: -1px;">
-                    <i class="bi @(Id == 0 ? "bi-journal-plus" : "bi-journal-text") me-2 text-utepsa-red"></i>
+                    <i class="bi @(Id == 0 ? "bi-journal-plus" : "bi-journal-text") me-2 text-danger"></i>
                     @(Id == 0 ? "Crear Nuevo Procedimiento" : "Modificar Guía Técnica")
                 </h2>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-utepsa-ghost border fw-bold px-4" @onclick="Volver">DESCARTAR</button>
-                <button type="submit" class="btn btn-utepsa shadow-red-glow fw-bold px-4">
+                <button type="button" class="btn btn-outline-secondary fw-bold px-4" @onclick="Volver">DESCARTAR</button>
+                <button type="submit" class="btn btn-primary shadow fw-bold px-4">
                     <i class="bi bi-cloud-arrow-up-fill me-2"></i> PUBLICAR CAMBIOS
                 </button>
             </div>
@@ -42,25 +41,17 @@
         @if (cargando)
         {
             <div class="d-flex flex-column justify-content-center align-items-center py-5">
-                <div class="spinner-border text-utepsa-red mb-3" style="width: 3rem; height: 3rem;"></div>
+                <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;"></div>
                 <span class="text-secondary fw-bold ls-1">PREPARANDO WORKSPACE...</span>
             </div>
         }
         else
         {
-            <div class="row">
-                <div class="col-12">
-                    <ValidationSummary class="alert alert-danger shadow-sm border-0 mb-4" />
-                </div>
-            </div>
-
             <div class="row g-4">
-                @* === COLUMNA PRINCIPAL: EDITOR === *@
                 <div class="col-xl-8 col-lg-7 animate-enter">
-                    <div class="card-pro shadow-sm border-0 bg-surface mb-4">
-                        <div class="card-pro-header border-bottom py-3 px-4 bg-subtle d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-primary small text-uppercase ls-1">Contenido del Manual</span>
-                            <i class="bi bi-info-circle text-secondary" title="Use los estilos de encabezado para una estructura clara"></i>
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header border-bottom py-3 px-4 bg-light d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-primary small text-uppercase">Contenido del Manual</span>
                         </div>
 
                         <div class="p-3 bg-light border-bottom d-flex align-items-center gap-3 flex-wrap">
@@ -71,18 +62,11 @@
 
                             @if (!string.IsNullOrEmpty(urlImagenReciente))
                             {
-                                <div class="animate-enter d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">
-                                    <span class="text-success small fw-bold me-3"><i class="bi bi-check-circle-fill"></i> Imagen lista</span>
-                                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" @onclick="InsertarImagenEnEditor">INSERTAR</button>
-                                </div>
-                            }
-                            @if (!string.IsNullOrEmpty(mensajeErrorImagen))
-                            {
-                                <span class="text-danger small fw-bold animate-enter">@mensajeErrorImagen</span>
+                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 animate-enter" @onclick="InsertarImagenEnEditor">INSERTAR IMAGEN LISTA</button>
                             }
                         </div>
 
-                        <div class="card-pro-body p-0 editor-container-pro">
+                        <div class="card-body p-0 editor-container-pro">
                             <BlazoredTextEditor @ref="@QuillHtml" Placeholder="Redacte el procedimiento paso a paso...">
                                 <ToolbarContent>
                                     <select class="ql-header">
@@ -97,60 +81,46 @@
                                         <button class="ql-underline"></button>
                                     </span>
                                     <span class="ql-formats">
-                                        <select class="ql-color"></select>
-                                        <select class="ql-background"></select>
-                                    </span>
-                                    <span class="ql-formats">
                                         <button class="ql-list" value="ordered"></button>
                                         <button class="ql-list" value="bullet"></button>
                                         <button class="ql-link"></button>
                                         <button class="ql-clean"></button>
                                     </span>
                                 </ToolbarContent>
+                                <EditorContent>
+                                    @((MarkupString)manual.ContenidoHTML)
+                                </EditorContent>
                             </BlazoredTextEditor>
                         </div>
                     </div>
                 </div>
 
-                @* === COLUMNA LATERAL: METADATOS === *@
-                <div class="col-xl-4 col-lg-5 animate-enter" style="animation-delay: 0.1s;">
-                    <div class="card-pro shadow-sm border-0 bg-surface sticky-top" style="top: 20px;">
-                        <div class="card-pro-header border-bottom py-3 px-4 bg-subtle">
-                            <h6 class="mb-0 fw-bold text-primary small text-uppercase ls-1">Configuración del Recurso</h6>
-                        </div>
-
-                        <div class="card-pro-body p-4">
+                <div class="col-xl-4 col-lg-5 animate-enter">
+                    <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                        <div class="card-body p-4">
                             <div class="mb-4">
-                                <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Título de la Guía</label>
-                                <InputText class="form-control-pro w-100" @bind-Value="manual.Titulo" placeholder="Ej: Configuración VPN" />
+                                <label class="form-label text-secondary fw-bold small text-uppercase">Título de la Guía</label>
+                                <InputText class="form-control w-100" @bind-Value="manual.Titulo" />
                                 <ValidationMessage For="@(() => manual.Titulo)" />
                             </div>
 
                             <div class="mb-4">
-                                <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Etiquetas (Separadas por coma)</label>
-                                <div class="position-relative">
-                                    <span class="position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"><i class="bi bi-tags"></i></span>
-                                    <InputText class="form-control-pro w-100 ps-5" @bind-Value="etiquetasInput" placeholder="Redes, Seguridad" />
-                                </div>
+                                <label class="form-label text-secondary fw-bold small text-uppercase">Etiquetas</label>
+                                <InputText class="form-control w-100" @bind-Value="etiquetasInput" placeholder="Redes, Seguridad" />
                             </div>
 
                             <div class="mb-4">
-                                <label class="form-label text-secondary fw-bold small text-uppercase ls-1">Alcance / Visibilidad</label>
-                                <div class="position-relative">
-                                    <InputSelect class="form-control-pro w-100 appearance-none shadow-none" @bind-Value="rolSeleccionado">
-                                        <option value="">Todo el público</option>
-                                        <option value="Administrador">Solo Administradores</option>
-                                        <option value="Administrador,Asesor">Admin y Asesores (Interno)</option>
-                                    </InputSelect>
-                                    <i class="bi bi-chevron-down position-absolute end-0 top-50 translate-middle-y me-3 text-secondary"></i>
-                                </div>
+                                <label class="form-label text-secondary fw-bold small text-uppercase">Visibilidad</label>
+                                <InputSelect class="form-select" @bind-Value="rolSeleccionado">
+                                    <option value="">Todo el público</option>
+                                    <option value="Administrador">Solo Administradores</option>
+                                    <option value="Administrador,Asesor">Admin y Asesores</option>
+                                </InputSelect>
                             </div>
 
-                            <div class="p-3 rounded-3 border bg-subtle">
-                                <div class="form-check form-switch d-flex align-items-center gap-3 p-0 ms-4">
-                                    <InputCheckbox class="form-check-input mt-0" @bind-Value="manual.IsActive" id="switchActivo" style="width: 40px; height: 20px; cursor: pointer;" />
-                                    <label class="form-check-label fw-bold text-primary small" for="switchActivo">Habilitar publicación inmediatamente</label>
-                                </div>
+                            <div class="form-check form-switch border p-3 rounded">
+                                <InputCheckbox class="form-check-input ms-0 me-2" @bind-Value="manual.IsActive" id="switchActivo" />
+                                <label class="form-check-label fw-bold" for="switchActivo">Publicar inmediatamente</label>
                             </div>
                         </div>
                     </div>
@@ -170,6 +140,7 @@
     private string mensajeErrorImagen = "";
     private string etiquetasInput = "";
     private string rolSeleccionado = "";
+    private bool contenidoCargadoEnEditor = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -179,10 +150,8 @@
             if (existente != null)
             {
                 manual = existente;
-                if (manual.ManualEtiquetas != null)
-                    etiquetasInput = string.Join(", ", manual.ManualEtiquetas.Select(e => e.Etiqueta));
-                if (manual.RolesVisibles != null && manual.RolesVisibles.Any())
-                    rolSeleccionado = string.Join(",", manual.RolesVisibles.Select(r => r.RolNombre));
+                etiquetasInput = string.Join(", ", manual.ManualEtiquetas.Select(e => e.Etiqueta));
+                rolSeleccionado = string.Join(",", manual.RolesVisibles.Select(r => r.RolNombre));
             }
         }
         editContext = new EditContext(manual);
@@ -191,45 +160,34 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender && QuillHtml != null && !string.IsNullOrEmpty(manual.ContenidoHTML))
+        if (!firstRender && QuillHtml != null && !contenidoCargadoEnEditor && !string.IsNullOrEmpty(manual.ContenidoHTML))
         {
-            await Task.Delay(300); // Margen de seguridad para inicialización JS
-            try
-            {
-                var contenidoActual = await QuillHtml.GetHTML();
-                if (string.IsNullOrWhiteSpace(contenidoActual) || contenidoActual == "<p><br></p>")
-                {
-                    await QuillHtml.LoadHTMLContent(manual.ContenidoHTML);
-                }
-            }
-            catch { /* Silencio operativo para evitar parpadeos en fallos de carga JS */ }
+            await Task.Delay(500); // Tiempo para inicialización de Quill
+            await QuillHtml.LoadHTMLContent(manual.ContenidoHTML);
+            contenidoCargadoEnEditor = true;
+            StateHasChanged();
         }
     }
 
     private async Task SubirImagenAlServidor(InputFileChangeEventArgs e)
     {
-        mensajeErrorImagen = "";
         var file = e.File;
         if (file == null) return;
-
-        long maxFileSize = 5 * 1024 * 1024;
-        if (file.Size > maxFileSize) { mensajeErrorImagen = "Límite: 5MB."; return; }
 
         try
         {
             var pathCarpeta = Path.Combine(Environment.WebRootPath, "uploads", "manuales");
             if (!Directory.Exists(pathCarpeta)) Directory.CreateDirectory(pathCarpeta);
 
-            var ext = Path.GetExtension(file.Name).ToLower();
-            var nombreArchivo = $"{Guid.NewGuid()}{ext}";
+            var nombreArchivo = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
             var pathCompleto = Path.Combine(pathCarpeta, nombreArchivo);
 
             await using FileStream fs = new(pathCompleto, FileMode.Create);
-            await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+            await file.OpenReadStream(5 * 1024 * 1024).CopyToAsync(fs);
 
             urlImagenReciente = $"/uploads/manuales/{nombreArchivo}";
         }
-        catch { mensajeErrorImagen = "Error al procesar archivo."; }
+        catch { /* Error handling */ }
     }
 
     private async Task InsertarImagenEnEditor()
@@ -244,51 +202,24 @@
     private async Task ProcesarGuardado()
     {
         var htmlContenido = await QuillHtml.GetHTML();
-
-        // Sincronización con la entidad de dominio
         manual.ActualizarContenido(manual.Titulo, htmlContenido);
         manual.SetEstado(manual.IsActive);
 
-        // Procesamiento de Etiquetas (Llamada única para evitar el borrado cíclico)
-        var tags = etiquetasInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(t => t.Trim());
-        manual.AsignarEtiquetas(tags);
+        manual.AsignarEtiquetas(etiquetasInput.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()));
+        manual.AsignarRolesVisibilidad(rolSeleccionado.Split(',', StringSplitOptions.RemoveEmptyEntries));
 
-        // Procesamiento de Roles
-        var roles = rolSeleccionado.Split(',', StringSplitOptions.RemoveEmptyEntries);
-        manual.AsignarRolesVisibilidad(roles);
-
-        if (editContext != null && editContext.Validate())
-        {
-            await GuardarSeguro();
-        }
-        else
-        {
-            await JS.InvokeVoidAsync("verificarYNotificar", "Verifica los campos obligatorios.", "error", false);
-        }
+        if (editContext?.Validate() == true) await GuardarSeguro();
     }
 
     private async Task GuardarSeguro()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        var claimId = user.FindFirst(ClaimTypes.NameIdentifier);
+        var claimId = authState.User.FindFirst(ClaimTypes.NameIdentifier);
 
-        if (claimId == null || !Guid.TryParse(claimId.Value, out Guid usuarioEditorId))
+        if (claimId != null && Guid.TryParse(claimId.Value, out Guid uId))
         {
-            await JS.InvokeVoidAsync("verificarYNotificar", "Sesión inválida.", "error", true);
-            return;
-        }
-
-        try
-        {
-            await ManualService.GuardarManualAsync(manual, usuarioEditorId);
-            await JS.InvokeVoidAsync("verificarYNotificar", "Cambios publicados.", "success", false);
+            await ManualService.GuardarManualAsync(manual, uId);
             Nav.NavigateTo("/manuales");
-        }
-        catch
-        {
-            await JS.InvokeVoidAsync("verificarYNotificar", "Error al persistir datos.", "error", false);
         }
     }
 
